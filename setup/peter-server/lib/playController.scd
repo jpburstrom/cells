@@ -344,9 +344,38 @@ Fdef(\makeCue, { |obj, modFunc|
 				};
 			};
 		});
-	};
+	}
 
-	//Add modFunc if not nil,
+	//SoundFile
+	{ obj.isString and: {
+		var sf = SoundFile();
+		sf.openRead(obj.standardizePath).if {
+			sf.close; true
+		} {
+			false
+		}
+	}} {
+		func = { ~filename = obj }.addFunc {
+
+			~load = {
+				~buffer = Buffer.cueSoundFile(~server, ~filename, 0, 2).postln;
+				SynthDef(\diskIn, {
+					var snd = VDiskIn.ar(2, \bufnum.kr(0), BufRateScale.kr(\bufnum.kr)).poll;
+					Out.ar(\out.kr(0), snd * Env.asr.ar(2, \gate.kr(1)));
+				}).add;
+				s.sync;
+			};
+
+			~play = {
+				~synth = Synth(\diskIn, [\bufnum, ~buffer]);
+			};
+
+			~stop = {
+				~synth.release;
+			};
+
+		}
+	};
 	proto.clone <> (modFunc !? func.addFunc(_) ? func).postln;
 });
 
