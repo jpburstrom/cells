@@ -127,11 +127,11 @@ var proto = Proto {
 
 	~load = {
 		~cond.test = false;
-		CmdPeriod.add(currentEnvironment);
 		forkIfNeeded {
 			if (~prCheckState.(\stopped, \error, \free)) {
 				~prChangeState.(\loading);
 				~makePlayer.value;
+				(~player[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
 				~playerWaitFor.(\load);
 				if (~prCheckState.(\stopping).not) {
 					~prChangeState.(\ready);
@@ -170,7 +170,7 @@ var proto = Proto {
 	};
 
 	~stop = {
-		CmdPeriod.remove(currentEnvironment);
+		//FIXME: server variable, hardcoded fallback
 		forkIfNeeded {
 			var name = ~player[\name];
 			if (~prCheckState.(\stopped, \stopping).not) {
@@ -224,7 +224,7 @@ var proto = Proto {
 		};
 		if (completely) {
 			//Need to remove this before forking, to avoid race conditions
-			CmdPeriod.remove(currentEnvironment);
+			(~player[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
 			forkIfNeeded {
 				func.value;
 				currentEnvironment.free;
@@ -263,15 +263,15 @@ var proto = Proto {
 		(st.collect(~states[_]).sum & ~stateNum) == ~stateNum;
     };
 
-
-	~cmdPeriod = {
-		fork {
-			if (~prCheckState.(\stopped, \free).not) {
-				~prChangeState.(\stopped);
-				~playerWaitFor.(\afterStop);
-				~freeAll.value;
-			}
+	~doOnServerTree = {
+		"serverReeee".postln;
+		//TODO: find a good way of not hardcoding this stuff
+		~player.synth = nil;
+		~player.synths.clear;
+		if (~prCheckState.(\stopped, \free).not) {
+			~hardStop.value;
 		}
+
 	};
 
 	~free = {
