@@ -1,390 +1,308 @@
-//A player for players
-//By default, ~player is an environment with functions
-//Player functions can be redefined by using ~playerFunc
-//to define actions.
-//As a shortcut, you can also set ~player to be a function, like this:
-/*
-p.player_({
-	var synth, buf;
+Cue {
 
-	//All objects attached to environment variables will be freed after stop
-	~buf = Buffer.read(s, "/Users/johannes/lovestory.wav");
+	classvar states;
 
-	//We run the function on load, in a routine, so we can use sync etc
-	s.sync;
+	var <cond, <playerCond;
+	var <mother, <children;
+	var <playAfterLoad;
+	var stateNum;
+	var <player, <playerFunc;
 
-	//The above can also be put in a ~load function.
+	*initClass {
+		states = IdentityDictionary[
+			\stopped -> 1,
+			\loading -> 2,
+			\ready -> 4,
+			\playing -> 8,
+			\paused -> 16,
+			\stopping -> 32,
+			\free -> 64,
+			\error -> 128
+		];
+	}
 
-	//Redefined play action. The player itself will take care of all complex
-	//player logic, so we just write what we want to do. It's run in a private environment,
-	//but you can reach the player controller as an function argument:
-	~play = { |player|
-		synth = {
-			PlayBuf.ar(2, ~buf)
-		}.play;
-		~buf.postln;
-		player.stop;
-	};
+	*new { |func|
+		^super.new.init(func);
+	}
 
-	//Stop action. if you want to
-	~stop = { |player|
-		player.waitFor(~synth.release(10).onFree(_).inEnvir)
-	};
+	init { |func|
 
-}).play
+		cond = Condition(false);
+		playerCond = Condition(false);
+		children = Set();
+		playAfterLoad = false;
+		stateNum = states[\free];
 
-*/
+		//Initialize player
+		player = Environment();
+		playerFunc = func; //TODO addFunc dance
+		this.initPlayer;
 
-var proto = Proto {
-
-	~cond = Condition(false);
-	~playerCond = Condition(false);
-
-	~playAfterLoad = false;
-
-	~stateNum = 64;
-	~states = IdentityDictionary[
-		\stopped -> 1,
-		\loading -> 2,
-		\ready -> 4,
-		\playing -> 8,
-		\paused -> 16,
-		\stopping -> 32,
-		\free -> 64,
-		\error -> 128
-	];
-
-	~player = Environment();
-
-	//A-P-I + sensible defaults
-	~playerFunc = {
-
-		~duration = inf;
-
-		~load = nil;
-		~beforePlay = nil;
-		~play = nil;
-		~afterPlay = nil;
-		~beforeStop = nil;
-		~stop = nil;
-		~afterStop = nil;
-		~pause = nil;
-		~resume = nil;
-
-	};
-
-	//Default
-	~player.make(~playerFunc);
+	}
 
 
-	~playerWaitFor = { |...keys|
+	initPlayer {
+		player.make(playerFunc)
+	}
+
+	//Run specific trigger(s) in player, eg play, stop etc.
+	//Should be run within a routine
+	trigAndWait { |...keys|
+
 		keys.do { |key|
-			~playerCond.test = false;
+			playerCond.test = false;
 			// "into %".format(key).debug;
 			fork {
-				(~player[key] !? (_.inEnvir(~player))).value(currentEnvironment, ~playerCond);
+				(player[key] !? (_.inEnvir(player))).value(this, playerCond);
 				// "out of %".format(key).debug;
-				~playerCond.test = true;
-				~playerCond.signal;
+				playerCond.test = true;
+				playerCond.signal;
 			};
-			~playerCond.wait;
+			playerCond.wait;
 			// "truly out of %".format(key).debug;
 
 		}
 
-	};
+	}
 
-	~waitFor = { |func|
+	//Func receives callback as argument, which is called
+	//when func has finished doing what it should do
+	//eg. this.waitFor({ |c| s.sync; c.value })
+	//TODO: maybe accept number (delay) and condition as well?
+	//Currently unused?
+	waitFor { |func|
 		var cond = Condition();
 		fork {
 			func.value({ cond.unhang });
 		};
 		cond.hang;
-	};
+	}
 
-	~makePlayer = {
-		if (~player.isFunction) {
-			~playerFunc = ~player;
-			~player = ();
+	//Get something from player envir
+	get { |what|
+		if (player.isEmpty) {
+			this.initPlayer;
 		};
-		~playerFunc !? {
-			~player.make(~playerFunc);
-		};
-	};
+		player[what];
+	}
 
-	~get = { |what|
-		if (~player.isEmpty) {
-			~makePlayer.value;
-		};
-		~player[what];
-	};
+	//Set something in player envir
+	set { |what, val|
+		//Set both factory function and current player envir
+		playerFunc.addFunc { currentEnvironment[what] = val };
+		player[what] = val;
+	}
 
-	~set = { |what, val|
-		if (~player.isFunction) {
-			~player = { currentEnvironment[what] = val } <> ~player;
-		}
-	};
-
-	~load = {
-		~cond.test = false;
+	load {
+		cond.test = false;
 		forkIfNeeded {
-			if (~prCheckState.(\stopped, \error, \free)) {
-				~prChangeState.(\loading);
-				~makePlayer.value;
-				(~player[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
-				~playerWaitFor.(\load);
-				if (~prCheckState.(\stopping).not) {
-					~prChangeState.(\ready);
-					if (~playAfterLoad) {
-						~playAfterLoad = false;
-						~play.value;
+			if (this.checkState(\stopped, \error, \free)) {
+				this.prChangeState(\loading);
+				this.initPlayer;
+				//TODO: how is server(s) defined?
+				(player[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
+				this.trigAndWait(\load);
+				if (this.checkState(\stopping).not) {
+					this.prChangeState(\ready);
+					if (playAfterLoad) {
+						playAfterLoad = false;
+						this.play;
 					};
 				}
 			};
-			~cond.test = true;
-			~cond.signal;
+			cond.test = true;
+			cond.signal;
 		};
-		currentEnvironment
-	};
+	}
 
-	~play = {
-		~cond.test = false;
+	play {
+		cond.test = false;
 		forkIfNeeded {
-			switch(~stateNum,
-				~states[\stopped], { ~playAfterLoad = true; ~load.value; },
-				~states[\free], { ~playAfterLoad = true; ~load.value; },
-				~states[\loading], { ~playAfterLoad = true; },
-				~states[\ready], {
-					~playerWaitFor.(\beforePlay, \play);
-					if (~prCheckState.(\stopping).not) {
-						~prChangeState.(\playing);
-						~playerWaitFor.(\afterPlay);
+			switch(stateNum,
+				states[\stopped], { playAfterLoad = true; this.load },
+				states[\free], { playAfterLoad = true; this.load },
+				states[\loading], { playAfterLoad = true; },
+				states[\ready], {
+					this.trigAndWait(\beforePlay, \play);
+					if (this.checkState(\stopping).not) {
+						this.prChangeState(\playing);
+						this.trigAndWait(\afterPlay);
 					};
 				},
-				~states[\paused], { ~resume.value }
+				states[\paused], { this.resume }
 			);
-			~cond.test = true;
-			~cond.signal;
+			cond.test = true;
+			cond.signal;
 		};
-		currentEnvironment
-	};
+	}
 
-	~stop = {
+	stop {
 		//FIXME: server variable, hardcoded fallback
+		cond.test = false;
 		forkIfNeeded {
-			var name = ~player[\name];
-			if (~prCheckState.(\stopped, \stopping).not) {
-				~prChangeState.(\stopping);
-				~playerCond.wait;
-				~playerWaitFor.(\beforeStop);
-				~playerWaitFor.(\stop);
-				~prChangeState.(\stopped);
-				~playerWaitFor.(\afterStop);
-				~hardStop.value;
+
+			if (this.checkState(\stopped, \stopping).not) {
+				this.prChangeState(\stopping);
+				playerCond.wait; //Wait until playing trigs have finished before cleaning up
+				this.trigAndWait(\beforeStop);
+				this.trigAndWait(\stop);
+				this.prChangeState(\stopped);
+				this.trigAndWait(\afterStop);
+				this.hardStop;
 			};
-			~cond.test = true;
-			~cond.signal;
+			cond.test = true;
+			cond.signal;
 		};
-		currentEnvironment
-	};
+	}
 
-	~hardStop = {
-		if (~prCheckState.(\stopped).not) {
-			(~player[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
-			~prChangeState.(\stopped);
-			~freeAll.value;
+	hardStop {
+		if (this.checkState(\stopped).not) {
+			(player[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
+			this.prChangeState(\stopped);
+			this.freeAll;
 		};
-	};
+	}
 
-	~pause = {
-		currentEnvironment
-	};
+	pause {
+		this.notYetImplemented;
+	}
 
-	~resume = {
-		currentEnvironment
-	};
+	resume {
+		this.notYetImplemented;
+	}
 
-	//Hack: leave proto alone, and deepDo on player instead
-	~deepDo = { |depth, function, index=0, rank=0|
-		~player.deepDo(depth, function, index, rank);
-	};
-
-	~freeAll = { |completely=false|
-		var ev = ~player;
+	freeAll { |completely=false|
 		var func = {
-			if (~prCheckState.(\stopped).not) {
-				~hardStop.value;
+			if (this.checkState(\stopped).not) {
+				this.hardStop;
 			} {
-				if (~prCheckState.(\free).not) {
+				//Ok, we have stopped, let's free stuff
+				if (this.checkState(\free).not) {
 					//If player has a freeAll function, use that.
 					//Otherwise just brutally free everything player has, recursively.
-					ev[\freeAll] !? { |func| func.inEnvir(ev).value(completely)
-					} ?? {
-						ev.tryPerform(\deepDo, 99, { |x|
+					if (player[\freeAll].notNil) {
+						player.use(player[\freeAll]);
+					} {
+						player.tryPerform(\deepDo, 99, { |x|
+						//Don't free symbols, please
 							if (x.isSymbol.not) { x.free }
 						})
 					};
-					~prChangeState.(\free);
+					this.prChangeState(\free);
 				};
-				currentEnvironment
 			}
 		};
+		//Completely = remove everything, clear player environment
 		if (completely) {
 			//Need to remove this before forking, to avoid race conditions
-			(~player[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
+			(player[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
 			forkIfNeeded {
 				func.value;
-				currentEnvironment.free;
+				player.use(player[\free]);
 			}
 		} {
 			func.value;
 		}
-	};
+	}
 
-	~then = { |func|
+	//Wait for cond (in case we're currently triggering an action)
+	//and then call function
+	then { |func|
 		forkIfNeeded {
-			~cond.wait;
-			func.value(currentEnvironment);
+			cond.wait;
+			func.value(this);
 		}
-	};
+	}
 
-	~wait = {
-		~cond.wait
-	};
+	//Just wait, if needed
+	wait {
+		cond.wait;
+	}
 
-	~state = { ~states.findKeyForValue(~stateNum) };
+	//Current state as symbol
+	state {
+		^states.findKeyForValue(stateNum)
+	}
 
-    ~isStopped = { ~prCheckState.(\stopped) };
-    ~isLoading = { ~prCheckState.(\loading) };
-    ~isReady = { ~prCheckState.(\ready) };
-    ~isPlaying = { ~prCheckState.(\playing) };
-    ~isPaused = { ~prCheckState.(\paused) };
+	isStopped { this.checkState(\stopped) }
+	isLoading { this.checkState(\loading) }
+	isReady { this.checkState(\ready) }
+	isPlaying { this.checkState(\playing) }
+	isPaused { this.checkState(\paused) }
 
-    ~prChangeState = { arg st;
-	    ~stateNum = ~states[st];
-		currentEnvironment.changed(\state, st);
-		currentEnvironment.changed(st);
-    };
+	prChangeState { |state|
+		stateNum = states[state];
+		this.changed(\state, state);
+		this.changed(state);
+	}
 
-    ~prCheckState = { arg ... st;
-		(st.collect(~states[_]).sum & ~stateNum) == ~stateNum;
-    };
+	//Check if state equals one of the supplied symbols
+	checkState { |... sts|
+		^(sts.collect(states[_]).sum & stateNum) == stateNum;
+	}
 
-	~doOnServerTree = {
-		"serverReeee".postln;
+	//TODO: serverTree only works with server, of course.
+	//We need to implement cmdPeriod for non-audio cues
+	doOnServerTree {
 		//TODO: find a good way of not hardcoding this stuff
-		~player.synth = nil;
-		~player.synths.clear;
-		if (~prCheckState.(\stopped, \free).not) {
-			~hardStop.value;
+		player.synth = nil;
+		player.synths.clear;
+		//^ this stuff
+		if (this.checkState.(\stopped, \free).not) {
+			this.hardStop;
 		}
 
-	};
+	}
 
-	~free = {
-		~stop.value;
-		"FREEING PROTO".warn;
-	};
-	currentEnvironment['<>'] = { |func|
+	free {
+		this.stop;
+		//TODO: clear environment
+	}
+
+
+	addChildren { |...children|
+		children.flat.do { |child|
+			if (this.validateRelative(child)) {
+				children.add(child);
+				child.setMother(this);
+			} {
+				"Not a valid child".warn;
+			}
+		};
+	}
+
+	setMother { |obj|
+		if (this.validateRelative(obj)) {
+			mother = obj;
+			if (obj.children.includes(currentEnvironment).not) {
+				obj.addChildren(currentEnvironment)
+			}
+		} {
+			"Not a valid mother".warn;
+		}
+	}
+
+	//Chek if an object could be a valid child/mother
+	validateRelative { |other|
+		^other.isKindOf(this.class)
+	}
+
+	siblings {
+		^mother !? {
+			mother.children.reject(currentEnvironment);
+		};
+	}
+
+	<> { |func|
 		if (func.isFunction or: func.isKindOf(FunctionList)) {
-			currentEnvironment.make {
-				if (~player.isFunction) {
-					~player = func <> ~player;
-				} {
-					~playerFunc = ~playerFunc.addFunc(func);
-				}
-			};
+			~playerFunc = ~playerFunc.addFunc(func);
 		} {
 			//Ignore nil
 			func !? {
 				"Not a function".warn;
 			}
 		};
-		currentEnvironment
-
 	}
 
-};
 
-Fdef(\makeCue, { |obj, modFunc|
-	var func;
-	case
-	//TODO: these could be put in a prototype dictionary
-	//(patternPlayer: {}, soundPlayer: {}) etc
-	//How do they relate to event types?
-	//Sketch for pattern player
-	{obj.isKindOf(Pattern)} {
-		func = { ~pattern = EventPatternProxy(obj) }.addFunc({
-			~play = {
-				~pattern.play;
-			};
-
-			~stop = {
-				~pattern.stop;
-			};
-		});
-	}
-	//Symbol = synthDef
-	{ obj.isKindOf(Symbol)} {
-		func = { ~synthName = obj }.addFunc({
-			~play = {
-				~synth = Synth(~synthName, ~synthArgs, ~group);
-
-			};
-
-			~stop = { |player, cond|
-				if (SynthDescLib.global[~synthName].hasGate) {
-					fork {
-						~synth.register(true).onFree({
-							cond.unhang;
-						}).release;
-					};
-					cond.hang;
-					~synth = nil;
-				};
-			};
-		});
-	}
-
-	//SoundFile
-	{ obj.isString and: {
-		var sf = SoundFile();
-		sf.openRead(obj.standardizePath).if {
-			sf.close; true
-		} {
-			false
-		}
-	}} {
-		func = { ~filename = obj }.addFunc {
-
-			~load = {
-				~buffer = Buffer.cueSoundFile(~server, ~filename, 0, 2).postln;
-				SynthDef(\diskIn, {
-					var snd = VDiskIn.ar(2, \bufnum.kr(0), BufRateScale.kr(\bufnum.kr)).poll;
-					Out.ar(\out.kr(0), snd * Env.asr.ar(2, \gate.kr(1)));
-				}).add;
-				s.sync;
-			};
-
-			~play = {
-				~synth = Synth(\diskIn, [\bufnum, ~buffer]);
-			};
-
-			~stop = {
-				~synth.release;
-			};
-
-		}
-	};
-	proto.clone <> (modFunc !? func.addFunc(_) ? func).postln;
-});
-
-//Trigger cue without stop
-Fdef(\makeTriggerCue, { |func, modFunc|
-	proto.clone <> { ~play = func } <> modFunc;
-});
-
-z = Fdef(\makeCue).value(Pbind(\dur, 0.5), { ~note = 2; });
-//z.play
-
-
+}
