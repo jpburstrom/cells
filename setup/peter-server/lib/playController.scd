@@ -307,9 +307,14 @@ var proto = Proto {
 };
 
 Fdef(\makeCue, { |obj, modFunc|
+	var func;
 	case
+	//TODO: these could be put in a prototype dictionary
+	//(patternPlayer: {}, soundPlayer: {}) etc
+	//How do they relate to event types?
+	//Sketch for pattern player
 	{obj.isKindOf(Pattern)} {
-		obj = "{ ~pattern = EventPatternProxy(%) }".format(obj.asCompileString).interpret.addFunc({
+		func = { ~pattern = EventPatternProxy(obj) }.addFunc({
 			~play = {
 				~pattern.play;
 			};
@@ -318,10 +323,31 @@ Fdef(\makeCue, { |obj, modFunc|
 				~pattern.stop;
 			};
 		});
+	}
+	//Symbol = synthDef
+	{ obj.isKindOf(Symbol)} {
+		func = { ~synthName = obj }.addFunc({
+			~play = {
+				~synth = Synth(~synthName, ~synthArgs, ~group);
+
+			};
+
+			~stop = { |player, cond|
+				if (SynthDescLib.global[~synthName].hasGate) {
+					fork {
+						~synth.register(true).onFree({
+							cond.unhang;
+						}).release;
+					};
+					cond.hang;
+					~synth = nil;
+				};
+			};
+		});
 	};
 
 	//Add modFunc if not nil,
-	proto.clone <> (modFunc !? obj.addFunc(_) ? obj).postln;
+	proto.clone <> (modFunc !? func.addFunc(_) ? func).postln;
 });
 
 //Trigger cue without stop
