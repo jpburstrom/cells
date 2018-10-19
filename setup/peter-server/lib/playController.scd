@@ -180,13 +180,20 @@ var proto = Proto {
 				~playerWaitFor.(\stop);
 				~prChangeState.(\stopped);
 				~playerWaitFor.(\afterStop);
-				~freeAll.value;
-				~playAfterLoad = false;
+				~hardStop.value;
 			};
 			~cond.test = true;
 			~cond.signal;
 		};
 		currentEnvironment
+	};
+
+	~hardStop = {
+		if (~prCheckState.(\stopped).not) {
+			(~player[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
+			~prChangeState.(\stopped);
+			~freeAll.value;
+		};
 	};
 
 	~pause = {
@@ -206,7 +213,7 @@ var proto = Proto {
 		var ev = ~player;
 		var func = {
 			if (~prCheckState.(\stopped).not) {
-				~stop.value;
+				~hardStop.value;
 			} {
 				if (~prCheckState.(\free).not) {
 					//If player has a freeAll function, use that.
