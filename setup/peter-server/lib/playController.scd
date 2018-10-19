@@ -35,14 +35,14 @@ p.player_({
 
 */
 
-p = Proto {
+var proto = Proto {
 
 	~cond = Condition(false);
 	~playerCond = Condition(false);
 
 	~playAfterLoad = false;
 
-	~stateNum = 1;
+	~stateNum = 64;
 	~states = IdentityDictionary[
 		\stopped -> 1,
 		\loading -> 2,
@@ -50,65 +50,48 @@ p = Proto {
 		\playing -> 8,
 		\paused -> 16,
 		\stopping -> 32,
-		\waiting -> 64,
+		\free -> 64,
 		\error -> 128
 	];
 
 	~player = Environment();
 
+	//A-P-I + sensible defaults
 	~playerFunc = {
 
-		~load = { |ev| \load.postln; 3.wait };
+		~duration = inf;
 
-		~beforePlay = {\beforePlay.postln; 1.wait};
-
-		~play = {\play.postln};
-
-		~afterPlay = {\afterPlay.postln};
-
-		~beforeStop = { \beforeStop.postln; 3.wait;  };
-
-		~stop = {\stop.postln};
-
-		~afterStop = {\afterStop.postln};
-
-		~pause = {\pause.postln};
-
-		~resume = {\resume.postln};
-
-		~freeAll = {
-			var ev = currentEnvironment;
-			ev.tryPerform(\freeAll) ?? {
-
-				ev.tryPerform(\deepDo, 99, {|x| x.free})
-			} ?? {
-				ev.do(_.postln)
-			};
-		};
+		~load = nil;
+		~beforePlay = nil;
+		~play = nil;
+		~afterPlay = nil;
+		~beforeStop = nil;
+		~stop = nil;
+		~afterStop = nil;
+		~pause = nil;
+		~resume = nil;
 
 	};
 
+	//Default
+	~player.make(~playerFunc);
+
 
 	~playerWaitFor = { |...keys|
-		try {
-			keys.do { |key|
-				~playerCond.test = false;
-				"into %".format(key).debug;
-				fork {
-					(~player[key] !? (_.inEnvir(~player))).value(currentEnvironment);
-					"out of %".format(key).debug;
-					~playerCond.test = true;
-					~playerCond.signal;
-				};
-				~playerCond.wait;
-				"truly out of %".format(key).debug;
+		keys.do { |key|
+			~playerCond.test = false;
+			// "into %".format(key).debug;
+			fork {
+				(~player[key] !? (_.inEnvir(~player))).value(currentEnvironment);
+				// "out of %".format(key).debug;
+				~playerCond.test = true;
+				~playerCond.signal;
+			};
+			~playerCond.wait;
+			// "truly out of %".format(key).debug;
 
-			}
-		} { |err|
-			err.reportError;
-			false
 		}
-			Error
+
 	};
 
 	~waitFor = { |func|
@@ -126,14 +109,27 @@ p = Proto {
 		};
 		~playerFunc !? {
 			~player.make(~playerFunc);
+		};
+	};
+
+	~get = { |what|
+		if (~player.isEmpty) {
+			~makePlayer.value;
+		};
+		~player[what];
+	};
+
+	~set = { |what, val|
+		if (~player.isFunction) {
+			~player = { currentEnvironment[what] = val } <> ~player;
 		}
 	};
 
 	~load = {
 		~cond.test = false;
-		fork {
-			CmdPeriod.doOnce(currentEnvironment);
-			if (~prCheckState.(\stopped, \error)) {
+		CmdPeriod.add(currentEnvironment);
+		forkIfNeeded {
+			if (~prCheckState.(\stopped, \error, \free)) {
 				~prChangeState.(\loading);
 				~makePlayer.value;
 				~playerWaitFor.(\load);
@@ -153,9 +149,10 @@ p = Proto {
 
 	~play = {
 		~cond.test = false;
-		fork {
+		forkIfNeeded {
 			switch(~stateNum,
 				~states[\stopped], { ~playAfterLoad = true; ~load.value; },
+				~states[\free], { ~playAfterLoad = true; ~load.value; },
 				~states[\loading], { ~playAfterLoad = true; },
 				~states[\ready], {
 					~playerWaitFor.(\beforePlay, \play);
@@ -173,7 +170,9 @@ p = Proto {
 	};
 
 	~stop = {
-		fork {
+		CmdPeriod.remove(currentEnvironment);
+		forkIfNeeded {
+			var name = ~player[\name];
 			if (~prCheckState.(\stopped, \stopping).not) {
 				~prChangeState.(\stopping);
 				~playerCond.wait;
@@ -181,10 +180,8 @@ p = Proto {
 				~playerWaitFor.(\stop);
 				~prChangeState.(\stopped);
 				~playerWaitFor.(\afterStop);
-				~playerWaitFor.(\freeAll);
-				//TODO: reset state
+				~freeAll.value;
 				~playAfterLoad = false;
-				CmdPeriod.remove(currentEnvironment);
 			};
 			~cond.test = true;
 			~cond.signal;
@@ -200,10 +197,47 @@ p = Proto {
 		currentEnvironment
 	};
 
+	//Hack: leave proto alone, and deepDo on player instead
+	~deepDo = { |depth, function, index=0, rank=0|
+		~player.deepDo(depth, function, index, rank);
+	};
+
+	~freeAll = { |completely=false|
+		var ev = ~player;
+		var func = {
+			if (~prCheckState.(\stopped).not) {
+				~stop.value;
+			} {
+				if (~prCheckState.(\free).not) {
+					//If player has a freeAll function, use that.
+					//Otherwise just brutally free everything player has, recursively.
+					ev[\freeAll] !? { |func| func.inEnvir(ev).value(completely)
+					} ?? {
+						ev.tryPerform(\deepDo, 99, { |x|
+							x.free
+						})
+					};
+					~prChangeState.(\free);
+				};
+				currentEnvironment
+			}
+		};
+		if (completely) {
+			//Need to remove this before forking, to avoid race conditions
+			CmdPeriod.remove(currentEnvironment);
+			forkIfNeeded {
+				func.value;
+				currentEnvironment.free;
+			}
+		} {
+			func.value;
+		}
+	};
+
 	~then = { |func|
 		forkIfNeeded {
 			~cond.wait;
-			func.value;
+			func.value(currentEnvironment);
 		}
 	};
 
@@ -220,9 +254,9 @@ p = Proto {
     ~isPaused = { ~prCheckState.(\paused) };
 
     ~prChangeState = { arg st;
-		st.debug("state");
-        ~stateNum = ~states[st];
-			this.changed(\state);
+	    ~stateNum = ~states[st];
+		currentEnvironment.changed(\state, st);
+		currentEnvironment.changed(st);
     };
 
     ~prCheckState = { arg ... st;
@@ -232,28 +266,63 @@ p = Proto {
 
 	~cmdPeriod = {
 		fork {
-			if (~prCheckState.(\stopped).not) {
+			if (~prCheckState.(\stopped, \free).not) {
 				~prChangeState.(\stopped);
 				~playerWaitFor.(\afterStop);
-				~playerWaitFor.(\freeAll);
+				~freeAll.value;
 			}
 		}
 	};
 
-	// ~proto <> { ~play = { "redefine play".postln } }
+	~free = {
+		~stop.value;
+		"FREEING PROTO".warn;
+	};
 	currentEnvironment['<>'] = { |func|
-		if (func.isFunction) {
-			var out = currentEnvironment.clone;
-			out.make {
+		if (func.isFunction or: func.isKindOf(FunctionList)) {
+			currentEnvironment.make {
 				if (~player.isFunction) {
 					~player = func <> ~player;
 				} {
-					~playerFunc = func;
+					~playerFunc = ~playerFunc.addFunc(func);
 				}
 			};
 		} {
-			"Not a function".warn;
-		}
+			//Ignore nil
+			func !? {
+				"Not a function".warn;
+			}
+		};
+		currentEnvironment
+
 	}
 
 };
+
+Fdef(\makeCue, { |obj, modFunc|
+	case
+	{obj.isKindOf(Pattern)} {
+		obj = "{ ~pattern = EventPatternProxy(%) }".format(obj.asCompileString).interpret.addFunc({
+			~play = {
+				~pattern.play;
+			};
+
+			~stop = {
+				~pattern.stop;
+			};
+		});
+	};
+
+	//Add modFunc if not nil,
+	proto.clone <> (modFunc !? obj.addFunc(_) ? obj).postln;
+});
+
+//Trigger cue without stop
+Fdef(\makeTriggerCue, { |func, modFunc|
+	proto.clone <> { ~play = func } <> modFunc;
+});
+
+z = Fdef(\makeCue).value(Pbind(\dur, 0.5), { ~note = 2; });
+//z.play
+
+
