@@ -221,7 +221,7 @@ var proto = Proto {
 					ev[\freeAll] !? { |func| func.inEnvir(ev).value(completely)
 					} ?? {
 						ev.tryPerform(\deepDo, 99, { |x|
-							x.free
+							if (x.isSymbol.not) { x.free }
 						})
 					};
 					~prChangeState.(\free);
