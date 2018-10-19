@@ -82,7 +82,7 @@ var proto = Proto {
 			~playerCond.test = false;
 			// "into %".format(key).debug;
 			fork {
-				(~player[key] !? (_.inEnvir(~player))).value(currentEnvironment);
+				(~player[key] !? (_.inEnvir(~player))).value(currentEnvironment, ~playerCond);
 				// "out of %".format(key).debug;
 				~playerCond.test = true;
 				~playerCond.signal;
