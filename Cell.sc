@@ -7,7 +7,6 @@ Cell : EnvironmentRedirect {
 	var <mother, <children;
 	var <playAfterLoad;
 	var stateNum;
-	var <playerFunc;
 
 	*initClass {
 		states = IdentityDictionary[
@@ -34,15 +33,8 @@ Cell : EnvironmentRedirect {
 		playAfterLoad = false;
 		stateNum = states[\free];
 
-		//Initialize envir
-		playerFunc = func; //TODO addFunc dance
-		this.initPlayer;
+		envir.make(func);
 
-	}
-
-
-	initPlayer {
-		envir.make(playerFunc)
 	}
 
 	//Run specific trigger(s) in envir, eg play, stop etc.
@@ -68,21 +60,6 @@ Cell : EnvironmentRedirect {
 
 		}
 
-	}
-
-	//Get something from envir envir
-	get { |what|
-		if (envir.isEmpty) {
-			this.initPlayer;
-		};
-		envir[what];
-	}
-
-	//Set something in envir envir
-	set { |what, val|
-		//Set both factory function and current envir envir
-		playerFunc.addFunc { currentEnvironment[what] = val };
-		envir[what] = val;
 	}
 
 	load {
@@ -186,9 +163,7 @@ Cell : EnvironmentRedirect {
 			this.stop(true);
 		};
 		this.freeAll;
-		//TODO: clear environment
 	}
-
 
 	//Wait for cond (in case we're currently triggering an action)
 	//and then call function
@@ -282,17 +257,6 @@ Cell : EnvironmentRedirect {
 			}
 		};
 		^this[selector].functionPerformList(\value, this, args);
-	}
-
-	<> { |func|
-		if (func.isFunction or: func.isKindOf(FunctionList)) {
-			~playerFunc = ~playerFunc.addFunc(func);
-		} {
-			//Ignore nil
-			func !? {
-				"Not a function".warn;
-			}
-		};
 	}
 
 
