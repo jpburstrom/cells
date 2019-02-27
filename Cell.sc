@@ -92,10 +92,9 @@ Cell : EnvironmentRedirect {
 				states[\free], { playAfterLoad = true; this.load },
 				states[\loading], { playAfterLoad = true; },
 				states[\ready], {
-					this.trigAndWait(\beforePlay, \play);
+					this.trigAndWait(\play);
 					if (this.checkState(\stopping).not) {
 						this.prChangeState(\playing);
-						this.trigAndWait(\afterPlay);
 					};
 				},
 				states[\paused], { this.resume }
