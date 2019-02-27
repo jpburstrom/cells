@@ -34,11 +34,11 @@ Cell : EnvironmentRedirect {
 		partials[key] = envir;
 	}
 
-	*new { |func, partialKeys|
-		^super.new.init(func, partialKeys);
+	*new { |func, partialKeys, know=true|
+		^super.new.init(func, partialKeys, know);
 	}
 
-	init { |func, partialKeys|
+	init { |func, partialKeys, know|
 
 		cond = Condition(false);
 		playerCond = Condition(false);
@@ -46,6 +46,7 @@ Cell : EnvironmentRedirect {
 		playAfterLoad = false;
 		stateNum = states[\free];
 
+		envir.know = true;
 
 		// The make function is run inside the proto of the environment
 		// that way, user data and temporary objects are kept separate from objects
@@ -276,14 +277,17 @@ Cell : EnvironmentRedirect {
 		};
 	}
 
-	//Copied verbatim from EnvironmentRedirect. Why?
 	doFunctionPerform { arg selector, args;
 		envir[\forward] !? {
 			if(envir[selector].isNil) {
-				^envir[\forward].functionPerformList(\value, this, selector, args);
+				// This is different: We call function within envir
+				^this.use {
+					envir[\forward].functionPerformList(\value, this, selector, args)
+				};
 			}
 		};
-		^this[selector].functionPerformList(\value, this, args);
+		// This is different: We call function within envir
+		^this.use { this[selector].functionPerformList(\value, this, args) };
 	}
 
 
