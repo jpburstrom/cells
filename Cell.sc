@@ -1,6 +1,7 @@
 Cell : EnvironmentRedirect {
 
 	classvar states;
+	classvar debug=false;
 
 	var <cond, <playerCond;
 	var <mother, <children;
@@ -51,10 +52,14 @@ Cell : EnvironmentRedirect {
 
 		keys.do { |key|
 			playerCond.test = false;
-			// "into %".format(key).debug;
+			if (debug) {
+				"into %".format(key).debug;
+			};
 			fork {
 				(envir[key] !? (_.inEnvir(envir))).value(this, playerCond);
-				"out of %".format(key).debug;
+				if (debug) {
+					"out of %".format(key).debug;
+				};
 				playerCond.test = true;
 				playerCond.signal;
 			};
@@ -123,29 +128,30 @@ Cell : EnvironmentRedirect {
 		};
 	}
 
-	stop {
+	stop { |now=false|
 		cond.test = false;
 		forkIfNeeded {
 
 			if (this.checkState(\stopped, \stopping).not) {
 				this.prChangeState(\stopping);
-				playerCond.wait; //Wait until playing trigs have finished before cleaning up
-				this.trigAndWait(\beforeStop);
-				this.trigAndWait(\stop);
-				this.prChangeState(\stopped);
-				this.trigAndWait(\afterStop);
-				this.hardStop;
+				playerCond.wait; //If currently loading, wait until done before cleaning up
+				if (now and: envir[\hardStop].notNil) {
+					this.trigAndWait(\hardStop);
+				} {
+					this.trigAndWait(\stop);
+				};
+				this.afterStop;
+				this.freeAll;
 			};
 			cond.test = true;
 			cond.signal;
 		};
 	}
 
-	hardStop {
-		if (this.checkState(\stopped).not) {
+	afterStop {
+		if (this.checkState(\stopped, \free).not) {
 			(envir[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
 			this.prChangeState(\stopped);
-			this.freeAll;
 		};
 	}
 
@@ -159,24 +165,19 @@ Cell : EnvironmentRedirect {
 
 	freeAll { |completely=false|
 		var func = {
-			if (this.checkState(\stopped).not) {
-				this.hardStop;
-			} {
-				//Ok, we have stopped, let's free stuff
-				if (this.checkState(\free).not) {
-					//If envir has a freeAll function, use that.
-					//Otherwise just brutally free everything envir has, recursively.
-					if (envir[\freeAll].notNil) {
-						envir.use(envir[\freeAll]);
-					} {
-						envir.tryPerform(\deepDo, 99, { |x|
+			if (this.checkState(\free).not) {
+				//If envir has a freeAll function, use that.
+				//Otherwise just brutally free everything envir has, recursively.
+				if (envir[\freeAll].notNil) {
+					envir.use(envir[\freeAll]);
+				} {
+					envir.tryPerform(\deepDo, 99, { |x|
 						//Don't free symbols, please
-							if (x.isSymbol.not) { x.free }
-						})
-					};
-					this.prChangeState(\free);
+						if (x.isSymbol.not) { x.free }
+					})
 				};
-			}
+				this.prChangeState(\free);
+			};
 		};
 		//Completely = remove everything, clear envir environment
 		if (completely) {
@@ -190,6 +191,17 @@ Cell : EnvironmentRedirect {
 			func.value;
 		}
 	}
+
+	// Since stop is calling free
+	free {
+		if (this.checkState(\stopping, \stopped, \free, \error).not) {
+			this.stop(true);
+		} {
+			this.freeAll;
+		};
+		//TODO: clear environment
+	}
+
 
 	//Wait for cond (in case we're currently triggering an action)
 	//and then call function
@@ -224,7 +236,7 @@ Cell : EnvironmentRedirect {
 
 	//Check if state equals one of the supplied symbols
 	checkState { |... sts|
-		^(sts.collect(states[_]).sum & stateNum) == stateNum;
+		^(sts.collect(states[_]).reject(_.isNil).sum & stateNum) == stateNum;
 	}
 
 	//TODO: serverTree only works with server, of course.
@@ -235,15 +247,11 @@ Cell : EnvironmentRedirect {
 		envir.synths.clear;
 		//^ this stuff
 		if (this.checkState.(\stopped, \free).not) {
-			this.hardStop;
+			this.afterStop;
+			this.freeAll;
 		}
-
 	}
 
-	free {
-		this.stop;
-		//TODO: clear environment
-	}
 
 
 	addChildren { |...children|
