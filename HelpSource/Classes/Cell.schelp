@@ -22,15 +22,19 @@ SUBSECTION:: Player interface
 Player is constructed by defining custom actions in the environment. The actions are called with two arguments: The cue instance and the link::#-playerCond::. To wait for asynchronous code, you can either wait in the action itself, or if more convenient, fork and
 
 METHOD:: load
-Call ~beforeLoad, ~load and ~afterLoad from environment.
+Call ~load from environment.
 METHOD:: play
+Call ~play from environment.
 METHOD:: pause
+Not yet implemented.
 METHOD:: resume
+Not yet implemented.
 METHOD:: stop
-METHOD:: hardStop
+Call ~stop from environment and free all objects.
+argument:: now
+If now is true, run ~hardStop from environment, if it exists, otherwise call ~stop.
 METHOD:: free
-METHOD:: freeAll
-argument:: completely
+Stop player and free objects.
 
 METHOD:: then
 Wait for a player action to finish, then run callback.
@@ -54,18 +58,6 @@ A link::Classes/Condition:: which is set to wait whenever player is waiting for 
 METHOD:: wait
 Wait for link::#-cond::.
 
-SUBSECTION:: Environment access
-
-METHOD:: get
-argument:: what
-METHOD:: set
-argument:: what
-argument:: val
-
-METHOD:: <>
-argument:: func
-
-
 SUBSECTION:: Cell hierarchy
 
 METHOD:: validateRelative
@@ -79,8 +71,7 @@ METHOD:: setMother
 argument:: obj
 
 
-PRIVATE:: prChangeState, doOnServerTree, playAfterLoad, checkState, doFunctionPerform, trigAndWait, init, initPlayer
-
+PRIVATE:: prChangeState, doOnServerTree, playAfterLoad, checkState, doFunctionPerform, trigAndWait, init, initPlayer, freeAll, afterStop
 
 
 EXAMPLES::
