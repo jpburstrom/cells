@@ -1,5 +1,7 @@
 TITLE:: Cell
-summary:: A prototype for player objects
+summary:: A base object for player prototypes
+related::Classes/Event, Classes/Environment
+categories::Collections>Unordered
 
 CLASSMETHODS::
 
