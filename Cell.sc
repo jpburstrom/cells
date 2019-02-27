@@ -67,7 +67,6 @@ Cell : EnvironmentRedirect {
 		forkIfNeeded {
 			if (this.checkState(\stopped, \error, \free)) {
 				this.prChangeState(\loading);
-				this.initPlayer;
 				//TODO: how is server(s) defined?
 				(envir[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
 				this.trigAndWait(\load);
