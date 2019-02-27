@@ -1,4 +1,4 @@
-Cue {
+Cue : EnvironmentRedirect {
 
 	classvar states;
 
@@ -6,7 +6,7 @@ Cue {
 	var <mother, <children;
 	var <playAfterLoad;
 	var stateNum;
-	var <player, <playerFunc;
+	var <playerFunc;
 
 	*initClass {
 		states = IdentityDictionary[
@@ -21,8 +21,8 @@ Cue {
 		];
 	}
 
-	*new { |func|
-		^super.new.init(func);
+	*new { |func, env|
+		^super.new(env).init(func);
 	}
 
 	init { |func|
@@ -33,8 +33,7 @@ Cue {
 		playAfterLoad = false;
 		stateNum = states[\free];
 
-		//Initialize player
-		player = Environment();
+		//Initialize envir
 		playerFunc = func; //TODO addFunc dance
 		this.initPlayer;
 
@@ -42,19 +41,20 @@ Cue {
 
 
 	initPlayer {
-		player.make(playerFunc)
+		envir.make(playerFunc)
 	}
 
-	//Run specific trigger(s) in player, eg play, stop etc.
+	//Run specific trigger(s) in envir, eg play, stop etc.
 	//Should be run within a routine
+	//Private
 	trigAndWait { |...keys|
 
 		keys.do { |key|
 			playerCond.test = false;
 			// "into %".format(key).debug;
 			fork {
-				(player[key] !? (_.inEnvir(player))).value(this, playerCond);
-				// "out of %".format(key).debug;
+				(envir[key] !? (_.inEnvir(envir))).value(this, playerCond);
+				"out of %".format(key).debug;
 				playerCond.test = true;
 				playerCond.signal;
 			};
@@ -65,32 +65,19 @@ Cue {
 
 	}
 
-	//Func receives callback as argument, which is called
-	//when func has finished doing what it should do
-	//eg. this.waitFor({ |c| s.sync; c.value })
-	//TODO: maybe accept number (delay) and condition as well?
-	//Currently unused?
-	waitFor { |func|
-		var cond = Condition();
-		fork {
-			func.value({ cond.unhang });
-		};
-		cond.hang;
-	}
-
-	//Get something from player envir
+	//Get something from envir envir
 	get { |what|
-		if (player.isEmpty) {
+		if (envir.isEmpty) {
 			this.initPlayer;
 		};
-		player[what];
+		envir[what];
 	}
 
-	//Set something in player envir
+	//Set something in envir envir
 	set { |what, val|
-		//Set both factory function and current player envir
+		//Set both factory function and current envir envir
 		playerFunc.addFunc { currentEnvironment[what] = val };
-		player[what] = val;
+		envir[what] = val;
 	}
 
 	load {
@@ -100,7 +87,7 @@ Cue {
 				this.prChangeState(\loading);
 				this.initPlayer;
 				//TODO: how is server(s) defined?
-				(player[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
+				(envir[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
 				this.trigAndWait(\load);
 				if (this.checkState(\stopping).not) {
 					this.prChangeState(\ready);
@@ -137,7 +124,6 @@ Cue {
 	}
 
 	stop {
-		//FIXME: server variable, hardcoded fallback
 		cond.test = false;
 		forkIfNeeded {
 
@@ -157,7 +143,7 @@ Cue {
 
 	hardStop {
 		if (this.checkState(\stopped).not) {
-			(player[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
+			(envir[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
 			this.prChangeState(\stopped);
 			this.freeAll;
 		};
@@ -178,12 +164,12 @@ Cue {
 			} {
 				//Ok, we have stopped, let's free stuff
 				if (this.checkState(\free).not) {
-					//If player has a freeAll function, use that.
-					//Otherwise just brutally free everything player has, recursively.
-					if (player[\freeAll].notNil) {
-						player.use(player[\freeAll]);
+					//If envir has a freeAll function, use that.
+					//Otherwise just brutally free everything envir has, recursively.
+					if (envir[\freeAll].notNil) {
+						envir.use(envir[\freeAll]);
 					} {
-						player.tryPerform(\deepDo, 99, { |x|
+						envir.tryPerform(\deepDo, 99, { |x|
 						//Don't free symbols, please
 							if (x.isSymbol.not) { x.free }
 						})
@@ -192,13 +178,13 @@ Cue {
 				};
 			}
 		};
-		//Completely = remove everything, clear player environment
+		//Completely = remove everything, clear envir environment
 		if (completely) {
 			//Need to remove this before forking, to avoid race conditions
-			(player[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
+			(envir[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
 			forkIfNeeded {
 				func.value;
-				player.use(player[\free]);
+				envir.use(envir[\free]);
 			}
 		} {
 			func.value;
@@ -245,8 +231,8 @@ Cue {
 	//We need to implement cmdPeriod for non-audio cues
 	doOnServerTree {
 		//TODO: find a good way of not hardcoding this stuff
-		player.synth = nil;
-		player.synths.clear;
+		envir.synth = nil;
+		envir.synths.clear;
 		//^ this stuff
 		if (this.checkState.(\stopped, \free).not) {
 			this.hardStop;
@@ -291,6 +277,16 @@ Cue {
 		^mother !? {
 			mother.children.reject(currentEnvironment);
 		};
+	}
+
+	//Copied verbatim from EnvironmentRedirect. Why?
+	doFunctionPerform { arg selector, args;
+		envir[\forward] !? {
+			if(envir[selector].isNil) {
+				^envir[\forward].functionPerformList(\value, this, selector, args);
+			}
+		};
+		^this[selector].functionPerformList(\value, this, args);
 	}
 
 	<> { |func|
