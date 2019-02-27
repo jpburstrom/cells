@@ -91,6 +91,7 @@ if (thisThread.isKindOf(Routine).not) {
 		test.assert(cell[\wasHardStopped].notNil, "Cell calls ~hardStop on free");
 		test.assert(cell[\wasStopped].isNil, "Cell doesn't call ~stop on free");
 
+		teardown.value;
 
 		setup.value({
 			~load = {};
@@ -103,10 +104,39 @@ if (thisThread.isKindOf(Routine).not) {
 		cell.free;
 		test.assert(cell[\wasStopped].notNil, "Cell calls ~stop on free, if ~hardStop is nil");
 
-		cell.free;
+		teardown.value;
+
+
+		Cell.addPartial(\testPartial, Environment.make {
+			~fum = {
+				true;
+			};
+		});
+		Cell.addPartial(\testPartial2, {
+			~foo = {
+				true;
+			};
+		});
+
+		cell = Cell({}, \testPartial);
+		test.assert(cell.fum == true, "Add partial");
+		teardown.value;
+
+		cell = Cell({}, [\testPartial, \testPartial2]);
+		test.assert(cell.foo == true, "Pass function to *addPartial");
+		test.assert((cell.fum == cell.foo) && (cell.fum == true), "Add multiple partials");
+		teardown.value;
+
+		Cell.addPartial(\testPartial, nil);
+		cell = Cell({}, \testPartial);
+		test.assert(cell.fum.isNil, "Remove partial by setting key to nil");
+		teardown.value;
 
 		server.quit;
 		server.remove;
+
+
+
 	}
 
 };

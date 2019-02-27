@@ -27,11 +27,14 @@ Cell : EnvironmentRedirect {
 		}
 	}
 
-	*addPartial { |key, envir|
+	*addPartial { |key, envirOrFunc|
 		if (partials[key].notNil) {
 			"Cell: Overwriting partial at %".format(key).warn;
 		};
-		partials[key] = envir;
+		if (envirOrFunc.isFunction) {
+			envirOrFunc = Environment.make(envirOrFunc);
+		};
+		partials[key] = envirOrFunc;
 	}
 
 	*new { |func, partialKeys, know=true|
