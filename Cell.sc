@@ -163,42 +163,29 @@ Cell : EnvironmentRedirect {
 		this.notYetImplemented;
 	}
 
-	freeAll { |completely=false|
-		var func = {
-			if (this.checkState(\free).not) {
-				//If envir has a freeAll function, use that.
-				//Otherwise just brutally free everything envir has, recursively.
-				if (envir[\freeAll].notNil) {
-					envir.use(envir[\freeAll]);
-				} {
-					envir.tryPerform(\deepDo, 99, { |x|
-						//Don't free symbols, please
-						if (x.isSymbol.not) { x.free }
-					})
-				};
-				this.prChangeState(\free);
+	freeAll {
+		if (this.checkState(\free).not) {
+			//If envir has a freeAll function, use that.
+			//Otherwise just brutally free everything envir has, recursively.
+			if (envir[\freeAll].notNil) {
+				envir.use(envir[\freeAll]);
+			} {
+				envir.tryPerform(\deepDo, 99, { |x|
+					//Don't free symbols, please
+					if (x.isSymbol.not) { x.free }
+				})
 			};
+			this.prChangeState(\free);
 		};
-		//Completely = remove everything, clear envir environment
-		if (completely) {
-			//Need to remove this before forking, to avoid race conditions
-			(envir[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
-			forkIfNeeded {
-				func.value;
-				envir.use(envir[\free]);
-			}
-		} {
-			func.value;
-		}
+
 	}
 
 	// Since stop is calling free
 	free {
 		if (this.checkState(\stopping, \stopped, \free, \error).not) {
 			this.stop(true);
-		} {
-			this.freeAll;
 		};
+		this.freeAll;
 		//TODO: clear environment
 	}
 
