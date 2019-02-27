@@ -8,13 +8,21 @@ CLASSMETHODS::
 METHOD:: new
 Create a new object
 argument:: func
-An init function which sets variables in the enviroment. On link::#-load::,
-the environment is reset and variables re-populated.
-NOTE:: Why is init function run every load? ::
-argument:: env
-An base environment. This is set on object creation. Using parent and proto environments here can be good for non-overwritable defaults.
+An init function which is run inside the proto environment. Here you can define functions and default values for the cell.
+argument:: partialKeys
+Any number of keys (as a code::Symbol:: or array of symbols) corresponding to Environments defined within the code::partials:: class variable. These are put into the environment's parent. 
+argument:: know
+like link::Classes/Event::, know is set to true by default.
+
 
 METHOD:: initClass
+
+METHOD:: addPartial
+Add a partial to the global dictionary. It can be passed as an IdentityDictionary subclass, or as a function which is evaluated inside a new environment.
+
+METHOD:: partials
+A dictionary of partials, which can be combined to form prototypes for new cells.
+
 
 INSTANCEMETHODS::
 
