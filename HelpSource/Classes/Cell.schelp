@@ -1,0 +1,90 @@
+TITLE:: Cell
+summary:: A prototype for player objects
+
+CLASSMETHODS::
+
+METHOD:: new
+Create a new object
+argument:: func
+An init function which sets variables in the enviroment. On link::#-load::,
+the environment is reset and variables re-populated.
+NOTE:: Why is init function run every load? ::
+argument:: env
+An base environment. This is set on object creation. Using parent and proto environments here can be good for non-overwritable defaults.
+
+METHOD:: initClass
+
+INSTANCEMETHODS::
+
+
+SUBSECTION:: Player interface
+
+Player is constructed by defining custom actions in the environment. The actions are called with two arguments: The cue instance and the link::#-playerCond::. To wait for asynchronous code, you can either wait in the action itself, or if more convenient, fork and
+
+METHOD:: load
+Call ~beforeLoad, ~load and ~afterLoad from environment.
+METHOD:: play
+METHOD:: pause
+METHOD:: resume
+METHOD:: stop
+METHOD:: hardStop
+METHOD:: free
+METHOD:: freeAll
+argument:: completely
+
+METHOD:: then
+Wait for a player action to finish, then run callback.
+argument:: func
+The callback.
+
+SUBSECTION:: Player state
+
+METHOD:: state
+Get player state as symbol
+
+METHOD:: isLoading, isReady, isPlaying, isLoading, isPaused, isStopped
+Answer if cue is loading, ready for play (after load), playing, paused or stopped.
+
+METHOD:: cond
+A link::Classes/Condition:: which is set to wait whenever player is waiting to complete a player action (link::#-play::, link::#-stop::, link::#-load:: etc).
+
+METHOD:: playerCond
+A link::Classes/Condition:: which is set to wait whenever player is waiting for a state change.
+
+METHOD:: wait
+Wait for link::#-cond::.
+
+SUBSECTION:: Environment access
+
+METHOD:: get
+argument:: what
+METHOD:: set
+argument:: what
+argument:: val
+
+METHOD:: <>
+argument:: func
+
+
+SUBSECTION:: Cell hierarchy
+
+METHOD:: validateRelative
+argument:: other
+METHOD:: siblings
+METHOD:: mother
+METHOD:: children
+METHOD:: addChildren
+argument::  ... children
+METHOD:: setMother
+argument:: obj
+
+
+PRIVATE:: prChangeState, doOnServerTree, playAfterLoad, checkState, doFunctionPerform, trigAndWait, init, initPlayer
+
+
+
+EXAMPLES::
+
+code::
+_some_example_code_
+::
