@@ -2,7 +2,7 @@ Cell : EnvironmentRedirect {
 
 	classvar states;
 	classvar <partials;
-	classvar debug=false;
+	classvar <>debug=false;
 
 	var <cond, <playerCond;
 	var <mother, <children;
