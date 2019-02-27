@@ -1,6 +1,7 @@
 Cell : EnvironmentRedirect {
 
 	classvar states;
+	classvar <partials;
 	classvar debug=false;
 
 	var <cond, <playerCond;
@@ -19,13 +20,25 @@ Cell : EnvironmentRedirect {
 			\free -> 64,
 			\error -> 128
 		];
+		partials = Environment.make {
+			~foo = Environment.make {
+				~test = { "hello worp" };
+			};
+		}
 	}
 
-	*new { |func, env|
-		^super.new(env).init(func);
+	*addPartial { |key, envir|
+		if (partials[key].notNil) {
+			"Cell: Overwriting partial at %".format(key).warn;
+		};
+		partials[key] = envir;
 	}
 
-	init { |func|
+	*new { |func, partialKeys|
+		^super.new.init(func, partialKeys);
+	}
+
+	init { |func, partialKeys|
 
 		cond = Condition(false);
 		playerCond = Condition(false);
@@ -33,7 +46,23 @@ Cell : EnvironmentRedirect {
 		playAfterLoad = false;
 		stateNum = states[\free];
 
-		envir.make(func);
+
+		// The make function is run inside the proto of the environment
+		// that way, user data and temporary objects are kept separate from objects
+		// created during init
+		// EnvironmentRedirect.new have made the proto for us
+		envir.proto.make(func);
+
+		envir.parent = Environment();
+		partialKeys.asArray.collect({ |key|
+			var partial = partials[key];
+			if (partial.isNil) {
+				"Partial % doesn't exist".format(key).warn;
+			};
+			partial;
+		}).reject(_.isNil) !? { |list|
+			envir.parent.putAll(*list)
+		};
 
 	}
 
