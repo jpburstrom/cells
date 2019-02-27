@@ -1,4 +1,4 @@
-Cue : EnvironmentRedirect {
+Cell : EnvironmentRedirect {
 
 	classvar states;
 
