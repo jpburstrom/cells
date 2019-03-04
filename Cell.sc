@@ -1,9 +1,11 @@
 Cell : EnvironmentRedirect {
 
 	classvar states;
-	classvar <partials;
+	classvar <parentEnvironment;
 	classvar <>debug=false;
 
+	//Cue name (for display purposes)
+	var <>name;
 	var <cond, <playerCond;
 	var <mother, <children;
 	var <playAfterLoad;
@@ -20,28 +22,54 @@ Cell : EnvironmentRedirect {
 			\free -> 64,
 			\error -> 128
 		];
-		partials = Environment.make {
-			~foo = Environment.make {
-				~test = { "hello worp" };
+
+		this.loadParentEnvironment;
+
+	}
+
+	*loadParentEnvironment {
+
+		StartUp.add({
+			parentEnvironment = (PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/parentEnvironment.scd").loadPath;
+		});
+
+	}
+
+	*addPlayer { |key, envirOrFunc, basePlayerKey ...mixinKeys|
+
+		var env = Environment.make {
+			mixinKeys.do { |key|
+				parentEnvironment[\mixins][key].value;
 			};
-		}
-	}
 
-	*addPartial { |key, envirOrFunc|
-		if (partials[key].notNil) {
-			"Cell: Overwriting partial at %".format(key).warn;
+			basePlayerKey !? {
+				currentEnvironment.putAll(
+					parentEnvironment[\players][basePlayerKey].deepCopy,
+
+				)
+			};
 		};
-		if (envirOrFunc.isFunction) {
-			envirOrFunc = Environment.make(envirOrFunc);
+
+		if (envirOrFunc.respondsTo(\keysValuesDo)) {
+			env.putAll(envirOrFunc);
+		} {
+			// Assume function
+			env.make(envirOrFunc)
 		};
-		partials[key] = envirOrFunc;
+
+		parentEnvironment[\players][key] = env;
+
 	}
 
-	*new { |func, partialKeys, know=true|
-		^super.new.init(func, partialKeys, know);
+	*removePlayer { |key|
+		parentEnvironment[\players][key] = nil;
 	}
 
-	init { |func, partialKeys, know|
+	*new { |func, playerKey, know=true|
+		^super.new.init(func, playerKey, know);
+	}
+
+	init { |func, playerKey, knowFlag|
 
 		cond = Condition(false);
 		playerCond = Condition(false);
@@ -49,23 +77,31 @@ Cell : EnvironmentRedirect {
 		playAfterLoad = false;
 		stateNum = states[\free];
 
-		envir.know = true;
+		envir.know = knowFlag;
+
+		envir.parent = parentEnvironment[\players][playerKey];
+
 
 		// The make function is run inside the proto of the environment
 		// that way, user data and temporary objects are kept separate from objects
 		// created during init
 		// EnvironmentRedirect.new have made the proto for us
-		envir.proto.make(func);
+		envir.proto.make {
 
-		envir.parent = Environment();
-		partialKeys.asArray.collect({ |key|
-			var partial = partials[key];
-			if (partial.isNil) {
-				"Partial % doesn't exist".format(key).warn;
+			// Call func for custom behaviour
+			func.value;
+
+			// Set params from paramTemplate
+			~params = ~params ?? { IdentityDictionary().know_(true) };
+			// Param template has functions as value
+			// So we call .value on each one to init params
+			envir[\paramTemplate] !? { |tmpl|
+				tmpl.keysValuesDo { |k, func|
+				// Don't overwrite existing params (set in func)
+					~params[k] = ~params[k] ?? func;
+				}
 			};
-			partial;
-		}).reject(_.isNil) !? { |list|
-			envir.parent.putAll(*list)
+
 		};
 
 	}
@@ -102,7 +138,7 @@ Cell : EnvironmentRedirect {
 				this.prChangeState(\loading);
 				//TODO: how is server(s) defined?
 				(envir[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
-				this.trigAndWait(\load);
+				this.trigAndWait(\beforeLoad, \load, \afterLoad);
 				if (this.checkState(\stopping).not) {
 					this.prChangeState(\ready);
 					if (playAfterLoad) {
@@ -124,7 +160,7 @@ Cell : EnvironmentRedirect {
 				states[\free], { playAfterLoad = true; this.load },
 				states[\loading], { playAfterLoad = true; },
 				states[\ready], {
-					this.trigAndWait(\play);
+					this.trigAndWait(\beforePlay, \play, \afterPlay);
 					if (this.checkState(\stopping).not) {
 						this.prChangeState(\playing);
 					};
@@ -144,9 +180,9 @@ Cell : EnvironmentRedirect {
 				this.prChangeState(\stopping);
 				playerCond.wait; //If currently loading, wait until done before cleaning up
 				if (now and: envir[\hardStop].notNil) {
-					this.trigAndWait(\hardStop);
+					this.trigAndWait(\beforeHardStop, \hardStop, \afterHardStop);
 				} {
-					this.trigAndWait(\stop);
+					this.trigAndWait(\beforeStop, \stop, \afterStop);
 				};
 				this.afterStop;
 				this.freeAll;

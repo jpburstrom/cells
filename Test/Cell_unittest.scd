@@ -106,30 +106,25 @@ if (thisThread.isKindOf(Routine).not) {
 
 		teardown.value;
 
+		test.assert(Cell.parentEnvironment[\players][\testPlayer].isNil, "Test player prototype doesn't exist");
 
-		Cell.addPartial(\testPartial, Environment.make {
+		Cell.addPlayer(\testPlayer, Environment.make {
 			~fum = {
 				true;
 			};
-		});
-		Cell.addPartial(\testPartial2, {
-			~foo = {
-				true;
-			};
-		});
+		}, nil, \server);
 
-		cell = Cell({}, \testPartial);
-		test.assert(cell.fum == true, "Add partial");
-		teardown.value;
+		test.assert(Cell.parentEnvironment[\players][\testPlayer].notNil, "Add player prototype");
 
-		cell = Cell({}, [\testPartial, \testPartial2]);
-		test.assert(cell.foo == true, "Pass function to *addPartial");
-		test.assert((cell.fum == cell.foo) && (cell.fum == true), "Add multiple partials");
-		teardown.value;
+		test.assert(Cell.parentEnvironment[\players][\testPlayer][\server].notNil, "Add server mixin");
 
-		Cell.addPartial(\testPartial, nil);
-		cell = Cell({}, \testPartial);
-		test.assert(cell.fum.isNil, "Remove partial by setting key to nil");
+		Cell.removePlayer(\testPlayer);
+
+		test.assert(Cell.parentEnvironment[\players][\testPlayer].isNil, "Remove player prototype");
+
+		cell = Cell({}, \synth);
+		test.assert(cell.params.keys.notEmpty, "Param keys are not empty");
+		test.assert(cell.params.keys == cell.paramTemplate.keys, "Param keys are the same as paramTemplate");
 		teardown.value;
 
 		server.quit;
