@@ -250,16 +250,22 @@ z = Environment.make({
 			};
 		};
 
+		~timedDuration = {
+		};
+
 
 		// Synth related methods: FX, Ctl,
-		~synths = {
+		~synth = {
 
 			//Keeper of synths
-			~synths = List();
+			~synths = Set();
 
 			// Add synth
 			~addSynth = { |synth, args|
-				~prPlaySynth.(\synth, \main, synth, args);
+				~prPlaySynth.(\synth, \main, synth, args).onFree({ |syn|
+					~synths.remove(syn);
+
+				}.inEnvir);
 			};
 
 			// Add effect synth
@@ -277,11 +283,14 @@ z = Environment.make({
 			// Helper method for adding synths
 			~prPlaySynth = { |type, group, synth, args|
 				args = ~addDefaultArgs.(type, args);
-				if (synth.isSymbol) {
-					~synths.add(Synth(synth, args, ~groups[group]));
-				} {
-					// Assume we have a function
-					~synths.add(synth.play(~groups[group], args[\out], args: args.asPairs));
+				// Use default latency.
+				s.bind {
+					if (synth.isSymbol) {
+						~synths.add(Synth(synth, args, ~groups[group]));
+					} {
+						// Assume we have a function
+						~synths.add(synth.play(~groups[group], args[\out], args: args.asPairs));
+					}
 				}
 			};
 
@@ -307,7 +316,11 @@ z = Environment.make({
 			//Use function ?
 			~server = Server.default;
 
+			// Default is ~server.latency
+			~latency = nil;
+
 			// Things to do on server boot
+			// FIXME: Cell.doOnServerBoot
 			~doOnServerBoot.addFunc(~loadSynthDefs);
 
 			//Default afterLoad action
@@ -331,24 +344,55 @@ z = Environment.make({
 
 		~synth = makeEnv.({
 			~synthName = \default;
-			~args = [];
+			~synthArgs = [];
 			~duration = 1;
 
-			~play = {
-				~addSynth.value;
+			~play = { |cell|
+				~addSynth.(~synthName, ~synthArgs);
+				fork {
+					~duration.wait;
+					cell.stop;
+				};
 			};
-		},  [\settings, \server, \group, \bus, \ctl, \synths]);
+
+		},  [\settings, \server, \group, \bus, \ctl, \synth]);
+
+		~synth = makeEnv.({
+			~synthName = \default;
+			~synthArgs = [];
+			~duration = 1;
+
+			~play = { |cell|
+				~addSynth.(~synthName, ~synthArgs);
+				fork {
+					~duration.wait;
+					cell.stop;
+				};
+			};
+
+			~stop = { |cond|
+				~server.bind {
+					~synths.do(_.release);
+				}
+				0.2.wait;
+				cond.unhang;
+			};
+
+		},  [\settings, \server, \group, \bus, \ctl, \synth]);
 
 		~buffer = makeEnv.({
+			~settings[\defaultBufferPathMethod] = \read;
 			~synthName = \bufPlayer;
 			~bufferTemplate = nil; //
 
-			~bufferPlay = {
-			};
-		}, [\settings, \server, \group, \bus, \ctl, \buffer]);
+		}, [\settings, \server, \group, \bus, \ctl, \synth, \buffer]);
 
 		~disk = makeEnv.({
-		});
+			~settings[\defaultBufferPathMethod] = \cueSoundFile;
+			~synthName = \diskPlayer;
+			~bufferTemplate = nil; //
+
+		}, [\settings, \server, \group, \bus, \ctl, \synth, \buffer]);
 
 		~stem = ~disk.deepCopy.make({
 		});
