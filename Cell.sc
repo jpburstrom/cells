@@ -221,6 +221,7 @@ Cell : EnvironmentRedirect {
 					if (x.isSymbol.not) { x.free }
 				})
 			};
+			envir.use(envir[\afterFree]);
 			this.prChangeState(\free);
 		};
 
