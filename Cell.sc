@@ -117,7 +117,9 @@ Cell : EnvironmentRedirect {
 				"into %".format(key).debug;
 			};
 			fork {
-				(envir[key] !? (_.inEnvir(envir))).value(this, playerCond);
+				envir.use {
+					envir[key].value(playerCond);
+				};
 				if (debug) {
 					"out of %".format(key).debug;
 				};
