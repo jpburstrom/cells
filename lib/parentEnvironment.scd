@@ -3,9 +3,9 @@ z = Environment.make({
 	var makeEnv = { |func, mixins|
 		var fact = ~mixins;
 		if (mixins.isNil) {
+			//This also defines order of execution.
 			mixins = [\settings, \server, \group, \bus, \ctl];
 		};
-		mixins.postln;
 		Environment.make {
 			mixins.do { |key|
 				fact[key].value;
@@ -38,7 +38,7 @@ z = Environment.make({
 			// Default beforePlay action
 			// If this is overridden by main envir,
 			// it needs to call addGroups... at some point
-			~beforePlay = ~addGroupsFromTemplate <> ~beforePlay;
+			~beforePlay.addFunc(~addGroupsFromTemplate);
 
 			~addGroup = { |key, parent|
 				~groups[key] !? (_.free);
@@ -89,7 +89,7 @@ z = Environment.make({
 			// Default  action
 			// If this is overridden by main envir,
 			// it needs to call addBuses... at some point
-			~beforeLoad = ~addBusesFromTemplate <> ~beforeLoad;
+			~beforeLoad.addFunc(~addBusesFromTemplate);
 
 		};
 
@@ -126,7 +126,8 @@ z = Environment.make({
 				*/
 			};
 
-			~beforeLoad = ~addBuffersFromTemplate <> ~beforeLoad;
+			~beforeLoad.addFunc(~addBuffersFromTemplate);
+
 		};
 
 
@@ -229,40 +230,21 @@ z = Environment.make({
 			~server = Server.default;
 
 			// Things to do on server boot
-			~serverBoot = {
-				~loadSynthDefs.value;
-			};
+			~doOnServerBoot.addFunc(~loadSynthDefs);
 
 			//Default afterLoad action
 			//If overridden, ~server.sync needs to be called
-			~afterLoad = {
+			~afterLoad.addFunc({
 				~server.sync;
-			};
+			});
+
+			~beforeLoad.addFunc({
+				~server.waitForBoot;
+			});
 
 		};
 
-		~settings = {
 
-			// Settings that need to be in place before
-			// doing anything else
-			~settings = (
-				numChannels: 2
-			);
-
-
-			// We don't set params here, but in proto object
-
-			~params = nil;
-
-			// Template of parameters
-			// that can be set during cell play
-			~paramTemplate = (
-
-				volume: { NumericControlValue(1, \db) }
-
-			);
-
-		};
 
 
 	});
