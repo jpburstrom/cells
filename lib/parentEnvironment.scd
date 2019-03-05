@@ -261,7 +261,9 @@ z = Environment.make({
 		~synth = {
 
 			// Keeper of synths
-			~synths = Set();
+			~beforeLoad = ~beforeLoad.addFunc({
+				~synths = ~synths !? { ~synths.clear } ?? { Set() };
+			});
 
 			// Callback for synth.onFree
 			// Removes synth from ~synths set
