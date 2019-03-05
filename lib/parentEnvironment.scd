@@ -121,6 +121,10 @@ z = Environment.make({
 				~groups[key] = Group(parent);
 			};
 
+			~afterFree = ~afterFree.addFunc({
+				~groups.clear;
+			});
+
 		};
 
 
