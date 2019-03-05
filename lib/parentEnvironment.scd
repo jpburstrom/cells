@@ -32,9 +32,12 @@ z = Environment.make({
 				// Total cell duration
 				duration: inf,
 				// Duration of tail
-				// Time until silent after calling .stop, or after ~duration,
-				// whatever happens first.
-				// After ~tailDuration it should be safe for player to free itself
+				// Time until silent after all players have stopped playing.
+				// In case of synths, wait for tailDuration after all synths have stopped.
+				// In case of patterns, wait for tailDuration after pattern has stopped.
+				// This means you have to add pattern note release time to tailDuration
+				// This is useful for delays or reverbs put in the fx group
+				// TODO:
 				tailDuration: 0,
 
 				// --- SYNC ---
