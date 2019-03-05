@@ -19,6 +19,76 @@ z = Environment.make({
 	// objects.
 	~mixins = Environment.make({
 
+		~settings = {
+
+			// Settings that need to be in place before
+			// doing anything else
+			~settings = (
+				//Number of out channels
+				numChannels: 2,
+
+
+				// --- DURATIONS ---
+				// Total cell duration
+				duration: inf,
+				// Duration of tail
+				// Time until silent after calling .stop, or after ~duration,
+				// whatever happens first.
+				// After ~tailDuration it should be safe for player to free itself
+				tailDuration: 0,
+
+				// --- SYNC ---
+				// By default, TempoClock.default is used.
+				// Tempo is set on quantized play start.
+				// quant.timingOffset can be used to start playback earlier,
+				// for example if a sample starts on an upbeat.
+				tempo: 1,
+				// Set timingOffset here, if needed
+				quant: 1,
+
+
+				// --- FADES ---
+				// Fades are post-fx, and overrides tail settings.
+				// This means it should be safe to free everything when a fadeOut has completed.
+				// Fade in duration.
+				fadeIn: nil,
+				// Curve of fadeIn envelope - only float?
+				fadeInCurve: 8,
+				// Fade out duration. This overrides tailDuration.
+				fadeOut: nil,
+				// Curve
+				fadeOutCurve: -8
+
+			);
+
+
+			// Dictionary of markers
+			// label -> time
+			// Time can be a single float
+			// or an array of floats
+			// (for onsets, phrases etc)
+			~markers = nil;
+
+			// We don't set params here, but in proto object
+
+			~params = nil;
+
+			// Template of parameters
+			// that can be set during cell play
+			~paramTemplate = (
+
+				// Main cell volume
+				volume: { NumericControlValue(1, \db) },
+				// Progress is updated when player is playing.
+				// A value from 0 to 1, where 1 is total duration
+				// excluding tail
+				// TODO: How do we deal with infinite durations?
+				progress: { NumericControlValue(0, \unipolar) }
+
+			);
+
+		};
+
 		// Methods + default settings for groups
 		~group = {
 			// Default group order
