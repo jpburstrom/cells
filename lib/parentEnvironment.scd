@@ -272,7 +272,10 @@ z = Environment.make({
 			~onSynthFree = { |syn|
 				~synths.remove(syn);
 				if (~synths.isEmpty) {
-					currentEnvironment.free;
+					SystemClock.sched(~settings.tailDuration ? 0, {
+						currentEnvironment.freeAll;
+						nil;
+					}.inEnvir)
 				}
 			};
 
@@ -295,16 +298,19 @@ z = Environment.make({
 
 			// Helper method for adding synths
 			~prPlaySynth = { |type, group, synth, args|
+				var out;
 				args = ~addDefaultArgs.(type, args);
 				// Use default latency.
 				s.bind {
 					if (synth.isSymbol) {
-						~synths.add(Synth(synth, args, ~groups[group]));
+						out = Synth(synth, args, ~groups[group]);
 					} {
 						// Assume we have a function
-						~synths.add(synth.play(~groups[group], args[\out], args: args.asPairs));
+						out = synth.play(~groups[group], args[\out], args: args.asPairs);
 					}
-				}
+				};
+				~synths.add(out);
+				out;
 			};
 
 			// Add default argument for different kinds of synths
@@ -319,6 +325,16 @@ z = Environment.make({
 				// Overwrite defaults with args
 				args !? { out.putAll(args) };
 				out
+			};
+
+			// Default stop: Call release on synths
+			// and let them free the cell when done playing
+			~stop = {
+				~server.bind {
+					// Release synth.
+					// Synths will take care of freeing the thing
+					~synths.do(_.release);
+				};
 			};
 		};
 
@@ -360,36 +376,14 @@ z = Environment.make({
 			~synthArgs = [];
 			~duration = 1;
 
-			~play = { |cell|
+			~play = {
 				~addSynth.(~synthName, ~synthArgs);
 				fork {
 					~duration.wait;
-					cell.stop;
+					currentEnvironment.stop;
 				};
 			};
 
-		},  [\settings, \server, \group, \bus, \ctl, \synth]);
-
-		~synth = makeEnv.({
-			~synthName = \default;
-			~synthArgs = [];
-			~duration = 1;
-
-			~play = { |cell|
-				~addSynth.(~synthName, ~synthArgs);
-				fork {
-					~duration.wait;
-					cell.stop;
-				};
-			};
-
-			~stop = { |cond|
-				~server.bind {
-					// Release synth.
-					// Synths will take care of freeing the thing
-					~synths.do(_.release);
-				};
-			};
 
 		},  [\settings, \server, \group, \bus, \ctl, \synth]);
 
