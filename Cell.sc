@@ -117,7 +117,7 @@ Cell : EnvironmentRedirect {
 				"into %".format(key).debug;
 			};
 			fork {
-				envir.use {
+				this.use {
 					envir[key].value(playerCond);
 				};
 				if (debug) {
@@ -217,14 +217,14 @@ Cell : EnvironmentRedirect {
 			//If envir has a freeAll function, use that.
 			//Otherwise just brutally free everything envir has, recursively.
 			if (envir[\freeAll].notNil) {
-				envir.use(envir[\freeAll]);
+				this.use(envir[\freeAll]);
 			} {
 				envir.tryPerform(\deepDo, 99, { |x|
 					//Don't free symbols, please
 					if (x.isSymbol.not) { x.free }
 				})
 			};
-			envir.use(envir[\afterFree]);
+			this.use(envir[\afterFree]);
 			this.prChangeState(\free);
 		};
 
