@@ -108,7 +108,7 @@ z = Environment.make({
 			// Default beforePlay action
 			// If this is overridden by main envir,
 			// it needs to call addGroups... at some point
-			~beforePlay.addFunc(~addGroupsFromTemplate);
+			~beforePlay = ~beforePlay.addFunc(~addGroupsFromTemplate);
 
 			~addGroup = { |key, parent|
 				~groups[key] !? (_.free);
@@ -159,7 +159,11 @@ z = Environment.make({
 			// Default  action
 			// If this is overridden by main envir,
 			// it needs to call addBuses... at some point
-			~beforeLoad.addFunc(~addBusesFromTemplate);
+			~beforeLoad = ~beforeLoad.addFunc(~addBusesFromTemplate);
+
+			~afterFree = ~afterFree.addFunc({
+				~bus.clear;
+			});
 
 		};
 
@@ -196,7 +200,7 @@ z = Environment.make({
 				*/
 			};
 
-			~beforeLoad.addFunc(~addBuffersFromTemplate);
+			~beforeLoad = ~beforeLoad.addFunc(~addBuffersFromTemplate);
 
 		};
 
@@ -308,7 +312,7 @@ z = Environment.make({
 				~server.sync;
 			});
 
-			~beforeLoad.addFunc({
+			~beforeLoad = ~beforeLoad.addFunc({
 				~server.waitForBoot;
 			});
 
