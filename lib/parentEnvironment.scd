@@ -257,15 +257,23 @@ z = Environment.make({
 		// Synth related methods: FX, Ctl,
 		~synth = {
 
-			//Keeper of synths
+			// Keeper of synths
 			~synths = Set();
+
+			// Callback for synth.onFree
+			// Removes synth from ~synths set
+			// If all synths have ended,
+			// waits for ~tailDuration and then calls parent.free
+			~onSynthFree = { |syn|
+				~synths.remove(syn);
+				if (~synths.isEmpty) {
+					currentEnvironment.free;
+				}
+			};
 
 			// Add synth
 			~addSynth = { |synth, args|
-				~prPlaySynth.(\synth, \main, synth, args).onFree({ |syn|
-					~synths.remove(syn);
-
-				}.inEnvir);
+				~prPlaySynth.(\synth, \main, synth, args).onFree(~onSynthFree.inEnvir);
 			};
 
 			// Add effect synth
@@ -372,10 +380,10 @@ z = Environment.make({
 
 			~stop = { |cond|
 				~server.bind {
+					// Release synth.
+					// Synths will take care of freeing the thing
 					~synths.do(_.release);
-				}
-				0.2.wait;
-				cond.unhang;
+				};
 			};
 
 		},  [\settings, \server, \group, \bus, \ctl, \synth]);

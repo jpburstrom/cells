@@ -187,7 +187,10 @@ Cell : EnvironmentRedirect {
 					this.trigAndWait(\beforeStop, \stop, \afterStop);
 				};
 				this.afterStop;
-				this.freeAll;
+				if (now) {
+					this.freeAll;
+				};
+
 			};
 			cond.test = true;
 			cond.signal;
