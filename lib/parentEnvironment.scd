@@ -233,7 +233,7 @@ z = Environment.make({
 				check = { ~server.hasShmInterface }.try;
 
 				check.if ({
-					^Pfunc({ ~bus[key].getSynchronous() });
+					^Pfunc({ ~bus[key].getSynchronous });
 				}, {
 					"No shared memory interface detected".warn;
 					~bus[key].get({|v| last = v;});
@@ -305,8 +305,6 @@ z = Environment.make({
 				// This starts fading when playing synth, so it needs to start in ~play
 				~prPlaySynth.(\synth, \level, \volume, "cellMixer_%".format(~settings.numChannels).asSymbol, args);
 			};
-
-			~addSynth.(\foo, \default, \amp, 1)
 
 			// Helper method for adding synths
 			~prPlaySynth = { |type, group, key, synth, args|
