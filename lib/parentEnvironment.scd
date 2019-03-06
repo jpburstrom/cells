@@ -157,21 +157,38 @@ z = Environment.make({
 
 			// Add buses according to template
 			~addBusesFromTemplate = {
-				~bus ?? { ~bus = IdentityDictionary(know:true) };
+				~bus ?? { ~bus = (
+					_default: (),
+					_ctl: (),
+					// We use a strange feature of events:
+					// when calling ~bus.foo, the event is forwarding the
+					// message to this function, which tries to find it
+					// and otherwise forwards it the _default event
+					// so we still can use ~bus.foo for accessing buses
+					forward: { |self, key|
+						if (self[key].notNil) {
+							self[key].value;
+						} {
+							self[\_default][key]
+						}
+					}
+				)};
+
 				~template[\bus].keysValuesDo { |key, args|
 					~addBus.(key, *args);
 				};
 			};
 
 			//Add a single bus, identified by key
-			~addBus = { |key, rate, numChannels, index|
-				~bus[key] !? (_.free);
+			~addBus = { |key, rate, numChannels, index, grp=\_default|
+				[key, rate, numChannels, index, grp].postln;
+				~bus[grp][key] !? (_.free);
 				if (index.notNil) {
-					~bus[key] = Bus(rate, index, numChannels, ~server);
+					~bus[grp][key] = Bus(rate, index, numChannels, ~server);
 				} {
-					~bus[key] = Bus.alloc(rate, ~server, 2)
+					~bus[grp][key] = Bus.alloc(rate, ~server, 2)
 				};
-				~bus[key];
+				~bus[grp][key];
 			};
 
 			// Default  action
@@ -227,12 +244,12 @@ z = Environment.make({
 		~ctl = {
 			// Get bus from ctl key
 			~ctlBus = { |key|
-				~bus[~prFormatCtlKey.(key)];
+				~bus[\_ctl][key];
 			};
 
 			// Get a kr player from ctl key
 			~ctlKr = { |key|
-				var bus = ~bus[~prFormatCtlKey.(key)];
+				var bus = ~bus[\_ctl][key];
 				In.kr(bus, bus.numChannels);
 			};
 
@@ -240,25 +257,24 @@ z = Environment.make({
 			// Stolen from Pkr (BenoitLib)
 			~ctlPattern = { |key|
 				var last = 0, check;
-				key = ~prFormatCtlKey.(key);
+				var busEnvir = ~bus[\_ctl];
 				check = { ~server.hasShmInterface }.try;
 
 				check.if ({
-					^Pfunc({ ~bus[key].getSynchronous });
+					^Pfunc({ busEnvir[key].getSynchronous });
 				}, {
 					"No shared memory interface detected".warn;
-					~bus[key].get({|v| last = v;});
-					^Pfunc({ ~bus[key].get({ |v| last = v; }); last });
+					busEnvir[key].get({|v| last = v;});
+					^Pfunc({ busEnvir[key].get({ |v| last = v; }); last });
 				});
-			};
-
-			~prFormatCtlKey = { |key|
-				"ctl_%".format(key).asSymbol;
 			};
 
 			// Add control synth (LFO etc)
 			~addCtl = { |key, synth, args, numChannels=1|
-				var bus = ~addBus.(~prFormatCtlKey.(key), \control, numChannels);
+				var bus = ~addBus.(key, \control, numChannels, nil, \_ctl);
+				args.debug("args");
+				args = (args ?? IdentityDictionary()).asDict;
+				args.debug("args");
 				args[\out] = bus.index;
 				~prPlaySynth.(\ctl, key, synth, args);
 			};
@@ -355,11 +371,10 @@ z = Environment.make({
 			~prPlaySynth = { |group, key, synth, args|
 				var out;
 				args = ~settings[\defaultSynthArgs].putAll(args);
-				// Use default latency.
-				args = args.collect(_.value).asPairs;
+				args = args.collect(_.value);
 				s.bind({
 					if (synth.isSymbol) {
-						out = Synth(synth, args, ~groups[group]);
+						out = Synth(synth, args.asPairs, ~groups[group]);
 					} {
 						// Assume we have a function
 						out = synth.play(~groups[group], args[\out], args: args.asPairs);
