@@ -96,7 +96,7 @@ z = Environment.make({
 		~group = {
 			// Default group order
 			// TODO: nested groups, if needed
-			~groupTemplate = #[ctl, main, fx, level];
+			~groupTemplate = #[ctl, main, fx, level, send];
 
 			// All groups end up in the groups envir
 			// The envir should not be placed in the parent envir
@@ -121,7 +121,7 @@ z = Environment.make({
 					// it defaults to Group(1) (nil.asTarget)
 					~groups[\parentGroup]
 				};
-				~groups[key] = Group(parent);
+				~groups[key] = Group(parent, \addToTail);
 			};
 
 			~afterFree = ~afterFree.addFunc({
