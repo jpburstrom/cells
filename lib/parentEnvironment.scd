@@ -62,6 +62,9 @@ z = Environment.make({
 				// Curve
 				fadeOutCurve: -8,
 
+				// If true, release main synths in .afterStop
+				releaseAfterStop: true,
+
 
 				// Default arguments for new synths
 				defaultSynthArgs:  IdentityDictionary[
@@ -343,12 +346,10 @@ z = Environment.make({
 
 			// Default stop: Call release on synths
 			// and let them free the cell when done playing
-			~stop = {
-				~server.bind {
-					// Release synth.
-					// Synths will take care of freeing the thing
-					~synths.do(_.release);
-				};
+			~afterStop = {
+				if (~settings.releaseAfterStop) {
+					~groups[\main].release;
+				}
 			};
 		};
 
@@ -386,18 +387,6 @@ z = Environment.make({
 	~players = Environment.make {
 
 		~synth = makeEnv.({
-			~synthName = \default;
-			~synthArgs = [];
-			~duration = 1;
-
-			~play = {
-				~addSynth.(~synthName, ~synthArgs);
-				fork {
-					~duration.wait;
-					currentEnvironment.stop;
-				};
-			};
-
 
 		},  [\settings, \server, \group, \bus, \ctl, \synth]);
 
