@@ -104,6 +104,9 @@ Cell : EnvironmentRedirect {
 
 		};
 
+
+		this.use { envir[\onInit].value };
+
 	}
 
 	//Run specific trigger(s) in envir, eg play, stop etc.

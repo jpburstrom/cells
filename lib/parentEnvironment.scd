@@ -301,7 +301,7 @@ z = Environment.make({
 			~onSynthFree = { |group, syn|
 				~synths[group].remove(syn);
 				//Things to do when no synths are playing inside group
-				if (~synths[group].isEmpty) {
+				if (~synths[group].isNil or:  { ~synths[group].isEmpty }) {
 					switch(group,
 
 						// We're checking if any main or fx synths are still playing
@@ -393,21 +393,42 @@ z = Environment.make({
 			~server = Server.default;
 
 			// Default is ~server.latency
-			~latency = nil;
+			~latency = { ~server.latency };
 
-			// Things to do on server boot
-			// FIXME: Cell.doOnServerBoot
-			~doOnServerBoot.addFunc(~loadSynthDefs);
+			~serverSync = {
+				~server.sync;
+			};
+
+			~serverBootSync = {
+				~server.bootSync;
+			};
 
 			//Default afterLoad action
 			//If overridden, ~server.sync needs to be called
-			~afterLoad.addFunc({
-				~server.sync;
-			});
+			~afterLoad.addFunc(~serverSync);
+			~beforeLoad = ~beforeLoad.addFunc(~serverBootSync);
 
-			~beforeLoad = ~beforeLoad.addFunc({
-				~server.waitForBoot;
-			});
+			// --- Server boot / quit ---
+
+			~doOnServerBoot = nil;
+
+			~doOnServerQuit = {
+				currentEnvironment.freeAll;
+			};
+
+			~registerServer = {
+				ServerBoot.add(currentEnvironment, ~server);
+				ServerQuit.add(currentEnvironment, ~server);
+			};
+
+			~unregisterServer = {
+				ServerBoot.remove(currentEnvironment, ~server);
+				ServerQuit.remove(currentEnvironment, ~server);
+			};
+
+			// We call registerServer in the init hook,
+			// so it's evaluated within the right envir
+			~onInit = ~onInit.addFunc(~registerServer);
 
 		};
 
