@@ -60,7 +60,13 @@ z = Environment.make({
 				// Fade out duration. This overrides tailDuration.
 				fadeOut: nil,
 				// Curve
-				fadeOutCurve: -8
+				fadeOutCurve: -8,
+
+
+				// Default arguments for new synths
+				defaultSynthArgs:  IdentityDictionary[
+					\out -> {~bus.main}
+				]
 
 			);
 
@@ -307,34 +313,20 @@ z = Environment.make({
 			};
 
 			// Helper method for adding synths
-			~prPlaySynth = { |type, group, key, synth, args|
+			~prPlaySynth = { |group, key, synth, args|
 				var out;
-				args = ~addDefaultArgs.(type, args[1..]);
+				args = ~settings[\defaultSynthArgs].putAll(args);
 				// Use default latency.
 				s.bind {
 					if (synth.isSymbol) {
-						out = Synth(synth, args, ~groups[group]);
+						out = Synth(synth, args.asPairs, ~groups[group]);
 					} {
 						// Assume we have a function
 						out = synth.play(~groups[group], args[\out], args: args.asPairs);
 					}
 				};
-				~synths.add(out);
+				~synth[group] = ~synth[group].add(out);
 				out;
-			};
-
-			// Add default argument for different kinds of synths
-			// Right now only for out bus
-			~addDefaultArgs = { |key, args|
-				var out = (out: ~bus.main);
-				out = switch(key,
-					\synth, out,
-					\fx, out,
-					\ctl, out
-				);
-				// Overwrite defaults with args
-				args !? { out.putAll(args) };
-				out
 			};
 
 			// Default stop: Call release on synths
