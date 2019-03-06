@@ -135,7 +135,8 @@ z = Environment.make({
 				~groups[key] = Group(parent, \addToTail);
 			};
 
-			~afterFree = ~afterFree.addFunc({
+			~freeAll = ~freeAll.addFunc({
+				~groups.do(_.free);
 				~groups.clear;
 			});
 
@@ -196,7 +197,12 @@ z = Environment.make({
 			// it needs to call addBuses... at some point
 			~beforeLoad = ~beforeLoad.addFunc(~addBusesFromTemplate);
 
-			~afterFree = ~afterFree.addFunc({
+			~freeAll = ~freeAll.addFunc({
+				~bus.do { |ev|
+					ev.do { |bus|
+						bus.free;
+					}
+				};
 				~bus.clear;
 			});
 
@@ -236,6 +242,11 @@ z = Environment.make({
 			};
 
 			~beforeLoad = ~beforeLoad.addFunc(~addBuffersFromTemplate);
+
+			~freeAll = ~freeAll.addFunc({
+				~buffers.do(_.free);
+				~buffers.clear;
+			});
 
 		};
 
@@ -337,7 +348,10 @@ z = Environment.make({
 									//If we're last synth playing, free after release
 									currentEnvironment.freeAll;
 								}
+							} {
+								currentEnvironment.freeAll;
 							}
+
 						},
 						\fx, {
 							// Free cell when fx and main are not playing anymore
