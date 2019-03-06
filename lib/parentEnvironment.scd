@@ -298,19 +298,44 @@ z = Environment.make({
 			// Removes synth from ~synths set
 			// If all synths have ended,
 			// waits for ~tailDuration and then calls parent.free
-			~onSynthFree = { |syn|
-				~synths.remove(syn);
-				if (~synths.isEmpty) {
-					SystemClock.sched(~settings.tailDuration ? 0, {
-						currentEnvironment.freeAll;
-						nil;
-					}.inEnvir)
+			~onSynthFree = { |group, syn|
+				~synths[group].remove(syn);
+				//Things to do when no synths are playing inside group
+				if (~synths[group].isEmpty) {
+					switch(group,
+
+						// We're checking if any main or fx synths are still playing
+						// If no main synths are left:
+						//   If fx are playing, release the fx synths
+						//   Otherwise free the cell
+
+						// If no fx synths are left:
+						//    If no main synths are playing, free the cell
+
+						// Ctl and volume synths are just abruptly free'd.
+						\main, {
+							if (~synths[\fx].notNil) {
+								if (~synths[\fx].notEmpty) {
+									~groups[\fx].release;
+								} {
+									//If we're last synth playing, free after release
+									currentEnvironment.freeAll;
+								}
+							}
+						},
+						\fx, {
+							// Free cell when fx and main are not playing anymore
+							if (~synths[\main].isNil or: { ~synths[\main].isEmpty }) {
+								currentEnvironment.freeAll;
+							}
+						}
+					);
 				}
 			};
 
 			// Add synth
 			~addSynth = { |key, synth, args|
-				~prPlaySynth.(\main, key, synth, args).onFree(~onSynthFree.inEnvir);
+				~prPlaySynth.(\main, key, synth, args)
 			};
 
 			// Add effect synth
@@ -322,7 +347,8 @@ z = Environment.make({
 			// Set a
 			~addVolume = { |args|
 				// This starts fading when playing synth, so it needs to start in ~play
-				~prPlaySynth.(\level, \volume, "cellMixer_%".format(~settings.numChannels).asSymbol, args);
+				~prPlaySynth.(\level, \volume,
+					"cellMixer_%".format(~settings.numChannels).asSymbol, args);
 			};
 
 			// Helper method for adding synths
@@ -330,15 +356,19 @@ z = Environment.make({
 				var out;
 				args = ~settings[\defaultSynthArgs].putAll(args);
 				// Use default latency.
-				s.bind {
+				args = args.collect(_.value).asPairs;
+				s.bind({
 					if (synth.isSymbol) {
-						out = Synth(synth, args.asPairs, ~groups[group]);
+						out = Synth(synth, args, ~groups[group]);
 					} {
 						// Assume we have a function
 						out = synth.play(~groups[group], args[\out], args: args.asPairs);
 					}
-				};
-				~synth[group] = ~synth[group].add(out);
+				});
+				~synths[group] = ~synths[group].add(out);
+				out.onFree({ |syn|
+					~onSynthFree.(group, syn);
+				}.inEnvir);
 				out;
 			};
 
