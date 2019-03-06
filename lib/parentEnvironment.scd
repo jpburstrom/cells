@@ -70,9 +70,11 @@ z = Environment.make({
 
 			);
 
+			// Dictionary for param/bus/buffer/group/synth templates
+			~template = ();
 
 			// Dictionary of markers
-			// label -> time
+			// label -> tim
 			// Time can be a single float
 			// or an array of floats
 			// (for onsets, phrases etc)
@@ -84,7 +86,7 @@ z = Environment.make({
 
 			// Template of parameters
 			// that can be set during cell play
-			~paramTemplate = (
+			~template[\param] = (
 
 				// Main cell volume
 				volume: { NumericControlValue(1, \db) },
@@ -102,14 +104,14 @@ z = Environment.make({
 		~group = {
 			// Default group order
 			// TODO: nested groups, if needed
-			~groupTemplate = #[ctl, main, fx, level, send];
+			~template[\group] = #[ctl, main, fx, level, send];
 
 			// All groups end up in the groups envir
 			// The envir should not be placed in the parent envir
 			// So we create it as a part of ~addGroups
 			~addGroupsFromTemplate = {
 				~groups ?? { ~groups = IdentityDictionary(know:true) };
-				~groupTemplate.do { |key|
+				~template[\group].do { |key|
 					~addGroup.value(key);
 				};
 			};
@@ -143,7 +145,7 @@ z = Environment.make({
 			// Buses are private by default, but
 			// you can provide an index for global buses
 			// TODO: a way to inject buses from outside
-			~busTemplate = (
+			~template[\bus] = (
 				//Type, channels, index (for global buses)
 				main: [\audio, ~settings.numChannels],
 				out: [\audio, 2, 0]
@@ -153,7 +155,7 @@ z = Environment.make({
 			// Add buses according to template
 			~addBusesFromTemplate = {
 				~bus ?? { ~bus = IdentityDictionary(know:true) };
-				~busTemplate.keysValuesDo { |key, args|
+				~template[\bus].keysValuesDo { |key, args|
 					~addBus.(key, *args);
 				};
 			};
@@ -187,7 +189,7 @@ z = Environment.make({
 			~settings[\numChannels] = 2;
 
 			/*
-			~bufferTemplate = (
+			~template[\buffer] = (
 				// ~defaultBufferMethod (path)
 				key: string,
 				// alloc
@@ -202,7 +204,7 @@ z = Environment.make({
 				~buffers ?? { ~buffers = IdentityDictionary(know:true) };
 				//FIXME
 				/*
-				~bufferTemplate.keysValuesDo { |key, args|
+				~template[\buffer].keysValuesDo { |key, args|
 					var buf;
 					case
 					{ args.isKindOf(String) } {
@@ -262,14 +264,16 @@ z = Environment.make({
 		// Synth related methods: FX, Ctl,
 		~synth = {
 
-			~synthTemplate = IdentityDictionary[
+
+
+			~template[\synth] = IdentityDictionary[
 				\foo -> [\default, (volume:1)]
 			];
 
 			~addSynthsFromTemplate = {
 				var synth;
 				~synths ?? { ~synths = IdentityDictionary(know:true) };
-				~synthTemplate.keysValuesDo { |key, args|
+				~template[\synth].keysValuesDo { |key, args|
 					synth = args[0];
 					args = args[1..];
 					if (args.size == 1) {
@@ -277,7 +281,15 @@ z = Environment.make({
 					};
 					~addSynth.(key, synth, args);
 				};
-			}
+				~template[\fx].keysValuesDo { |key, args|
+					synth = args[0];
+					args = args[1..];
+					if (args.size == 1) {
+						args = args[0];
+					};
+					~addFx.(key, synth, args);
+				};
+			};
 
 			~beforePlay = ~beforePlay.addFunc(~addSynthsFromTemplate);
 
@@ -301,7 +313,7 @@ z = Environment.make({
 			};
 
 			// Add effect synth
-			~addFx = { |key ...args|
+			~addFx = { |key, synth, args|
 				~prPlaySynth.(\fx, \fx, key, synth, args);
 			};
 
@@ -392,14 +404,14 @@ z = Environment.make({
 		~buffer = makeEnv.({
 			~settings[\defaultBufferPathMethod] = \read;
 			~synthName = \bufPlayer;
-			~bufferTemplate = nil; //
+			~template.buffer = nil; //
 
 		}, [\settings, \server, \group, \bus, \ctl, \synth, \buffer]);
 
 		~disk = makeEnv.({
 			~settings[\defaultBufferPathMethod] = \cueSoundFile;
 			~synthName = \diskPlayer;
-			~bufferTemplate = nil; //
+			~template.buffer = nil; //
 
 		}, [\settings, \server, \group, \bus, \ctl, \synth, \buffer]);
 
