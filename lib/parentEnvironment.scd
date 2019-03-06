@@ -319,7 +319,6 @@ z = Environment.make({
 				}));
 			};
 
-			~beforePlay = ~beforePlay.addFunc(~addSynthsFromTemplate);
 
 			// Callback for synth.onFree
 			// Removes synth from ~synths set
@@ -375,10 +374,12 @@ z = Environment.make({
 
 			// Add volume-controlling synth
 			// Set a
-			~addVolume = { |args|
+			~prAddVolume = { |args|
 				// This starts fading when playing synth, so it needs to start in ~play
 				~prPlaySynth.(\level, \volume,
-					"cellMixer_%".format(~settings.numChannels).asSymbol, args);
+					"cellMixer_%".format(~settings.numChannels).asSymbol,
+					(out: {~bus.out}, in: {~bus.main})
+				);
 			};
 
 			// Helper method for adding synths
@@ -401,13 +402,19 @@ z = Environment.make({
 				out;
 			};
 
+			~beforePlay = ~beforePlay.addFunc(~addSynthsFromTemplate);
+			~beforePlay = ~beforePlay.addFunc(~prAddVolume);
+
+
 			// Default stop: Call release on synths
 			// and let them free the cell when done playing
-			~afterStop = {
+			~defaultAfterStop = {
 				if (~settings.releaseAfterStop) {
 					~groups[\main].release;
 				}
 			};
+
+			~afterStop = ~afterStop.addFunc(~defaultAfterStop);
 
 			~afterFree = ~afterFree.addFunc({
 				~synths.clear;
