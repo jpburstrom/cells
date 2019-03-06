@@ -379,6 +379,10 @@ z = Environment.make({
 					~groups[\main].release;
 				}
 			};
+
+			~afterFree = ~afterFree.addFunc({
+				~synths.clear;
+			});
 		};
 
 		~server = {
