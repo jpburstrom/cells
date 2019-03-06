@@ -30,6 +30,7 @@ Cell : EnvironmentRedirect {
 	*loadParentEnvironment {
 
 		StartUp.add({
+			(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/synthDefs.scd").loadPath;
 			parentEnvironment = (PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/parentEnvironment.scd").loadPath;
 		});
 
