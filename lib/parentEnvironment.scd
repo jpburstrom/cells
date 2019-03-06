@@ -257,7 +257,7 @@ z = Environment.make({
 			~addCtl = { |key, synth, args, numChannels=1|
 				var bus = ~addBus.(~prFormatCtlKey.(key), \control, numChannels);
 				args[\out] = bus.index;
-				~prPlaySynth.(\ctl, \ctl, key, synth, args);
+				~prPlaySynth.(\ctl, key, synth, args);
 			};
 		};
 
@@ -309,19 +309,19 @@ z = Environment.make({
 
 			// Add synth
 			~addSynth = { |key, synth, args|
-				~prPlaySynth.(\synth, \main, key, synth, args).onFree(~onSynthFree.inEnvir);
+				~prPlaySynth.(\main, key, synth, args).onFree(~onSynthFree.inEnvir);
 			};
 
 			// Add effect synth
 			~addFx = { |key, synth, args|
-				~prPlaySynth.(\fx, \fx, key, synth, args);
+				~prPlaySynth.(\fx, key, synth, args);
 			};
 
 			// Add volume-controlling synth
 			// Set a
 			~addVolume = { |args|
 				// This starts fading when playing synth, so it needs to start in ~play
-				~prPlaySynth.(\synth, \level, \volume, "cellMixer_%".format(~settings.numChannels).asSymbol, args);
+				~prPlaySynth.(\level, \volume, "cellMixer_%".format(~settings.numChannels).asSymbol, args);
 			};
 
 			// Helper method for adding synths
