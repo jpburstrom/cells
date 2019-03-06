@@ -102,7 +102,7 @@ z = Environment.make({
 			// The envir should not be placed in the parent envir
 			// So we create it as a part of ~addGroups
 			~addGroupsFromTemplate = {
-				~groups ?? { ~groups = () };
+				~groups ?? { ~groups = IdentityDictionary(know:true) };
 				~groupTemplate.do { |key|
 					~addGroup.value(key);
 				};
@@ -146,7 +146,7 @@ z = Environment.make({
 
 			// Add buses according to template
 			~addBusesFromTemplate = {
-				~bus ?? { ~bus = () };
+				~bus ?? { ~bus = IdentityDictionary(know:true) };
 				~busTemplate.keysValuesDo { |key, args|
 					~addBus.(key, *args);
 				};
@@ -193,7 +193,7 @@ z = Environment.make({
 
 						// Add buses according to template
 			~addBuffersFromTemplate = {
-				~buffers ?? { ~buffers = () };
+				~buffers ?? { ~buffers = IdentityDictionary(know:true) };
 				//FIXME
 				/*
 				~bufferTemplate.keysValuesDo { |key, args|
@@ -249,21 +249,31 @@ z = Environment.make({
 			~addCtl = { |key, synth, args, numChannels=1|
 				var bus = ~addBus.(~prFormatCtlKey.(key), \control, numChannels);
 				args[\out] = bus.index;
-				~prPlaySynth.(\ctl, \ctl, synth, args);
+				~prPlaySynth.(\ctl, \ctl, key, synth, args);
 			};
 		};
-
-		~timedDuration = {
-		};
-
 
 		// Synth related methods: FX, Ctl,
 		~synth = {
 
-			// Keeper of synths
-			~beforeLoad = ~beforeLoad.addFunc({
-				~synths = ~synths !? { ~synths.clear } ?? { Set() };
-			});
+			~synthTemplate = IdentityDictionary[
+				\foo -> [\default, (volume:1)]
+			];
+
+			~addSynthsFromTemplate = {
+				var synth;
+				~synths ?? { ~synths = IdentityDictionary(know:true) };
+				~synthTemplate.keysValuesDo { |key, args|
+					synth = args[0];
+					args = args[1..];
+					if (args.size == 1) {
+						args = args[0];
+					};
+					~addSynth.(key, synth, args);
+				};
+			}
+
+			~beforePlay = ~beforePlay.addFunc(~addSynthsFromTemplate);
 
 			// Callback for synth.onFree
 			// Removes synth from ~synths set
@@ -280,26 +290,28 @@ z = Environment.make({
 			};
 
 			// Add synth
-			~addSynth = { |synth, args|
-				~prPlaySynth.(\synth, \main, synth, args).onFree(~onSynthFree.inEnvir);
+			~addSynth = { |key, synth, args|
+				~prPlaySynth.(\synth, \main, key, synth, args).onFree(~onSynthFree.inEnvir);
 			};
 
 			// Add effect synth
-			~addFx = { |synth, args|
-				~prPlaySynth.(\fx, \fx, synth, args);
+			~addFx = { |key ...args|
+				~prPlaySynth.(\fx, \fx, key, synth, args);
 			};
 
 			// Add volume-controlling synth
 			// Set a
 			~addVolume = { |args|
 				// This starts fading when playing synth, so it needs to start in ~play
-				~prPlaySynth.(\synth, \level, "cellMixer_%".format(~settings.numChannels).asSymbol, args);
+				~prPlaySynth.(\synth, \level, \volume, "cellMixer_%".format(~settings.numChannels).asSymbol, args);
 			};
 
+			~addSynth.(\foo, \default, \amp, 1)
+
 			// Helper method for adding synths
-			~prPlaySynth = { |type, group, synth, args|
+			~prPlaySynth = { |type, group, key, synth, args|
 				var out;
-				args = ~addDefaultArgs.(type, args);
+				args = ~addDefaultArgs.(type, args[1..]);
 				// Use default latency.
 				s.bind {
 					if (synth.isSymbol) {
