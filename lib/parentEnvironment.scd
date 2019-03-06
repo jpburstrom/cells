@@ -267,31 +267,29 @@ z = Environment.make({
 		// Synth related methods: FX, Ctl,
 		~synth = {
 
-
-
 			~template[\synth] = IdentityDictionary[
-				\foo -> [\default, (volume:1)]
+				\foo -> [\default]
 			];
 
 			~addSynthsFromTemplate = {
 				var synth;
 				~synths ?? { ~synths = IdentityDictionary(know:true) };
-				~template[\synth].keysValuesDo { |key, args|
+				~template[\synth] !? (_.keysValuesDo({ |key, args|
 					synth = args[0];
 					args = args[1..];
 					if (args.size == 1) {
 						args = args[0];
 					};
 					~addSynth.(key, synth, args);
-				};
-				~template[\fx].keysValuesDo { |key, args|
+				}));
+				~template[\fx] !? (_.keysValuesDo({ |key, args|
 					synth = args[0];
 					args = args[1..];
 					if (args.size == 1) {
 						args = args[0];
 					};
 					~addFx.(key, synth, args);
-				};
+				}));
 			};
 
 			~beforePlay = ~beforePlay.addFunc(~addSynthsFromTemplate);
