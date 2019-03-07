@@ -394,7 +394,7 @@ Environment.make({
 			// Helper method for adding synths
 			~prPlaySynth = { |group, key, synth, args|
 				var out;
-				args = ~settings[\defaultSynthArgs].putAll(args);
+				args = ~settings[\defaultSynthArgs].copy.putAll(args);
 				args = args.collect(_.value);
 				s.bind({
 					if (synth.isSymbol) {
