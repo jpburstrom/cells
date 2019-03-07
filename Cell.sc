@@ -261,11 +261,11 @@ Cell : EnvironmentRedirect {
 		^states.findKeyForValue(stateNum)
 	}
 
-	isStopped { this.checkState(\stopped) }
-	isLoading { this.checkState(\loading) }
-	isReady { this.checkState(\ready) }
-	isPlaying { this.checkState(\playing) }
-	isPaused { this.checkState(\paused) }
+	isStopped { ^this.checkState(\stopped) }
+	isLoading { ^this.checkState(\loading) }
+	isReady { ^this.checkState(\ready) }
+	isPlaying { ^this.checkState(\playing) }
+	isPaused { ^this.checkState(\paused) }
 
 	prChangeState { |state|
 		stateNum = states[state];
