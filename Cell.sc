@@ -335,12 +335,12 @@ Cell : EnvironmentRedirect {
 			if(envir[selector].isNil) {
 				// This is different: We call function within envir
 				^this.use {
-					envir[\forward].functionPerformList(\value, this, selector, args)
+					envir[\forward].functionPerformList(\value, selector, args)
 				};
 			}
 		};
 		// This is different: We call function within envir
-		^this.use { this[selector].functionPerformList(\value, this, args) };
+		^this.use { this[selector].functionPerformList(\value, args) };
 	}
 
 
