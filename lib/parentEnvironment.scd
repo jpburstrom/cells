@@ -1,5 +1,5 @@
 "Loading parent environment".debug;
-z = Environment.make({
+Environment.make({
 	var makeEnv = { |func, mixins|
 		var fact = ~mixins;
 		if (mixins.isNil) {

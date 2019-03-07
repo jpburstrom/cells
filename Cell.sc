@@ -23,16 +23,16 @@ Cell : EnvironmentRedirect {
 			\error -> 128
 		];
 
-		this.loadParentEnvironment;
+		StartUp.add({
+			this.loadParentEnvironment;
+		});
 
 	}
 
 	*loadParentEnvironment {
 
-		StartUp.add({
 			(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/synthDefs.scd").loadPath;
 			parentEnvironment = (PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/parentEnvironment.scd").loadPath;
-		});
 
 	}
 
