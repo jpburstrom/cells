@@ -285,9 +285,7 @@ z = Environment.make({
 			// Add control synth (LFO etc)
 			~addCtl = { |key, synth, args, numChannels=1|
 				var bus = ~addBus.(key, \control, numChannels, nil, \_ctl);
-				args.debug("args");
 				args = (args ?? IdentityDictionary()).asDict;
-				args.debug("args");
 				args[\out] = bus.index;
 				~prPlaySynth.(\ctl, key, synth, args);
 			};
