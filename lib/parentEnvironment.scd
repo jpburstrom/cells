@@ -54,11 +54,11 @@ z = Environment.make({
 				// Fades are post-fx, and overrides tail settings.
 				// This means it should be safe to free everything when a fadeOut has completed.
 				// Fade in duration.
-				fadeIn: nil,
+				fadeIn: 0,
 				// Curve of fadeIn envelope - only float?
 				fadeInCurve: 8,
 				// Fade out duration. This overrides tailDuration.
-				fadeOut: nil,
+				fadeOut: 0,
 				// Curve
 				fadeOutCurve: -8,
 
