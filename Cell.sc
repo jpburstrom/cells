@@ -77,6 +77,7 @@ Cell : EnvironmentRedirect {
 		children = Set();
 		playAfterLoad = false;
 		stateNum = states[\free];
+		name = "";
 
 		envir.know = knowFlag;
 
@@ -340,4 +341,5 @@ Cell : EnvironmentRedirect {
 	}
 
 
+	printOn { arg stream; stream << this.class.name << "(" <<< name <<")" }
 }
