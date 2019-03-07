@@ -183,8 +183,7 @@ z = Environment.make({
 
 			//Add a single bus, identified by key
 			~addBus = { |key, rate, numChannels, index, grp=\_default|
-				[key, rate, numChannels, index, grp].postln;
-				~bus[grp][key] !? (_.free);
+				 ~bus[grp][key].free; // Also if nil
 				if (index.notNil) {
 					~bus[grp][key] = Bus(rate, index, numChannels, ~server);
 				} {
