@@ -357,6 +357,10 @@ z = Environment.make({
 								if (~synths[\main].isNil or: { ~synths[\main].isEmpty }) {
 									currentEnvironment.freeAll;
 								}
+							},
+							//If level synth is gone, free everything
+							\level, {
+								currentEnvironment.freeAll;
 							}
 						);
 
@@ -381,7 +385,9 @@ z = Environment.make({
 				// This starts fading when playing synth, so it needs to start in ~play
 				~prPlaySynth.(\level, \volume,
 					"cellMixer_%".format(~settings.numChannels).asSymbol,
-					(out: {~bus.out}, in: {~bus.main})
+					(fadetime: {~settings[\fadeIn]},
+						out: {~bus.out}, in: {~bus.main}
+					)
 				);
 			};
 
@@ -424,6 +430,25 @@ z = Environment.make({
 				~synths.clear;
 				~synths = nil;
 			});
+
+			~fadeIn = { |ev, time|
+				fork {
+					currentEnvironment.play;
+					~synths[\level][\volume].set(\fadetime, time ?? { ~settings[\fadeIn] });
+				};
+				currentEnvironment
+			};
+
+			~fadeOut = { |ev, time|
+				if (true) {
+					~synths[\level][\volume].set(\freeWhenDone, 1);
+					~synths[\level][\volume].set(\fadetime, time ?? { ~settings[\fadeOut] });
+					~synths[\level][\volume].set(\amp, 0);
+				};
+				currentEnvironment
+			};
+
+
 		};
 
 		~server = {
