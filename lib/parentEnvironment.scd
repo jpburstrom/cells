@@ -138,6 +138,7 @@ z = Environment.make({
 			~freeAll = ~freeAll.addFunc({
 				~groups.do(_.free);
 				~groups.clear;
+				~groups = nil;
 			});
 
 		};
@@ -204,6 +205,7 @@ z = Environment.make({
 					}
 				};
 				~bus.clear;
+				~bus = nil;
 			});
 
 		};
@@ -246,6 +248,7 @@ z = Environment.make({
 			~freeAll = ~freeAll.addFunc({
 				~buffers.do(_.free);
 				~buffers.clear;
+				~buffers = nil;
 			});
 
 		};
@@ -418,6 +421,7 @@ z = Environment.make({
 
 			~afterFree = ~afterFree.addFunc({
 				~synths.clear;
+				~synths = nil;
 			});
 		};
 
