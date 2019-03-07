@@ -90,6 +90,8 @@ Environment.make({
 
 			~params = nil;
 
+			~nodeMap = MultiLevelIdentityDictionary();
+
 			// Template of parameters
 			// that can be set during cell play
 			~template[\param] = (
@@ -103,6 +105,66 @@ Environment.make({
 				progress: { NumericControlValue(0, \unipolar) }
 
 			);
+
+			~addNodeMap = { |...path|
+				var map = NodeMap();
+				~nodeMap.putAtPath(path, map);
+				map
+			};
+
+			// Get values from running synths
+			~get = { |first ...rest|
+				var out, path;
+				if (first.isKindOf(String)) {
+					first = first.split($.).collect(_.asSymbol);
+				} {
+					first = first.asArray;
+				};
+				path = first ++ rest;
+				out = ~nodeMap.at(*path);
+			};
+
+			~set = { |first ...rest|
+				var key, val, out, path;
+				if (first.isKindOf(String)) {
+					first = first.split($.).collect(_.asSymbol);
+				} {
+					first = first.asArray;
+				};
+				path = first ++ rest;
+				val = path.pop;
+				key = path.pop;
+				out = ~nodeMap.at(*path);
+				if (out.isKindOf(NodeMap)) {
+					out.set(key, val);
+					if (currentEnvironment.isPlaying) {
+						~prNodeMapSend.(out, path);
+					};
+				} {
+					nil
+				};
+				out
+			};
+
+			~prNodeMapSend = { |map, path|
+				var type = path[0];
+				var key = path[1];
+
+				//Get playing node from map path
+				switch(type,
+					\group, {
+						map.send(~server, ~groups[key].nodeID, ~server.latency);
+					},
+					\synth, {
+						map.send(~server, ~synths[\main][key].nodeID, ~server.latency);
+					},
+					\fx, {
+						map.send(~server, ~synths[\fx][key].nodeID, ~server.latency);
+					}
+				);
+
+
+			};
 
 		};
 
@@ -122,12 +184,20 @@ Environment.make({
 				};
 			};
 
+			~addGroupNodeMap = {
+				~template[\group].do { |key|
+					~addNodeMap.(\group, key);
+				};
+			};
+
 			// Default beforePlay action
 			// If this is overridden by main envir,
 			// it needs to call addGroups... at some point
 			~beforePlay = ~beforePlay.addFunc(~addGroupsFromTemplate);
+			~onInit = ~onInit.addFunc(~addGroupNodeMap);
 
 			~addGroup = { |key, parent|
+				var group, msg;
 				~groups[key] !? (_.free);
 				//If parent is set, use that
 				parent = parent ?? {
@@ -135,7 +205,13 @@ Environment.make({
 					// it defaults to Group(1) (nil.asTarget)
 					~groups[\parentGroup]
 				};
-				~groups[key] = Group(parent, \addToTail);
+				group = Group.basicNew(~server);
+				msg = group.addToTailMsg(parent);
+				~groups[key] = group;
+				msg = msg ++ ~nodeMap.at(\group, key).asOSCArgArray;
+				~server.sendBundle(~server.latency, msg);
+				NodeMap
+
 			};
 
 			~freeAll = ~freeAll.addFunc({
@@ -185,7 +261,8 @@ Environment.make({
 			};
 
 			//Add a single bus, identified by key
-			~addBus = { |key, rate, numChannels, index, grp=\_default|
+			~addBus = { |key, rate, numChannels, index, grp|
+				grp = grp ? \_default;
 				 ~bus[grp][key].free; // Also if nil
 				if (index.notNil) {
 					~bus[grp][key] = Bus(rate, index, numChannels, ~server);
@@ -286,8 +363,10 @@ Environment.make({
 			};
 
 			// Add control synth (LFO etc)
-			~addCtl = { |key, synth, args, numChannels=1|
-				var bus = ~addBus.(key, \control, numChannels, nil, \_ctl);
+			~addCtl = { |key, synth, args, numChannels|
+				var bus;
+				numChannels = numChannels ? 1;
+				bus = ~addBus.(key, \control, numChannels, nil, \_ctl);
 				args = (args ?? IdentityDictionary()).asDict;
 				args[\out] = bus.index;
 				~prPlaySynth.(\ctl, key, synth, args);
@@ -304,24 +383,34 @@ Environment.make({
 			~addSynthsFromTemplate = {
 				var synth;
 				~synths ?? { ~synths = IdentityDictionary(know:true) };
-				~template[\synth] !? (_.keysValuesDo({ |key, args|
-					synth = args[0];
-					args = args[1..];
-					if (args.size == 1) {
-						args = args[0];
-					};
-					~addSynth.(key, synth, args);
-				}));
-				~template[\fx] !? (_.keysValuesDo({ |key, args|
-					synth = args[0];
-					args = args[1..];
-					if (args.size == 1) {
-						args = args[0];
-					};
-					~addFx.(key, synth, args);
-				}));
+				~prSynthTemplateLoop.(\synth, ~addSynth);
+				~prSynthTemplateLoop.(\fx, ~addFx);
 			};
 
+			~addSynthNodeMap = {
+				~prSynthTemplateLoop.(\synth, { |key, synth, args|
+					var map;
+					map = ~addNodeMap.(\synth, key);
+					args !? { map.putAll(args) };
+				});
+				~prSynthTemplateLoop.(\fx, { |key, synth, args|
+					var map;
+					map = ~addNodeMap.(\fx, key);
+					args !? { map.putAll(args) };
+				});
+			};
+
+			~prSynthTemplateLoop = { |group, callback|
+				~template[group] !? (_.keysValuesDo({ |key, args|
+					var synth;
+					synth = args[0];
+					args = args[1..];
+					if (args.size == 1) {
+						args = args[0];
+					};
+					callback.(key, synth, args);
+				}));
+			};
 
 			// Callback for synth.onFree
 			// Removes synth from ~synths set
@@ -417,6 +506,7 @@ Environment.make({
 
 			~beforePlay = ~beforePlay.addFunc(~addSynthsFromTemplate);
 			~beforePlay = ~beforePlay.addFunc(~prAddVolume);
+			~onInit = ~onInit.addFunc(~addSynthNodeMap);
 
 
 			// Default stop: Call release on synths
@@ -460,9 +550,6 @@ Environment.make({
 			//FIXME we should not hardcode server here
 			//Use function ?
 			~server = Server.default;
-
-			// Default is ~server.latency
-			~latency = { ~server.latency };
 
 			~serverSync = {
 				~server.sync;
