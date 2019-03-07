@@ -324,44 +324,47 @@ z = Environment.make({
 
 			// Callback for synth.onFree
 			// Removes synth from ~synths set
-			// If all synths have ended,
-			// waits for ~tailDuration and then calls parent.free
-			~onSynthFree = { |group, syn|
-				~synths[group].remove(syn);
-				//Things to do when no synths are playing inside group
-				if (~synths[group].isNil or:  { ~synths[group].isEmpty }) {
-					switch(group,
+			~onSynthFree = { |group, key|
+				~synths !? {
+					~synths[group][key] = nil;
 
-						// We're checking if any main or fx synths are still playing
-						// If no main synths are left:
-						//   If fx are playing, release the fx synths
-						//   Otherwise free the cell
+					//Things to do when no synths are playing inside group
+					if (~synths[group].isEmpty) {
+						switch(group,
 
-						// If no fx synths are left:
-						//    If no main synths are playing, free the cell
+							// We're checking if any main or fx synths are still playing
+							// If no main synths are left:
+							//   If fx are playing, release the fx synths
+							//   Otherwise free the cell
 
-						// Ctl and volume synths are just abruptly free'd.
-						\main, {
-							if (~synths[\fx].notNil) {
-								if (~synths[\fx].notEmpty) {
-									~groups[\fx].release;
+							// If no fx synths are left:
+							//    If no main synths are playing, free the cell
+
+							// Ctl and volume synths are just abruptly free'd.
+							\main, {
+								if (~synths[\fx].notNil) {
+									if (~synths[\fx].notEmpty) {
+										~groups[\fx].release;
+									} {
+										//If we're last synth playing, free after release
+										currentEnvironment.freeAll;
+									}
 								} {
-									//If we're last synth playing, free after release
 									currentEnvironment.freeAll;
 								}
-							} {
-								currentEnvironment.freeAll;
-							}
 
-						},
-						\fx, {
-							// Free cell when fx and main are not playing anymore
-							if (~synths[\main].isNil or: { ~synths[\main].isEmpty }) {
-								currentEnvironment.freeAll;
+							},
+							\fx, {
+								// Free cell when fx and main are not playing anymore
+								if (~synths[\main].isNil or: { ~synths[\main].isEmpty }) {
+									currentEnvironment.freeAll;
+								}
 							}
-						}
-					);
+						);
+
+					}
 				}
+
 			};
 
 			// Add synth
@@ -397,9 +400,10 @@ z = Environment.make({
 						out = synth.play(~groups[group], args[\out], args: args.asPairs);
 					}
 				});
-				~synths[group] = ~synths[group].add(out);
+				~synths[group] ?? { ~synths[group] = IdentityDictionary() };
+				~synths[group][key] = out;
 				out.onFree({ |syn|
-					~onSynthFree.(group, syn);
+					~onSynthFree.(group, key);
 				}.inEnvir);
 				out;
 			};
