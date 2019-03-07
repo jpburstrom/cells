@@ -21,6 +21,9 @@ Environment.make({
 
 		~settings = {
 
+			// Copy these keys to proto, to not overwrite/change them in parent
+			~copyToProto = #[settings, params, template, markers];
+
 			// Settings that need to be in place before
 			// doing anything else
 			~settings = (

@@ -31,8 +31,8 @@ Cell : EnvironmentRedirect {
 
 	*loadParentEnvironment {
 
-			(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/synthDefs.scd").loadPath;
-			parentEnvironment = (PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/parentEnvironment.scd").loadPath;
+		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/synthDefs.scd").loadPath;
+		parentEnvironment = (PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/parentEnvironment.scd").loadPath;
 
 	}
 
@@ -83,6 +83,11 @@ Cell : EnvironmentRedirect {
 
 		envir.parent = parentEnvironment[\players][playerKey];
 
+		// Copy some keys (eg settings, templates) to proto, to not overwrite the
+		// class-level dictionary
+		envir.parent[\copyToProto].do { |key|
+			envir.proto[key] = envir.parent[key].deepCopy;
+		};
 
 		// The make function is run inside the proto of the environment
 		// that way, user data and temporary objects are kept separate from objects
@@ -91,6 +96,8 @@ Cell : EnvironmentRedirect {
 		envir.proto.make {
 
 			// Call func for custom behaviour
+			// It should be possible to do this without passing this or parent to function
+			// Otherwise there's a risk of modifying the class-level parent dict
 			func.value;
 
 			// Set params from paramTemplate
