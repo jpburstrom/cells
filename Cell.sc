@@ -139,12 +139,11 @@ Cell : EnvironmentRedirect {
 	}
 
 	load {
+		CmdPeriod.doOnce(this);
 		cond.test = false;
 		forkIfNeeded {
 			if (this.checkState(\stopped, \error, \free)) {
 				this.prChangeState(\loading);
-				//TODO: how is server(s) defined?
-				(envir[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
 				this.trigAndWait(\beforeLoad, \load, \afterLoad);
 				if (this.checkState(\stopping).not) {
 					this.prChangeState(\ready);
@@ -204,7 +203,6 @@ Cell : EnvironmentRedirect {
 
 	afterStop {
 		if (this.checkState(\stopped, \free).not) {
-			(envir[\server] ?? { Server.default }).do(ServerTree.remove(currentEnvironment, _));
 			this.prChangeState(\stopped);
 		};
 	}
@@ -279,15 +277,13 @@ Cell : EnvironmentRedirect {
 		^(sts.collect(states[_]).reject(_.isNil).sum & stateNum) == stateNum;
 	}
 
-	//TODO: serverTree only works with server, of course.
-	//We need to implement cmdPeriod for non-audio cues
-	doOnServerTree {
-		//TODO: find a good way of not hardcoding this stuff
-		envir.synth = nil;
-		envir.synths.clear;
-		//^ this stuff
+	cmdPeriod {
+		// I'm leaving this here, as a safety thing
+		// If error occurs, we at least would like to reset the state
+		// There might be a possible race condition,
+		// but it seems that in the normal case,
+		// state == \free already
 		if (this.checkState.(\stopped, \free).not) {
-			this.afterStop;
 			this.freeAll;
 		}
 	}
