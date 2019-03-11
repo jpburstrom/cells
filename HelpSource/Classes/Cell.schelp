@@ -29,7 +29,7 @@ INSTANCEMETHODS::
 
 SUBSECTION:: Player interface
 
-Player is constructed by defining custom actions in the environment. The actions are called with two arguments: The cue instance and the link::#-playerCond::. To wait for asynchronous code, you can either wait in the action itself, or if more convenient, fork and
+Player is constructed by defining custom actions in the environment. The actions are called with the cell instance as argument. code::currentEnvironment:: is also set to the cell instance. If the actions are not already run within a routine, they are forked so you can use code::.wait::, code::s.sync:: etc inside the actions.
 
 METHOD:: load
 Call ~load from environment.
@@ -57,7 +57,7 @@ METHOD:: state
 Get player state as symbol
 
 METHOD:: isLoading, isReady, isPlaying, isLoading, isPaused, isStopped
-Answer if cue is loading, ready for play (after load), playing, paused or stopped.
+Answer if cell is loading, ready for play (after load), playing, paused or stopped.
 
 METHOD:: cond
 A link::Classes/Condition:: which is set to wait whenever player is waiting to complete a player action (link::#-play::, link::#-stop::, link::#-load:: etc).
