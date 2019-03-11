@@ -72,8 +72,8 @@ Cell : EnvironmentRedirect {
 
 	init { |func, playerKey, knowFlag|
 
-		cond = Condition(false);
-		playerCond = Condition(false);
+		cond = Condition(true);
+		playerCond = Condition(true);
 		children = Set();
 		playAfterLoad = false;
 		stateNum = states[\free];
