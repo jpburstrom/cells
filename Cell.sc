@@ -132,8 +132,14 @@ Cell : EnvironmentRedirect {
 				"into %".format(key).debug;
 			};
 			fork {
-				this.use {
-					envir[key].value(this);
+				protect {
+					this.use {
+						envir[key].value(this);
+					};
+				} {
+					this.prChangeState(\error);
+					playerCond.test = true;
+					playerCond.signal;
 				};
 				if (debug) {
 					"out of %".format(key).debug;
@@ -155,7 +161,7 @@ Cell : EnvironmentRedirect {
 			if (this.checkState(\stopped, \error, \free)) {
 				this.prChangeState(\loading);
 				this.trigAndWait(\beforeLoad, \load, \afterLoad);
-				if (this.checkState(\stopping).not) {
+				if (this.checkState(\stopping, \error).not) {
 					this.prChangeState(\ready);
 					if (playAfterLoad) {
 						playAfterLoad = false;
