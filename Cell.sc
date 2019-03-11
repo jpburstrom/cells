@@ -247,7 +247,9 @@ Cell : EnvironmentRedirect {
 		if (this.checkState(\stopping, \stopped, \free, \error).not) {
 			this.stop(true);
 		};
-		this.children.do(_.free);
+		this.children.do { |key|
+			envir[key].free
+		};
 		this.children.clear;
 		this.freeAll;
 	}
@@ -301,8 +303,10 @@ Cell : EnvironmentRedirect {
 
 
 
-	addChildren { |...cells|
-		cells.do { |child|
+	addChildren { |...keys|
+		var child;
+		keys.do { |key|
+			child = envir[key];
 			if (this.validateRelative(child)) {
 				children.add(child);
 				child.setMother(this);
@@ -312,11 +316,16 @@ Cell : EnvironmentRedirect {
 		};
 	}
 
-	setMother { |obj|
+	// Set mother
+	// if childKey is provided,
+	// set this as children of mother
+	// under key childKey
+	setMother { |obj, childKey|
 		if (this.validateRelative(obj)) {
 			mother = obj;
-			if (obj.children.includes(this).not) {
-				obj.addChildren(this)
+			if (childKey.notNil) {
+				obj[childKey] = this;
+				obj.addChildren(childKey)
 			}
 		} {
 			"Not a valid mother".warn;
