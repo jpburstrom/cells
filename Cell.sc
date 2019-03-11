@@ -247,8 +247,9 @@ Cell : EnvironmentRedirect {
 		if (this.checkState(\stopping, \stopped, \free, \error).not) {
 			this.stop(true);
 		};
-		this.children.do { |key|
-			envir[key].free
+		this.children.do { |child|
+			child.free;
+			child.unsetMother;
 		};
 		this.children.clear;
 		this.freeAll;
@@ -316,6 +317,17 @@ Cell : EnvironmentRedirect {
 		};
 	}
 
+	removeChildren { |...keys|
+		var child;
+		keys.do { |key|
+			child = envir[key];
+			children.remove(child);
+			if (child.mother == this) {
+				child.unsetMother;
+			};
+		};
+	}
+
 	// Set mother
 	// if childKey is provided,
 	// set this as children of mother
@@ -330,6 +342,10 @@ Cell : EnvironmentRedirect {
 		} {
 			"Not a valid mother".warn;
 		}
+	}
+
+	unsetMother {
+		mother = nil;
 	}
 
 	//Chek if an object could be a valid child/mother

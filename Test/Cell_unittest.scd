@@ -4,7 +4,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 {
 	|test|
-	var server, cell, setup, teardown;
+	var server, cell, setup, mother, teardown;
 
 	server = Server("test");
 
@@ -43,16 +43,18 @@ if (thisThread.isKindOf(Routine).not) {
 		cell.play;
 		test.assert(cell.checkState(\playing), "state equals playing after play");
 		cell.stop;
-		test.assert(cell.checkState(\free), "state equals free after stop");
+		test.assert(cell.checkState(\stopped), "state equals stopped after stop");
+		cell.freeAll;
+		test.assert(cell.checkState(\free), "state equals free after freeAll");
 		teardown.value;
 
 		// Testing free on stop
 
 		setup.value;
 		test.assert(cell[\buf].numFrames == 1000, "Buffer has correct number of frames");
-		cell.stop;
+		cell.freeAll;
 
-		test.assert(cell[\buf].bufnum == nil, "Buffer bufnum is nil after cell stop");
+		test.assert(cell[\buf].bufnum == nil, "Buffer bufnum is nil after freeAll");
 		test.assert(cell[\buf2].bufnum != nil, "Unfreed bufnum is not nil after cell stop");
 
 		value {
@@ -65,7 +67,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 		setup.value;
 		cell[\freeAll] = nil;
-		cell.stop;
+		cell.free;
 		test.assert(cell[\buf].bufnum == nil, "Buffer is freed even when a freeAll method is not passed");
 		teardown.value;
 
@@ -122,10 +124,40 @@ if (thisThread.isKindOf(Routine).not) {
 
 		test.assert(Cell.parentEnvironment[\players][\testPlayer].isNil, "Remove player prototype");
 
-		cell = Cell({}, \synth);
-		test.assert(cell.params.keys.notEmpty, "Param keys are not empty");
-		test.assert(cell.params.keys == cell.paramTemplate.keys, "Param keys are the same as paramTemplate");
+
 		teardown.value;
+
+		mother = Cell().name_("mother");
+		setup.value;
+
+		mother[\baby] = cell;
+		mother.addChildren(\baby);
+
+		test.assert(mother.children.includes(cell), "Adding children");
+		test.assert(cell.mother == mother,  "Adding children sets mother in child");
+
+		mother.free;
+
+		test.assert(mother.children.size == 0, "Removing children on free");
+		test.assert(cell.mother.postln.isNil,  "Freeing mother removes ref in child");
+
+		teardown.value;
+
+		mother = Cell();
+		setup.value;
+
+		cell.setMother(mother, \baby);
+		test.assert(mother.children.includes(cell), "setMother with key adds child to mother");
+		test.assert(cell.mother == mother, "setMother with key sets mother");
+
+		mother.removeChildren(\baby);
+		test.assert(mother.children.includes(cell).not, "removeChildren");
+		test.assert(cell.mother.isNil, "removeChildren unsets mother in child");
+
+
+		teardown.value;
+		mother.free;
+
 
 		server.quit;
 		server.remove;
