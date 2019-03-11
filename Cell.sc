@@ -6,7 +6,7 @@ Cell : EnvironmentRedirect {
 
 	//Cue name (for display purposes)
 	var <>name;
-	var <cond, <playerCond;
+	var <cond, playerCond;
 	var <mother, <children;
 	var <playAfterLoad;
 	var stateNum;
