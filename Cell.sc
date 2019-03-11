@@ -117,7 +117,7 @@ Cell : EnvironmentRedirect {
 		};
 
 
-		this.use { envir[\onInit].value };
+		this.use { envir[\onInit].value(this) };
 
 	}
 
@@ -133,7 +133,7 @@ Cell : EnvironmentRedirect {
 			};
 			fork {
 				this.use {
-					envir[key].value(playerCond);
+					envir[key].value(this);
 				};
 				if (debug) {
 					"out of %".format(key).debug;
