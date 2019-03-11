@@ -136,10 +136,12 @@ Cell : EnvironmentRedirect {
 					this.use {
 						envir[key].value(this);
 					};
-				} {
-					this.prChangeState(\error);
-					playerCond.test = true;
-					playerCond.signal;
+				} { |err|
+					if (err.notNil) {
+						this.prChangeState(\error);
+						playerCond.test = true;
+						playerCond.signal;
+					};
 				};
 				if (debug) {
 					"out of %".format(key).debug;
