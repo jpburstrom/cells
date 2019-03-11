@@ -595,9 +595,11 @@ Environment.make({
 
 	~players = Environment.make {
 
+		~basic = makeEnv.(nil, #[settings]);
+
 		~synth = makeEnv.({
 
-		},  [\settings, \server, \group, \bus, \ctl, \synth]);
+		},  #[settings, server, group, bus, ctl, synth]);
 
 		~buffer = makeEnv.({
 			~settings[\defaultBufferPathMethod] = \read;

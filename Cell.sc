@@ -82,6 +82,9 @@ Cell : EnvironmentRedirect {
 		envir.know = knowFlag;
 
 		envir.parent = parentEnvironment[\players][playerKey];
+		if (envir.parent.isNil) {
+			envir.parent = parentEnvironment[\players][\basic];
+		};
 
 		// Copy some keys (eg settings, templates) to proto, to not overwrite the
 		// class-level dictionary
