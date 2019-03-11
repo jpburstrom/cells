@@ -243,11 +243,12 @@ Cell : EnvironmentRedirect {
 
 	}
 
-	// Since stop is calling free
 	free {
 		if (this.checkState(\stopping, \stopped, \free, \error).not) {
 			this.stop(true);
 		};
+		this.children.do(_.free);
+		this.children.clear;
 		this.freeAll;
 	}
 
@@ -300,8 +301,8 @@ Cell : EnvironmentRedirect {
 
 
 
-	addChildren { |...children|
-		children.flat.do { |child|
+	addChildren { |...cells|
+		cells.do { |child|
 			if (this.validateRelative(child)) {
 				children.add(child);
 				child.setMother(this);
@@ -314,8 +315,8 @@ Cell : EnvironmentRedirect {
 	setMother { |obj|
 		if (this.validateRelative(obj)) {
 			mother = obj;
-			if (obj.children.includes(currentEnvironment).not) {
-				obj.addChildren(currentEnvironment)
+			if (obj.children.includes(this).not) {
+				obj.addChildren(this)
 			}
 		} {
 			"Not a valid mother".warn;
@@ -329,7 +330,7 @@ Cell : EnvironmentRedirect {
 
 	siblings {
 		^mother !? {
-			mother.children.reject(currentEnvironment);
+			mother.children.reject(this);
 		};
 	}
 
