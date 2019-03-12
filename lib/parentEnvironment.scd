@@ -194,7 +194,7 @@ Environment.make({
 			// If this is overridden by main envir,
 			// it needs to call addGroups... at some point
 			~beforePlay = ~beforePlay.addFunc(~addGroupsFromTemplate);
-			~onInit = ~onInit.addFunc(~addGroupNodeMap);
+			~beforeInit = ~beforeInit.addFunc(~addGroupNodeMap);
 
 			~addGroup = { |key, parent|
 				var group, msg;
@@ -506,7 +506,7 @@ Environment.make({
 
 			~beforePlay = ~beforePlay.addFunc(~addSynthsFromTemplate);
 			~beforePlay = ~beforePlay.addFunc(~prAddVolume);
-			~onInit = ~onInit.addFunc(~addSynthNodeMap);
+			~beforeInit = ~beforeInit.addFunc(~addSynthNodeMap);
 
 
 			// Default stop: Call release on synths
@@ -584,7 +584,7 @@ Environment.make({
 
 			// We call registerServer in the init hook,
 			// so it's evaluated within the right envir
-			~onInit = ~onInit.addFunc(~registerServer);
+			~beforeInit = ~beforeInit.addFunc(~registerServer);
 
 		};
 

@@ -101,6 +101,9 @@ Cell : EnvironmentRedirect {
 			// Call func for custom behaviour
 			// It should be possible to do this without passing this or parent to function
 			// Otherwise there's a risk of modifying the class-level parent dict
+			// But otoh every other function (init, play etc) can potentially
+			// change things in the parent.
+			// TODO think about when to pass this and not
 			func.value;
 
 			// Set params from paramTemplate
@@ -117,7 +120,11 @@ Cell : EnvironmentRedirect {
 		};
 
 
-		this.use { envir[\onInit].value(this) };
+		this.use {
+			envir[\beforeInit].value(this);
+			envir[\init].value(this);
+			envir[\afterInit].value(this);
+		};
 
 	}
 
