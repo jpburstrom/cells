@@ -22,7 +22,7 @@ Environment.make({
 		~settings = {
 
 			// Copy these keys to proto, to not overwrite/change them in parent
-			~copyToProto = #[settings, params, template, markers];
+			~copyToProto = #[settings, params, template, markers, nodeMap];
 
 			// Settings that need to be in place before
 			// doing anything else
@@ -107,8 +107,11 @@ Environment.make({
 			);
 
 			~addNodeMap = { |...path|
-				var map = NodeMap();
-				~nodeMap.putAtPath(path, map);
+				var map = ~nodeMap.atPath(path);
+				if (map.isNil) {
+					map = NodeMap();
+					~nodeMap.putAtPath(path, map);
+				};
 				map
 			};
 
@@ -146,25 +149,23 @@ Environment.make({
 				out
 			};
 
+
 			~prNodeMapSend = { |map, path|
 				var type = path[0];
 				var key = path[1];
 
 				//Get playing node from map path
-				switch(type,
-					\group, {
-						map.send(~server, ~groups[key].nodeID, ~server.latency);
-					},
-					\synth, {
-						map.send(~server, ~synths[\main][key].nodeID, ~server.latency);
-					},
-					\fx, {
-						map.send(~server, ~synths[\fx][key].nodeID, ~server.latency);
+				if (type == \group) {
+					map.sendToNode(~groups[key]);
+				} {
+					~synths[type] !? { |typeDict|
+						map.sendToNode(typeDict[key]);
 					}
-				);
 
+				}
 
 			};
+
 
 		};
 
@@ -190,11 +191,19 @@ Environment.make({
 				};
 			};
 
+			~syncGroupNodeMap = {
+				~groups.keysValuesDo { |key, node|
+					~nodeMap[\group][key].sendToNode(node);
+				};
+			};
+
+			~beforeInit = ~beforeInit.addFunc(~addGroupNodeMap);
 			// Default beforePlay action
 			// If this is overridden by main envir,
 			// it needs to call addGroups... at some point
 			~beforePlay = ~beforePlay.addFunc(~addGroupsFromTemplate);
-			~beforeInit = ~beforeInit.addFunc(~addGroupNodeMap);
+			~afterPlay = ~afterPlay.addFunc(~syncGroupNodeMap);
+
 
 			~addGroup = { |key, parent|
 				var group, msg;
@@ -206,7 +215,6 @@ Environment.make({
 				group = Group.basicNew(~server);
 				msg = group.addToTailMsg(parent);
 				~groups[key] = group;
-				msg = msg ++ ~nodeMap.at(\group, key).asOSCArgArray;
 				//No need to have latency here, do it as fast as possible
 				~server.sendBundle(nil, msg);
 				group
@@ -383,28 +391,32 @@ Environment.make({
 		// Synth related methods: FX, Ctl,
 		~synth = {
 
-			~template[\synth] = IdentityDictionary[
+			~template[\main] = IdentityDictionary[
 				\foo -> [\default]
 			];
 
 			~addSynthsFromTemplate = {
-				var synth;
+				var key, synth, args;
 				~synths ?? { ~synths = IdentityDictionary(know:true) };
-				~prSynthTemplateLoop.(\synth, ~addSynth);
-				~prSynthTemplateLoop.(\fx, ~addFx);
+				~template[\group].do { |groupKey|
+					~prSynthTemplateLoop.(groupKey, ~prPlaySynth);
+				};
+
 			};
 
 			~addSynthNodeMap = {
-				~prSynthTemplateLoop.(\synth, { |key, synth, args|
-					var map;
-					map = ~addNodeMap.(\synth, key);
-					args !? { map.putAll(args) };
-				});
-				~prSynthTemplateLoop.(\fx, { |key, synth, args|
-					var map;
-					map = ~addNodeMap.(\fx, key);
-					args !? { map.putAll(args) };
-				});
+				~template[\group].do { |groupKey|
+					~prSynthTemplateLoop.(groupKey, { |group, key, synth, args|
+						var map;
+						map = ~addNodeMap.(group, key);
+						args !? { map.putAll(args) };
+					});
+				};
+
+				//TODO later not hardcode this,
+				//Make it a part of template
+				~addNodeMap.(\level, \volume);
+
 			};
 
 			~prSynthTemplateLoop = { |group, callback|
@@ -415,7 +427,7 @@ Environment.make({
 					if (args.size == 1) {
 						args = args[0];
 					};
-					callback.(key, synth, args);
+					callback.(group, key, synth, args);
 				}));
 			};
 
@@ -511,9 +523,22 @@ Environment.make({
 				out;
 			};
 
+			~syncSynthNodeMap = {
+				~synths.keysValuesDo { |type, dict|
+					dict.keysValuesDo { |key, node|
+						~nodeMap[type][key] !? { |map|
+							map.sendToNode(node);
+						}
+					}
+				};
+			};
+
+
+
+			~beforeInit = ~beforeInit.addFunc(~addSynthNodeMap);
 			~beforePlay = ~beforePlay.addFunc(~addSynthsFromTemplate);
 			~beforePlay = ~beforePlay.addFunc(~prAddVolume);
-			~beforeInit = ~beforeInit.addFunc(~addSynthNodeMap);
+			~afterPlay = ~afterPlay.addFunc(~syncSynthNodeMap);
 
 
 			// Default stop: Call release on synths
