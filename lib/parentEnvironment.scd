@@ -213,7 +213,7 @@ Environment.make({
 				//If parent is set, use that
 				// Otherwise, use parentGroup. If nil,
 				// it defaults to Group(1) (nil.asTarget)
-				parent = parent ?? ~parentGroup;
+				parent = parent ?? ~parentGroup; // calls .value on ~parentGroup
 				group = Group.basicNew(~server);
 				msg = group.addToTailMsg(parent);
 				~groups[key] = group;
@@ -484,6 +484,7 @@ Environment.make({
 
 			// Add synth
 			~addSynth = { |key, synth, args|
+
 				~prPlaySynth.(\main, key, synth, args)
 			};
 
@@ -494,6 +495,8 @@ Environment.make({
 
 			// Add volume-controlling synth
 			// Set a
+
+			//TODO later not hardcode this
 			~prAddVolume = { |args|
 				// This starts fading when playing synth, so it needs to start in ~play
 				~prPlaySynth.(\level, \volume,
