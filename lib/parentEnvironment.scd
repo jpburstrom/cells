@@ -512,6 +512,7 @@ Environment.make({
 				var out;
 				args = ~settings[\defaultSynthArgs].copy.putAll(args);
 				args = args.collect(_.value);
+				// Send using default latency, to sync with patterns et al
 				s.bind({
 					if (synth.isSymbol) {
 						out = Synth(synth, args.asPairs, ~groups[group]);
@@ -532,7 +533,8 @@ Environment.make({
 				~synths.keysValuesDo { |type, dict|
 					dict.keysValuesDo { |key, node|
 						~nodeMap[type][key] !? { |map|
-							map.sendToNode(node);
+							// Use default latency, to sync with s.bind in ~prPlaySynth
+							map.sendToNode(node, ~server.latency);
 						}
 					}
 				};
@@ -561,23 +563,19 @@ Environment.make({
 				~synths = nil;
 			});
 
-			~fadeIn = { |ev, time|
-				fork {
-					currentEnvironment.play;
-					~synths[\level][\volume].set(\fadetime, time ?? { ~settings[\fadeIn] });
-				};
-				currentEnvironment
+			~fadeIn = { |time|
+				~set.(\level, \volume, \fadetime, time ?? { ~settings[\fadeIn] } );
+				~set.(\level, \volume, \amp, ~get.(\level, \volume, \amp) ? 1);
+				~set.(\level, \volume, \freeWhenDone, 0);
+				currentEnvironment.play;
 			};
 
-			~fadeOut = { |ev, time|
-				if (true) {
-					~synths[\level][\volume].set(\freeWhenDone, 1);
-					~synths[\level][\volume].set(\fadetime, time ?? { ~settings[\fadeOut] });
-					~synths[\level][\volume].set(\amp, 0);
-				};
+			~fadeOut = { |time, freeWhenDone=true|
+				~set.(\level, \volume, \fadetime, time ?? { ~settings[\fadeOut] });
+				//Access this directly, so nodeMap is not affected
+				~synths[\level][\volume].set(\amp, 0, \freeWhenDone, freeWhenDone.asInteger);
 				currentEnvironment
 			};
-
 
 		};
 
