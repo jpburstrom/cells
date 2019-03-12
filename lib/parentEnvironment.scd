@@ -212,7 +212,7 @@ Environment.make({
 				group
 			};
 
-			~freeAll = ~freeAll.addFunc({
+			~afterFree = ~afterFree.addFunc({
 				~groups.do(_.free);
 				~groups.clear;
 				~groups = nil;
@@ -284,7 +284,7 @@ Environment.make({
 			// it needs to call addBuses... at some point
 			~beforeLoad = ~beforeLoad.addFunc(~addBusesFromTemplate);
 
-			~freeAll = ~freeAll.addFunc({
+			~afterFree = ~afterFree.addFunc({
 				~bus.do { |ev|
 					ev.do { |bus|
 						bus.free;
@@ -331,7 +331,7 @@ Environment.make({
 
 			~beforeLoad = ~beforeLoad.addFunc(~addBuffersFromTemplate);
 
-			~freeAll = ~freeAll.addFunc({
+			~afterFree = ~afterFree.addFunc({
 				~buffers.do(_.free);
 				~buffers.clear;
 				~buffers = nil;

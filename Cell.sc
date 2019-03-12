@@ -210,11 +210,7 @@ Cell : EnvironmentRedirect {
 			if (this.checkState(\stopped, \stopping).not) {
 				this.prChangeState(\stopping);
 				playerCond.wait; //If currently loading, wait until done before cleaning up
-				if (now and: envir[\hardStop].notNil) {
-					this.trigAndWait(\beforeHardStop, \hardStop, \afterHardStop);
-				} {
-					this.trigAndWait(\beforeStop, \stop, \afterStop);
-				};
+				this.trigAndWait(\beforeStop, \stop, \afterStop);
 				this.afterStop;
 				if (now) {
 					this.freeAll;
@@ -242,16 +238,8 @@ Cell : EnvironmentRedirect {
 
 	freeAll {
 		if (this.checkState(\free).not) {
-			//If envir has a freeAll function, use that.
-			//Otherwise just brutally free everything envir has, recursively.
-			if (envir[\freeAll].notNil) {
-				this.use(envir[\freeAll]);
-			} {
-				envir.tryPerform(\deepDo, 99, { |x|
-					//Don't free symbols, please
-					if (x.isSymbol.not) { x.free }
-				})
-			};
+
+			this.use(envir[\freeAll]);
 			this.use(envir[\afterFree]);
 			this.prChangeState(\free);
 		};
