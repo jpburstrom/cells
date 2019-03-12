@@ -174,6 +174,7 @@ Environment.make({
 			// Default group order
 			// TODO: nested groups, if needed
 			~template[\group] = #[ctl, main, fx, level, send];
+			~template[\defaultGroup] = \main;
 
 			// All groups end up in the groups envir
 			// The envir should not be placed in the parent envir
@@ -183,6 +184,7 @@ Environment.make({
 				~template[\group].do { |key|
 					~addGroup.value(key);
 				};
+				~defaultGroup = ~groups[~template[\defaultGroup]];
 			};
 
 			~addGroupNodeMap = {
@@ -583,15 +585,16 @@ Environment.make({
 			//Use function ?
 			~server = Server.default;
 
+			//Default group for synths etc
+			~defaultGroup = nil;
+
 			// Group to put everything else
 			// If nil, default group (1)
 			// Set this before load
 			~parentGroup = {
 				// If cell has mother, set parentGroup to its main group
 				// Override for other behaviour
-				currentEnvironment.mother !? { |mom|
-					mom.groups[\main];
-				};
+				currentEnvironment.mother !? (_.defaultGroup);
 			};
 
 			~serverSync = {
