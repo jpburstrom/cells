@@ -5,26 +5,29 @@ if (thisThread.isKindOf(Routine).not) {
 {
 	|test|
 	var server, cell, setup, mother, teardown;
+	var cond = Condition();
+	var value = 0;
 
 	Cell.loadParentEnvironment;
 
 
 	server = Server("test");
 
-	SynthDef(\silence, {
+	SynthDef(\silence, { |dummyParam|
 		Out.ar(0, DC.ar.dup);
 	}).add;
 
 	setup = { |func, playerKey, load=true|
+		cell.free;
 		cell = Cell({
 			~load = {
 				~buf = Buffer.alloc(server, 1000);
 				~buf2 = Buffer.alloc(server, 1000);
 			};
 
-			~freeAll = {
+			~freeAll = ~freeAll.addFunc({
 				~buf.free;
-			};
+			});
 		}.addFunc(func), playerKey).name_("test");
 		if (load) {
 			cell.load;
@@ -72,34 +75,17 @@ if (thisThread.isKindOf(Routine).not) {
 
 		teardown.value;
 
+		/* This doesn't work, since ~freeAll is defined in parent envir
 		setup.value;
 		cell[\freeAll] = nil;
 		cell.free;
 		test.assert(cell[\buf].bufnum == nil, "Buffer is freed even when a freeAll method is not passed");
 		teardown.value;
+		*/
 
 		setup.value;
 		cell.free;
 		test.assert(cell[\buf].bufnum == nil, "Buffer is freed on free");
-		teardown.value;
-
-
-
-		setup.value({
-			~load = {};
-			~stop = {
-				~wasStopped = true;
-			};
-			~hardStop = {
-				~wasHardStopped = true;
-			};
-		});
-
-		cell.play;
-		cell.free;
-		test.assert(cell[\wasHardStopped].notNil, "Cell calls ~hardStop on free");
-		test.assert(cell[\wasStopped].isNil, "Cell doesn't call ~stop on free");
-
 		teardown.value;
 
 		setup.value({
@@ -148,24 +134,23 @@ if (thisThread.isKindOf(Routine).not) {
 		mother.free;
 
 		test.assert(mother.children.size == 0, "Removing children on free");
-		test.assert(cell.mother.postln.isNil,  "Freeing mother removes ref in child");
+		test.assert(cell.mother.isNil,  "Freeing mother removes ref in child");
 
 		teardown.value;
 
 		// --- Mother test 2 ---
 
-		mother = Cell({ ~template[\synth] = (); ~server = server }, \synth).name_("mother");
-		setup.value({ ~template[\synth] = (foo: [\silence]);  ~server = server }, \synth, false);
+		mother = Cell({ ~template[\main] = (); ~server = server }, \synth).name_("mother");
+		setup.value({ ~template[\main] = (foo: [\silence]);  ~server = server }, \synth, false);
 
 
 		cell.setMother(mother, \baby);
 		test.assert(mother.children.includes(cell), "setMother with key adds child to mother");
 		test.assert(cell.mother == mother, "setMother with key sets mother");
 
-
 		mother.play;
 		cell.play;
-		server.queryAllNodes;
+		// server.queryAllNodes;
 
 		test.assert(cell.bus[\out] == mother.bus[\main], "Child out bus is mother main bus");
 		test.assert(cell.parentGroup == mother.groups[\main], "Child parentGroup is mother main group");
@@ -175,9 +160,48 @@ if (thisThread.isKindOf(Routine).not) {
 		test.assert(mother.children.includes(cell).not, "removeChildren");
 		test.assert(cell.mother.isNil, "removeChildren unsets mother in child");
 
+		value = 0;
+		cell.set(\main, \foo, \dummyParam, 999);
+		cell.synths[\main][\foo].get(\dummyParam, { |val|
+			value = val;
+			cond.unhang;
+		});
+		cond.hang;
+		test.assert(value == 999, "Set sets synth value");
+		value = 0;
+		cell.set(\group, \main, \dummyParam, 998);
+		cell.synths[\main][\foo].get(\dummyParam, { |val|
+			value = val;
+			cond.unhang;
+		});
+		cond.hang;
+		test.assert(value == 998, "Group set sets synth value");
+
 		teardown.value;
 		mother.free;
 
+		setup.value({ ~template[\main] = (foo: [\silence]);  ~server = server }, \synth, false);
+		cell.set(\main, \foo, \dummyParam, 998);
+		cell.play;
+		cell.synths[\main][\foo].get(\dummyParam, { |val|
+			value = val;
+			cond.unhang;
+		});
+		cond.hang;
+		test.assert(value == 998, "Values set with .set are sent to synths on play");
+		teardown.value;
+
+		setup.value({ ~template[\main] = (foo: [\silence]);  ~server = server }, \synth, false);
+
+		cell.set(\group, \main, \dummyParam, 997);
+		cell.play;
+		cell.synths[\main][\foo].get(\dummyParam, { |val|
+			value = val;
+			cond.unhang;
+		});
+		cond.hang;
+		test.assert(value == 997, "Values set with .set are sent to groups on play");
+		teardown.value;
 
 		server.quit;
 		server.remove;
