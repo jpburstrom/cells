@@ -6,9 +6,16 @@ if (thisThread.isKindOf(Routine).not) {
 	|test|
 	var server, cell, setup, mother, teardown;
 
+	Cell.loadParentEnvironment;
+
+
 	server = Server("test");
 
-	setup = { |func, load=true|
+	SynthDef(\silence, {
+		Out.ar(0, DC.ar.dup);
+	}).add;
+
+	setup = { |func, playerKey, load=true|
 		cell = Cell({
 			~load = {
 				~buf = Buffer.alloc(server, 1000);
@@ -18,7 +25,7 @@ if (thisThread.isKindOf(Routine).not) {
 			~freeAll = {
 				~buf.free;
 			};
-		}.addFunc(func));
+		}.addFunc(func), playerKey).name_("test");
 		if (load) {
 			cell.load;
 		};
@@ -33,7 +40,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 	server.waitForBoot {
 
-		setup.value(nil, false);
+		setup.value(load:false);
 		test.assert(cell.checkState(\foo) == false, "checkState doesn't choke on bogus state symbol");
 		test.assert(cell.checkState(\free), "Cell starts free");
 		cell.load;
@@ -127,6 +134,8 @@ if (thisThread.isKindOf(Routine).not) {
 
 		teardown.value;
 
+		// --- Mother test 1 ---
+
 		mother = Cell().name_("mother");
 		setup.value;
 
@@ -143,17 +152,28 @@ if (thisThread.isKindOf(Routine).not) {
 
 		teardown.value;
 
-		mother = Cell();
-		setup.value;
+		// --- Mother test 2 ---
+
+		mother = Cell({ ~template[\synth] = (); ~server = server }, \synth).name_("mother");
+		setup.value({ ~template[\synth] = (foo: [\silence]);  ~server = server }, \synth, false);
+
 
 		cell.setMother(mother, \baby);
 		test.assert(mother.children.includes(cell), "setMother with key adds child to mother");
 		test.assert(cell.mother == mother, "setMother with key sets mother");
 
+
+		mother.play;
+		cell.play;
+		server.queryAllNodes;
+
+		test.assert(cell.bus[\out] == mother.bus[\main], "Child out bus is mother main bus");
+		test.assert(cell.parentGroup == mother.groups[\main], "Child parentGroup is mother main group");
+
+
 		mother.removeChildren(\baby);
 		test.assert(mother.children.includes(cell).not, "removeChildren");
 		test.assert(cell.mother.isNil, "removeChildren unsets mother in child");
-
 
 		teardown.value;
 		mother.free;

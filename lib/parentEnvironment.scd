@@ -200,18 +200,16 @@ Environment.make({
 				var group, msg;
 				~groups[key] !? (_.free);
 				//If parent is set, use that
-				parent = parent ?? {
-					// Otherwise, use parentGroup. If nil,
-					// it defaults to Group(1) (nil.asTarget)
-					~parentGroup.value
-				};
+				// Otherwise, use parentGroup. If nil,
+				// it defaults to Group(1) (nil.asTarget)
+				parent = parent ?? ~parentGroup;
 				group = Group.basicNew(~server);
 				msg = group.addToTailMsg(parent);
 				~groups[key] = group;
 				msg = msg ++ ~nodeMap.at(\group, key).asOSCArgArray;
-				~server.sendBundle(~server.latency, msg);
-				NodeMap
-
+				//No need to have latency here, do it as fast as possible
+				~server.sendBundle(nil, msg);
+				group
 			};
 
 			~freeAll = ~freeAll.addFunc({
@@ -232,7 +230,11 @@ Environment.make({
 			~template[\bus] = (
 				//Type, channels, index (for global buses)
 				main: [\audio, ~settings.numChannels],
-				out: [\audio, 2, 0]
+				out: {
+					try { currentEnvironment.mother[\bus][\main] } {
+						[\audio, 2, 0]
+					};
+				}
 			);
 
 
@@ -256,6 +258,7 @@ Environment.make({
 				)};
 
 				~template[\bus].keysValuesDo { |key, args|
+					args = args.value.asArray;
 					~addBus.(key, *args);
 				};
 			};
@@ -264,10 +267,14 @@ Environment.make({
 			~addBus = { |key, rate, numChannels, index, grp|
 				grp = grp ? \_default;
 				 ~bus[grp][key].free; // Also if nil
-				if (index.notNil) {
-					~bus[grp][key] = Bus(rate, index, numChannels, ~server);
+				if (rate.isKindOf(Bus)) {
+					~bus[grp][key] = rate;
 				} {
-					~bus[grp][key] = Bus.alloc(rate, ~server, 2)
+					if (index.notNil) {
+						~bus[grp][key] = Bus(rate, index, numChannels, ~server);
+					} {
+						~bus[grp][key] = Bus.alloc(rate, ~server, 2)
+					};
 				};
 				~bus[grp][key];
 			};
@@ -554,7 +561,13 @@ Environment.make({
 			// Group to put everything else
 			// If nil, default group (1)
 			// Set this before load
-			~parentGroup = nil;
+			~parentGroup = {
+				// If cell has mother, set parentGroup to its main group
+				// Override for other behaviour
+				currentEnvironment.mother !? { |mom|
+					mom.groups[\main];
+				};
+			};
 
 			~serverSync = {
 				~server.sync;
