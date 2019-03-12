@@ -259,15 +259,19 @@ Cell : EnvironmentRedirect {
 	}
 
 	free {
-		if (this.checkState(\stopping, \stopped, \free, \error).not) {
-			this.stop(true);
-		};
 		this.children.do { |child|
 			child.free;
 			child.unsetMother;
 		};
 		this.children.clear;
-		this.freeAll;
+		if (this.checkState(\stopping, \stopped, \free, \error).not) {
+			forkIfNeeded {
+				this.stop(true);
+				this.freeAll;
+			}
+		} {
+			this.freeAll;
+		};
 	}
 
 	//Wait for cond (in case we're currently triggering an action)
