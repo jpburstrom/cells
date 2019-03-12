@@ -203,7 +203,7 @@ Environment.make({
 				parent = parent ?? {
 					// Otherwise, use parentGroup. If nil,
 					// it defaults to Group(1) (nil.asTarget)
-					~groups[\parentGroup]
+					~parentGroup.value
 				};
 				group = Group.basicNew(~server);
 				msg = group.addToTailMsg(parent);
@@ -550,6 +550,11 @@ Environment.make({
 			//FIXME we should not hardcode server here
 			//Use function ?
 			~server = Server.default;
+
+			// Group to put everything else
+			// If nil, default group (1)
+			// Set this before load
+			~parentGroup = nil;
 
 			~serverSync = {
 				~server.sync;
