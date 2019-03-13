@@ -608,7 +608,7 @@ Environment.make({
 
 			//Default afterLoad action
 			//If overridden, ~server.sync needs to be called
-			~afterLoad.addFunc(~serverSync);
+			~afterLoad = ~afterLoad.addFunc(~serverSync);
 			~beforeLoad = ~beforeLoad.addFunc(~serverBootSync);
 
 			// --- Server boot / quit ---
