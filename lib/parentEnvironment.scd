@@ -552,7 +552,7 @@ Environment.make({
 			// and let them free the cell when done playing
 			~defaultAfterStop = {
 				if (~settings.releaseAfterStop) {
-					~groups[\main].release;
+					~defaultGroup.release;
 				}
 			};
 
