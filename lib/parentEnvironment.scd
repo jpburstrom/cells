@@ -444,7 +444,6 @@ Environment.make({
 					~prSynthTemplateLoop.(groupKey, { |group, key, synth, args|
 						var map;
 						map = ~addNodeMap.(group, key);
-						args !? { map.putAll(args) };
 					});
 				};
 
@@ -545,6 +544,7 @@ Environment.make({
 				var out;
 				args = ~settings[\defaultSynthArgs].copy.putAll(args);
 				args = args.collect(_.value);
+				~nodeMap.at(group, key).putAll(args);
 				// Send using default latency, to sync with patterns et al
 				s.bind({
 					if (synth.isSymbol) {
