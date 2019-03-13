@@ -121,6 +121,8 @@ if (thisThread.isKindOf(Routine).not) {
 
 		teardown.value;
 
+		"------ CELL HIERARCHY ------".postln;
+
 		// --- Mother test 1 ---
 
 		mother = Cell().name_("mother");
@@ -264,9 +266,25 @@ if (thisThread.isKindOf(Routine).not) {
 			test.assert(bufs[\test5].numFrames == new.numFrames, "Set buffer numFrames");
 			test.assert(bufs[\test6].numFrames == cell.settings[\cueSize], "Set buffer method");
 			test.assert(bufs[\test7].numFrames == new.bufferSize, "Set cue buffer size");
+
+			teardown.value;
 		};
 
+		setup.value({
+			~load = nil;
+			~template = (
+				buffer: (
+					test: Platform.resourceDir +/+ "sounds/a11wlk01.wav"
+				)
+			);
+		}, \disk);
+
+		test.assert(cell.buffers[\test].numFrames == cell.settings[\cueSize], "Disk buffers are cued by default");
+
+
 		teardown.value;
+
+		"------- END BUFFERS --------".postln;
 
 		server.quit;
 		server.remove;
