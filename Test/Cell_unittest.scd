@@ -20,6 +20,7 @@ if (thisThread.isKindOf(Routine).not) {
 	setup = { |func, playerKey, load=true|
 		cell.free;
 		cell = Cell({
+			~server = server;
 			~load = {
 				~buf = Buffer.alloc(server, 1000);
 				~buf2 = Buffer.alloc(server, 1000);
@@ -205,8 +206,71 @@ if (thisThread.isKindOf(Routine).not) {
 		test.assert(value == 997, "Values set with .set are sent to groups on play");
 		teardown.value;
 
+		"------- BUFFERS --------".postln;
+		value {
+			var bufs, numFrames, duration;
+			var new = (
+				startTime: 0.5,
+				duration: 0.25,
+				startFrame: 1000,
+				numFrames: 50,
+				bufferSize: 32768,
+			);
+			setup.value({
+				var path = Platform.resourceDir +/+ "sounds/a11wlk01.wav";
+				~load = nil;
+				~template = (
+					buffer: (
+						test1: path,
+						test2: (
+							path: path,
+							startTime:new.startTime,
+						),
+						test3: (
+							path: path,
+							duration: new.duration,
+						),
+						test4: (
+							path: path,
+							startFrame: new.startFrame
+						),
+						test5: (
+							path: path,
+							numFrames: new.numFrames
+						),
+						test6: (
+							path: path,
+							method: \cueSoundFile
+						),
+						test7: (
+							path: path,
+							method: \cueSoundFile,
+							bufferSize: new.bufferSize
+						)
+
+					);
+				);
+
+			}, \buffer);
+
+
+			bufs = cell.buffers;
+			numFrames = bufs[\test1].numFrames;
+			duration = bufs[\test1].duration;
+			test.assert(numFrames.notNil, "Buffer template value can be string");
+			test.assert(bufs[\test2].duration == (duration - new.startTime), "Set buffer startTime");
+			test.assert(bufs[\test3].duration == new.duration, "Set buffer duration");
+			test.assert(bufs[\test4].numFrames == (numFrames - new.startFrame), "Set buffer startFrame");
+			test.assert(bufs[\test5].numFrames == new.numFrames, "Set buffer numFrames");
+			test.assert(bufs[\test6].numFrames == cell.settings[\cueSize], "Set buffer method");
+			test.assert(bufs[\test7].numFrames == new.bufferSize, "Set cue buffer size");
+		};
+
+		teardown.value;
+
 		server.quit;
 		server.remove;
+
 
 
 

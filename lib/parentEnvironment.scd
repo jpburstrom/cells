@@ -308,35 +308,67 @@ Environment.make({
 
 		~buffer = {
 
-			~settings[\defaultBufferPathMethod] = \cueSoundFile;
-			~settings[\cueSize] = 65536;
-			~settings[\numChannels] = 2;
-
 			/*
-			~template[\buffer] = (
-				// ~defaultBufferMethod (path)
-				key: string,
-				// alloc
-				key: integer,
-				// custom
-				key: array;
+			// Buffer template template
+			// Multiple files
+			~template.files = (
+				key0: "/path",
+				key1: (
+					path: "/path",
+					method: \read,
+					startTime: 1.2, // like startFrames, but in seconds
+					startFrames: 1000,
+					duration: 2.5, // like
+					numFrames: 480000,
+					numFrames: 480000,
+				)
 			);
 			*/
 
-						// Add buses according to template
+			~settings[\defaultBufferMethod] = \read;
+			~settings[\cueSize] = 65536;
+			~settings[\numChannels] = 2;
+
+			// Add buses according to template
 			~addBuffersFromTemplate = {
-				~buffers ?? { ~buffers = IdentityDictionary(know:true) };
-				//FIXME
-				/*
-				~template[\buffer].keysValuesDo { |key, args|
-					var buf;
-					case
-					{ args.isKindOf(String) } {
-						args = [~settings[\defaultBufferPathMethod], args];
-					}
-					~addBuffer.(key, *args);
+				var template = ~template[\buffer];
+				if (template.notNil) {
+					~buffers ?? { ~buffers = IdentityDictionary(know:true) };
+					template.keysValuesDo { |key, obj|
+						~addBuffer.(key, obj);
+
+					};
 				};
-				*/
+
+			};
+
+			~addBuffer = { |key, obj|
+				var method, channels;
+
+				if (obj.isKindOf(String)) {
+					obj = IdentityDictionary[\path->obj];
+				};
+
+				SoundFile.use(obj[\path], { |sf|
+					obj[\duration] !? { |dur|
+						obj[\numFrames] = (dur * sf.sampleRate).floor;
+					};
+					obj[\startTime] !? { |start|
+						obj[\startFrame] = (start * sf.sampleRate).floor;
+					};
+				});
+
+				switch (obj[\method] ?? { ~settings[\defaultBufferPathMethod] },
+					\read, {
+						~buffers[key] = Buffer.read(~server, obj[\path], obj[\startFrame] ? 0, obj[\numFrames] ? -1);
+					},
+					\cueSoundFile, {
+						~buffers[key] = Buffer.cueSoundFile(
+							~server, obj[\path], obj[\startFrame] ? 0, channels,
+							obj[\bufferSize] ?? { ~settings[\cueSize] ? 65536 };
+						);
+					}
+				);
 			};
 
 			~beforeLoad = ~beforeLoad.addFunc(~addBuffersFromTemplate);
@@ -650,16 +682,10 @@ Environment.make({
 
 		~buffer = makeEnv.({
 			~settings[\defaultBufferPathMethod] = \read;
-			~synthName = \bufPlayer;
-			~template.buffer = nil; //
-
 		}, [\settings, \server, \group, \bus, \ctl, \synth, \buffer]);
 
 		~disk = makeEnv.({
 			~settings[\defaultBufferPathMethod] = \cueSoundFile;
-			~synthName = \diskPlayer;
-			~template.buffer = nil; //
-
 		}, [\settings, \server, \group, \bus, \ctl, \synth, \buffer]);
 
 		~stem = ~disk.deepCopy.make({
