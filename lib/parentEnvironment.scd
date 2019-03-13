@@ -356,6 +356,7 @@ Environment.make({
 					obj[\startTime] !? { |start|
 						obj[\startFrame] = (start * sf.sampleRate).floor;
 					};
+					channels = sf.numChannels;
 				});
 
 				switch (obj[\method] ?? { ~settings[\defaultBufferPathMethod] },
