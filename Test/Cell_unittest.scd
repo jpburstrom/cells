@@ -183,6 +183,8 @@ if (thisThread.isKindOf(Routine).not) {
 		setup.value({ ~template[\main] = (foo: [\silence]);  ~server = server }, \synth, false);
 		cell.set(\main, \foo, \dummyParam, 998);
 		cell.play;
+		// Need to wait for node to appear
+		server.latency.wait;
 		cell.synths[\main][\foo].get(\dummyParam, { |val|
 			value = val;
 			cond.unhang;
