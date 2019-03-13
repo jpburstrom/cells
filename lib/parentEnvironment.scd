@@ -267,10 +267,10 @@ Environment.make({
 					}
 				)};
 
-				~template[\bus].keysValuesDo { |key, args|
+				~template[\bus] !? (_.keysValuesDo { |key, args|
 					args = args.value.asArray;
 					~addBus.(key, *args);
-				};
+				});
 			};
 
 			//Add a single bus, identified by key
@@ -400,9 +400,9 @@ Environment.make({
 			~addSynthsFromTemplate = {
 				var key, synth, args;
 				~synths ?? { ~synths = IdentityDictionary(know:true) };
-				~template[\group].do { |groupKey|
+				~template[\group] !? (_.do { |groupKey|
 					~prSynthTemplateLoop.(groupKey, ~prPlaySynth);
-				};
+				});
 
 			};
 
