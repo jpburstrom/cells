@@ -698,8 +698,8 @@ Environment.make({
 				~player = EventPatternProxy(Pspawner({ |sp|
 					~spawner = sp;
 					sp.seq(Pchain(~pattern, Pbind(
-						\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1).trace,
-						\out, Pfunc { currentEnvironment.postln; ~bus.main },
+						\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1),
+						\out, Pfunc { ~bus.main },
 						\group, Pfunc { ~groups.main }
 					)));
 
@@ -713,7 +713,7 @@ Environment.make({
 							~groups[\fx].release;
 					}
 					{ currentEnvironment.freeAll };
-				}));
+				})).quant_(~settings[\quant]);
 			};
 
 			~beforeLoad = ~beforeLoad.addFunc(~makePlayer);
