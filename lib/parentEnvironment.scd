@@ -426,10 +426,7 @@ Environment.make({
 		// Synth related methods: FX, Ctl,
 		~synth = {
 
-			//FIXME temporary
-			~template[\main] = IdentityDictionary[
-				\foo -> [\default]
-			];
+			~template[\main] = IdentityDictionary();
 
 			~addSynthsFromTemplate = {
 				var key, synth, args;
