@@ -547,11 +547,11 @@ Environment.make({
 				~nodeMap.at(group, key).putAll(args);
 				// Send using default latency, to sync with patterns et al
 				s.bind({
-					if (synth.isSymbol) {
-						out = Synth(synth, args.asPairs, ~groups[group]);
-					} {
-						// Assume we have a function
+					if (synth.isFunction) {
 						out = synth.play(~groups[group], args[\out], args: args.asPairs);
+					} {
+						// Assume we have a symbol
+						out = Synth(synth, args.asPairs, ~groups[group]);
 					}
 				});
 				~synths[group] ?? { ~synths[group] = IdentityDictionary() };
