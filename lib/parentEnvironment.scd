@@ -372,6 +372,16 @@ Environment.make({
 				);
 			};
 
+			~generateBufferSynths = {
+				if (~template[\main].notNil and: { ~template[\main].isEmpty }) {
+					~template[\buffer].keys.do { |key|
+						~template[\main][key] = [~settings[\defaultSynth],
+							\bufnum, {~buffers[key]}];
+					};
+				};
+			};
+
+			~beforeInit = ~beforeInit.addFunc(~generateBufferSynths);
 			~beforeLoad = ~beforeLoad.addFunc(~addBuffersFromTemplate);
 
 			~afterFree = ~afterFree.addFunc({
@@ -686,6 +696,7 @@ Environment.make({
 		}, [\settings, \server, \group, \bus, \ctl, \synth, \buffer]);
 
 		~disk = makeEnv.({
+			~settings[\defaultSynth] = \cellHelpDisk; //FIXME
 			~settings[\defaultBufferPathMethod] = \cueSoundFile;
 		}, [\settings, \server, \group, \bus, \ctl, \synth, \buffer]);
 
