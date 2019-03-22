@@ -9,20 +9,29 @@ METHOD:: new
 Create a new object
 argument:: func
 An init function which is run inside the proto environment. Here you can define functions and default values for the cell.
-argument:: partialKeys
-Any number of keys (as a code::Symbol:: or array of symbols) corresponding to Environments defined within the code::partials:: class variable. These are put into the environment's parent. 
+argument:: playerKey
+Choose a base player: code::\synth::, code::\buffer:: code::\disk:: code::\pattern:: etc.
 argument:: know
 like link::Classes/Event::, know is set to true by default.
 
 
 METHOD:: initClass
 
-METHOD:: addPartial
-Add a partial to the global dictionary. It can be passed as an IdentityDictionary subclass, or as a function which is evaluated inside a new environment.
+METHOD:: addPlayer
+Add a base player to the global dictionary.
+argument:: key
+An identifier for the player
+argument:: envirOrFunc
+A function or environment to define the player behaviour
+argument:: basePlayerKey
+Another key to base the player on
+argument:: ... mixinKeys
+The parentEnvironment is divided into sub-environments defining defaults and behaviours for synths, buffers, groups etc. These are imported into the player environment.
+code::Cell.parentEnvironment[\mixins].keys:: 
 
-METHOD:: partials
-A dictionary of partials, which can be combined to form prototypes for new cells.
 
+
+METHOD:: removePlayer
 
 INSTANCEMETHODS::
 
@@ -73,9 +82,13 @@ METHOD:: siblings
 METHOD:: mother
 METHOD:: children
 METHOD:: addChildren
-argument::  ... children
+argument::  ... keys
+Look up cells in the environment by key, and set code::this:: as mother for those cells. 
 METHOD:: setMother
 argument:: obj
+Validate and set obj as mother for cell
+argument:: childKey
+if provided, put code::this:: in code::obj:: environment under code::childKey::, and add as child.
 
 
 PRIVATE:: prChangeState, doOnServerTree, playAfterLoad, checkState, doFunctionPerform, trigAndWait, init, initPlayer, freeAll, afterStop
