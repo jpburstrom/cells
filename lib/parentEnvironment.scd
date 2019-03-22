@@ -239,7 +239,7 @@ Environment.make({
 			// TODO: a way to inject buses from outside
 			~template[\bus] = (
 				//Type, channels, index (for global buses)
-				main: [\audio, ~settings.numChannels],
+				main: [\audio, ~settings[\numChannels]],
 				out: {
 					try { currentEnvironment.mother[\bus][\main] } {
 						[\audio, 2, 0]
@@ -543,7 +543,7 @@ Environment.make({
 			~prAddVolume = { |args|
 				// This starts fading when playing synth, so it needs to start in ~play
 				~prPlaySynth.(\level, \volume,
-					"cellMixer_%".format(~settings.numChannels).asSymbol,
+					"cellMixer_%".format(~settings[\numChannels]).asSymbol,
 					(fadetime: {~settings[\fadeIn]},
 						out: {~bus.out}, in: {~bus.main}
 					)
