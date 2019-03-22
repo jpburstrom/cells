@@ -676,7 +676,6 @@ Environment.make({
 		~basic = makeEnv.(nil, #[settings]);
 
 		~synth = makeEnv.({
-
 		},  #[settings, server, group, bus, ctl, synth]);
 
 		~buffer = makeEnv.({
@@ -687,11 +686,42 @@ Environment.make({
 			~settings[\defaultBufferPathMethod] = \cueSoundFile;
 		}, [\settings, \server, \group, \bus, \ctl, \synth, \buffer]);
 
-		~stem = ~disk.deepCopy.make({
-		});
-
 		~pattern = makeEnv.({
-		});
+
+			// We let pattern release itself
+			~settings[\releaseAfterStop] = false;
+
+			~makePlayer = {
+				~player = EventPatternProxy(Pspawner({ |sp|
+					~spawner = sp;
+					sp.seq(Pchain(~pattern, Pbind(
+						\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1).trace,
+						\out, Pfunc { currentEnvironment.postln; ~bus.main },
+						\group, Pfunc { ~groups.main }
+					)));
+
+					sp.wait(~settings.tailDuration);
+
+					case
+					{~synths[\main].notNil and: { ~synths[\main].notEmpty }} {
+						~groups[\main].release;
+					}
+					{ ~synths[\fx].notNil and: { ~synths[\fx].notEmpty } } {
+							~groups[\fx].release;
+					}
+					{ currentEnvironment.freeAll };
+				}));
+			};
+
+			~beforeLoad = ~beforeLoad.addFunc(~makePlayer);
+
+			~playerPlay = {
+				~player.play;
+			};
+
+			~beforePlay = ~beforePlay.addFunc(~playerPlay);
+
+		}, [\settings, \server, \group, \bus, \ctl, \synth, \buffer]);
 
 	};
 

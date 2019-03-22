@@ -105,3 +105,15 @@ c.play
 )
 c.stop;
 ::
+
+Example pattern player
+code::
+(
+c = Cell({
+    ~settings[\tailDuration] = 2;
+    ~pattern = Pbind(\sustain, 1, \dur, Pwhite(0.02, 0.1));
+}, \pattern);
+c.play
+)
+c.stop;
+::
