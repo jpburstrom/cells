@@ -50,7 +50,7 @@ Environment.make({
 				// for example if a sample starts on an upbeat.
 				tempo: 1,
 				// Set timingOffset here, if needed
-				quant: 1,
+				quant: nil,
 
 
 				// --- FADES ---
