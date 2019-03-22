@@ -83,6 +83,25 @@ PRIVATE:: prChangeState, doOnServerTree, playAfterLoad, checkState, doFunctionPe
 
 EXAMPLES::
 
+Example disk player
 code::
-_some_example_code_
+(
+SynthDef(\cellHelpDisk, {
+	Out.ar(\out.kr, DiskIn.ar(1, \bufnum.kr, 1) * Env.cutoff.ar(Done.freeSelf, \gate.kr(1)))
+}).add
+)
+(
+c = Cell({
+	~template.putAll((
+		buffer: (
+			test: Platform.resourceDir +/+ "sounds/a11wlk01.wav"
+		),
+		main: (
+			test: [\cellHelpDisk, \bufnum, {~buffers[\test]}]
+		)
+	))
+}, \disk);
+c.play
+)
+c.stop;
 ::
