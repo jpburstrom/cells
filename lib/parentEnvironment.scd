@@ -430,11 +430,14 @@ Environment.make({
 
 			~addSynthsFromTemplate = {
 				var key, synth, args;
+				var clock = ~settings[\clock] ? TempoClock.default;
 				~synths ?? { ~synths = IdentityDictionary(know:true) };
-				~template[\group] !? (_.do { |groupKey|
-					~prSynthTemplateLoop.(groupKey, ~prPlaySynth);
-				});
-
+				clock.schedAbs(~settings[\quant].asQuant.nextTimeOnGrid(clock), {
+					~template[\group] !? (_.do { |groupKey|
+						~prSynthTemplateLoop.(groupKey, ~prPlaySynth);
+					});
+					nil
+				}.inEnvir);
 			};
 
 			~addSynthNodeMap = {
