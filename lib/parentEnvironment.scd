@@ -199,7 +199,7 @@ Environment.make({
 				};
 			};
 
-			~beforeInit = ~beforeInit.addFunc(~addGroupNodeMap);
+			~afterInit = ~afterInit.addFunc(~addGroupNodeMap);
 			// Default beforePlay action
 			// If this is overridden by main envir,
 			// it needs to call addGroups... at some point
@@ -576,7 +576,7 @@ Environment.make({
 
 
 
-			~beforeInit = ~beforeInit.addFunc(~addSynthNodeMap);
+			~afterInit = ~afterInit.addFunc(~addSynthNodeMap);
 			~beforePlay = ~beforePlay.addFunc(~addSynthsFromTemplate);
 			~beforePlay = ~beforePlay.addFunc(~prAddVolume);
 			~afterPlay = ~afterPlay.addFunc(~syncSynthNodeMap);
