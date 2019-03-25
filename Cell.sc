@@ -1,7 +1,7 @@
 Cell : EnvironmentRedirect {
 
 	classvar states;
-	classvar <parentEnvironment;
+	classvar <templates;
 	classvar <>debug=false;
 
 	//Cue name (for display purposes)
@@ -9,6 +9,7 @@ Cell : EnvironmentRedirect {
 	var <cond, playerCond;
 	var <mother, <children;
 	var <playAfterLoad;
+	var addedTemplates;
 	var stateNum;
 
 	*initClass {
@@ -24,47 +25,22 @@ Cell : EnvironmentRedirect {
 		];
 
 		StartUp.add({
-			this.loadParentEnvironment;
+			this.loadTemplates;
 		});
 
 	}
 
-	*loadParentEnvironment {
+	*loadTemplates {
 
 		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/synthDefs.scd").loadPaths;
-		parentEnvironment = (PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/parentEnvironment.scd").loadPaths[0];
+		templates = (PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/templates.scd").loadPaths[0];
 
 	}
 
-	*addPlayer { |key, envirOrFunc, basePlayerKey ...mixinKeys|
-
-		var env = Environment.make {
-			mixinKeys.do { |key|
-				parentEnvironment[\mixins][key].value;
-			};
-
-			basePlayerKey !? {
-				currentEnvironment.putAll(
-					parentEnvironment[\players][basePlayerKey].deepCopy,
-
-				)
-			};
-		};
-
-		if (envirOrFunc.respondsTo(\keysValuesDo)) {
-			env.putAll(envirOrFunc);
-		} {
-			// Assume function
-			env.make(envirOrFunc)
-		};
-
-		parentEnvironment[\players][key] = env;
-
+	*registerTemplate { |key, func, deps|
+		templates[key] = [func, deps];
 	}
 
-	*removePlayer { |key|
-		parentEnvironment[\players][key] = nil;
-	}
 
 	*new { |func, playerKey, know=true|
 		^super.new.init(func, playerKey, know);
@@ -75,15 +51,24 @@ Cell : EnvironmentRedirect {
 		cond = Condition(true);
 		playerCond = Condition(true);
 		children = Set();
+		addedTemplates = List(); // Keep order
 		playAfterLoad = false;
 		stateNum = states[\free];
 		name = "";
 
 		envir.know = knowFlag;
 
-		envir.parent = parentEnvironment[\players][playerKey];
-		if (envir.parent.isNil) {
-			envir.parent = parentEnvironment[\players][\basic];
+		envir.parent = Environment();
+
+		this.addTemplate(\base);
+
+		//Make a separate template environment & call the init function within
+		template = Environment.make(func);
+		//Get all methods/variables from template
+		template.keys.do { |key|
+			//If any of them is in paretnEnvironment, add corresponding template
+			//to envir.parent
+			this.prAddTemplate(key);
 		};
 
 		// Copy some keys (eg settings, templates) to proto, to not overwrite the
@@ -91,6 +76,8 @@ Cell : EnvironmentRedirect {
 		envir.parent[\copyToProto].do { |key|
 			envir.proto[key] = envir.parent[key].deepCopy;
 		};
+
+
 
 		// The make function is run inside the proto of the environment
 		// that way, user data and temporary objects are kept separate from objects
@@ -127,6 +114,28 @@ Cell : EnvironmentRedirect {
 		};
 
 	}
+
+	// Add template templates[key] to envir.parent
+	prAddTemplate { |key|
+		var func, deps;
+		if (templates[key].notNil) {
+			env, deps = templates[key];
+			deps.do { |dep|
+				this.addTemplate(dep);
+			};
+			if (addedTemplates.includes[key].not) {
+				addedTemplates.add(key);
+				envir.parent[key] = env;
+				// Go through all actions and add them to parent
+				templates[\actionKeys].do { |action|
+					env[action] !? { |cb|
+						envir.parent[action] = envir.parent[action].addFunc(cb)
+					};
+				};
+			};
+		}
+	}
+
 
 	//Run specific trigger(s) in envir, eg play, stop etc.
 	//Should be run within a routine
