@@ -153,6 +153,18 @@ Environment.make({
 			};
 
 
+			~addCellsFromTemplate = {
+				~cells ?? { ~cells = IdentityDictionary(know:true) };
+				~template[\cells].keysValuesDo { |key, args|
+					~cells[key] = Cell(*args);
+					currentEnvironment.addChildren(key);
+				};
+
+			};
+
+			~beforeLoad = ~beforeLoad.addFunc(~addCellsFromTemplate);
+
+
 		};
 
 		// Methods + default settings for groups
@@ -257,6 +269,7 @@ Environment.make({
 					args = args.value.asArray;
 					~addBus.(key, *args);
 				});
+
 			};
 
 			//Add a single bus, identified by key
@@ -269,7 +282,7 @@ Environment.make({
 					if (index.notNil) {
 						~bus[grp][key] = Bus(rate, index, numChannels, ~server);
 					} {
-						~bus[grp][key] = Bus.alloc(rate, ~server, 2)
+						~bus[grp][key] = Bus.alloc(rate, ~server, numChannels ? 2)
 					};
 				};
 				~bus[grp][key];
@@ -375,6 +388,37 @@ Environment.make({
 				~buffers.clear;
 				~buffers = nil;
 			});
+
+		};
+
+
+		~cells = {
+
+			~loadCells = {
+				~cells ?? { ~cells = IdentityDictionary(know:true) };
+				~template[\cells].keysValuesDo { |k, v|
+					~cells[k] = v
+				};
+			};
+
+			~playCells = {
+				~cells.do(_.play);
+			};
+
+			~stopCells = {
+				~cells.do(_.stop);
+			};
+
+			~freeCells = {
+				~cells.do(_.free);
+			};
+
+
+			~beforeLoad = ~beforeLoad.addFunc(~loadCells);
+
+			~beforePlay = ~beforePlay.addFunc(~playCells);
+			~beforeStop = ~beforeStop.addFunc(~playCells);
+			~afterFree = ~afterFree.addFunc(~freeCells);
 
 		};
 
@@ -675,6 +719,7 @@ Environment.make({
 		},  #[settings, server, group, bus, ctl, synth]);
 
 		~buffer = makeEnv.({
+			~settings[\defaultSynth] = \weirdBufPlayer;
 			~settings[\defaultBufferPathMethod] = \read;
 		}, [\settings, \server, \group, \bus, \ctl, \synth, \buffer]);
 
@@ -684,6 +729,7 @@ Environment.make({
 		}, [\settings, \server, \group, \bus, \ctl, \synth, \buffer]);
 
 		~pattern = makeEnv.({
+
 
 			// We let pattern release itself
 			~settings[\releaseAfterStop] = false;
