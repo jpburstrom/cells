@@ -92,20 +92,6 @@ Environment.make({
 
 			~nodeMap = MultiLevelIdentityDictionary();
 
-			// Template of parameters
-			// that can be set during cell play
-			~template[\param] = (
-
-				// Main cell volume
-				volume: { NumericControlValue(1, \db) },
-				// Progress is updated when player is playing.
-				// A value from 0 to 1, where 1 is total duration
-				// excluding tail
-				// TODO: How do we deal with infinite durations?
-				progress: { NumericControlValue(0, \unipolar) }
-
-			);
-
 			~addNodeMap = { |...path|
 				var map = ~nodeMap.atPath(path);
 				if (map.isNil) {
