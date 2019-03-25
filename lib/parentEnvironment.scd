@@ -460,7 +460,7 @@ Environment.make({
 
 				//TODO later not hardcode this,
 				//Make it a part of template
-				~addNodeMap.(\level, \volume);
+				~addNodeMap.(\level, \main);
 
 			};
 
@@ -542,7 +542,7 @@ Environment.make({
 			//TODO later not hardcode this
 			~prAddVolume = { |args|
 				// This starts fading when playing synth, so it needs to start in ~play
-				~prPlaySynth.(\level, \volume,
+				~prPlaySynth.(\level, \main,
 					"cellMixer_%".format(~settings[\numChannels]).asSymbol,
 					(fadetime: {~settings[\fadeIn]},
 						out: {~bus.out}, in: {~bus.main}
@@ -584,13 +584,10 @@ Environment.make({
 				};
 			};
 
-
-
 			~afterInit = ~afterInit.addFunc(~addSynthNodeMap);
 			~beforePlay = ~beforePlay.addFunc(~addSynthsFromTemplate);
 			~beforePlay = ~beforePlay.addFunc(~prAddVolume);
 			~afterPlay = ~afterPlay.addFunc(~syncSynthNodeMap);
-
 
 			// Default stop: Call release on synths
 			// and let them free the cell when done playing
@@ -608,16 +605,16 @@ Environment.make({
 			});
 
 			~fadeIn = { |time|
-				~set.(\level, \volume, \fadetime, time ?? { ~settings[\fadeIn] } );
-				~set.(\level, \volume, \amp, ~get.(\level, \volume, \amp) ? 1);
-				~set.(\level, \volume, \freeWhenDone, 0);
+				~set.(\level, \main, \fadetime, time ?? { ~settings[\fadeIn] } );
+				~set.(\level, \main, \amp, ~get.(\level, \main, \amp) ? 1);
+				~set.(\level, \main, \freeWhenDone, 0);
 				currentEnvironment.play;
 			};
 
 			~fadeOut = { |time, freeWhenDone=true|
-				~set.(\level, \volume, \fadetime, time ?? { ~settings[\fadeOut] });
+				~set.(\level, \main, \fadetime, time ?? { ~settings[\fadeOut] });
 				//Access this directly, so nodeMap is not affected
-				~synths[\level][\volume].set(\amp, 0, \freeWhenDone, freeWhenDone.asInteger);
+				~synths[\level][\main].set(\amp, 0, \freeWhenDone, freeWhenDone.asInteger);
 				currentEnvironment
 			};
 
