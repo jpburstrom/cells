@@ -98,28 +98,6 @@ Cell : EnvironmentRedirect {
 
 	}
 
-	// Add template templates[key] to envir.parent
-	prAddTemplate { |key|
-		var func, deps;
-		if (templates[key].notNil) {
-			env, deps = templates[key];
-			deps.do { |dep|
-				this.addTemplate(dep);
-			};
-			if (addedTemplates.includes[key].not) {
-				addedTemplates.add(key);
-				envir.parent[key] = env;
-				// Go through all actions and add them to parent
-				parentEnvironment[\actionKeys].do { |action|
-					env[action] !? { |cb|
-						envir.parent[action] = envir.parent[action].addFunc(cb)
-					};
-				};
-			};
-		}
-	}
-
-
 	//Run specific trigger(s) in envir, eg play, stop etc.
 	//Should be run within a routine
 	//Private
