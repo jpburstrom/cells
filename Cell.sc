@@ -1,7 +1,7 @@
 Cell : EnvironmentRedirect {
 
 	classvar states;
-	classvar <templates;
+	classvar <parentEnvironment;
 	classvar <>debug=false;
 
 	//Cue name (for display purposes)
@@ -25,20 +25,20 @@ Cell : EnvironmentRedirect {
 		];
 
 		StartUp.add({
-			this.loadTemplates;
+			this.loadParentEnvironment;
 		});
 
 	}
 
-	*loadTemplates {
+	*loadParentEnvironment {
 
 		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/synthDefs.scd").loadPaths;
-		templates = (PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/templates.scd").loadPaths[0];
+		parentEnvironment = (PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/parentEnvironment.scd").loadPaths[0];
 
 	}
 
 	*registerTemplate { |key, func, deps|
-		templates[key] = [func, deps];
+		parentEnvironment[\templates][key] = [func, deps];
 	}
 
 
@@ -127,7 +127,7 @@ Cell : EnvironmentRedirect {
 				addedTemplates.add(key);
 				envir.parent[key] = env;
 				// Go through all actions and add them to parent
-				templates[\actionKeys].do { |action|
+				parentEnvironment[\actionKeys].do { |action|
 					env[action] !? { |cb|
 						envir.parent[action] = envir.parent[action].addFunc(cb)
 					};
