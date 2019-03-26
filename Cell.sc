@@ -35,6 +35,7 @@ Cell : EnvironmentRedirect {
 
 		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/synthDefs.scd").loadPaths;
 		parentEnvironment = (PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/parentEnvironment.scd").loadPaths[0];
+		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/players.scd").loadPaths;
 
 	}
 
