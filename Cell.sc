@@ -1,6 +1,8 @@
 Cell : EnvironmentRedirect {
 
 	classvar states;
+	// An environment which holds settings and players
+	// common to all cell instances
 	classvar <parentEnvironment;
 	classvar <>debug=false;
 
@@ -9,7 +11,6 @@ Cell : EnvironmentRedirect {
 	var <cond, playerCond;
 	var <mother, <children;
 	var <playAfterLoad;
-	var addedTemplates;
 	var stateNum;
 
 	*initClass {
@@ -37,8 +38,23 @@ Cell : EnvironmentRedirect {
 
 	}
 
-	*registerTemplate { |key, func, deps|
-		parentEnvironment[\templates][key] = [func, deps];
+	*addPlayer { |key, func, deps|
+		parentEnvironment[\players][key] = Environment.make {
+			parentEnvironment[\actionKeys].do { |key|
+				var func;
+				deps.do { |dep|
+					// Add method if it exists
+					parentEnvironment[\players][dep][key] !? { |depFunc|
+						func = func.addFunc(depFunc);
+					}
+				};
+			};
+		};
+		parentEnvironment[\playerTemplates][key].make(func);
+	}
+
+	*removePlayer { |key|
+		parentEnvironment[\players][key] = nil;
 	}
 
 
@@ -46,66 +62,33 @@ Cell : EnvironmentRedirect {
 		^super.new.init(func, playerKey, know);
 	}
 
-	init { |func, playerKey, knowFlag|
+	init { |func, playerKey|
 
 		cond = Condition(true);
 		playerCond = Condition(true);
 		children = Set();
-		addedTemplates = List(); // Keep order
 		playAfterLoad = false;
 		stateNum = states[\free];
 		name = "";
 
-		envir.know = knowFlag;
+		envir.know = true;
 
-		envir.parent = Environment();
-
-		this.addTemplate(\base);
-
-		//Make a separate template environment & call the init function within
-		template = Environment.make(func);
-		//Get all methods/variables from template
-		template.keys.do { |key|
-			//If any of them is in paretnEnvironment, add corresponding template
-			//to envir.parent
-			this.prAddTemplate(key);
+		envir.parent = parentEnvironment[\players][playerKey];
+		if (envir.parent.isNil) {
+			envir.parent = parentEnvironment[\players][\basic];
 		};
-
-		// Copy some keys (eg settings, templates) to proto, to not overwrite the
-		// class-level dictionary
-		envir.parent[\copyToProto].do { |key|
-			envir.proto[key] = envir.parent[key].deepCopy;
-		};
-
-
 
 		// The make function is run inside the proto of the environment
 		// that way, user data and temporary objects are kept separate from objects
 		// created during init
 		// EnvironmentRedirect.new have made the proto for us
-		envir.proto.make {
+		envir.proto.make(func);
 
-			// Call func for custom behaviour
-			// It should be possible to do this without passing this or parent to function
-			// Otherwise there's a risk of modifying the class-level parent dict
-			// But otoh every other function (init, play etc) can potentially
-			// change things in the parent.
-			// TODO think about when to pass this and not
-			func.value;
-
-			// Set params from paramTemplate
-			~params = ~params ?? { IdentityDictionary().know_(true) };
-			// Param template has functions as value
-			// So we call .value on each one to init params
-			envir[\paramTemplate] !? { |tmpl|
-				tmpl.keysValuesDo { |k, func|
-				// Don't overwrite existing params (set in func)
-					~params[k] = ~params[k] ?? func;
-				}
-			};
-
+		// Copy some keys (eg settings, templates) to proto, to not overwrite the
+		// class-level dictionary
+		parentEnvironment[\copyToProto].do { |key|
+			envir.proto[key] = envir.parent[key].deepCopy;
 		};
-
 
 		this.use {
 			envir[\beforeInit].value(this);
