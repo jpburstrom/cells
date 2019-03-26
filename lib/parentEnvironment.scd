@@ -14,6 +14,9 @@ Environment.make {
 
 	~players = IdentityDictionary();
 
+	//Templates are uncooked env make functions with their dependencies
+	~playerTemplates = IdentityDictionary();
+
 	~nodeMap = MultiLevelIdentityDictionary();
 
 	~addNodeMap = { |...path|
