@@ -12,10 +12,11 @@ Environment.make {
 		freeAll, afterFree
 	];
 
-	~players = IdentityDictionary();
+	//This is where CellTemplates are stored
+	~playerTemplates = Environment();
 
-	//Templates are uncooked env make functions with their dependencies
-	~playerTemplates = IdentityDictionary();
+	//This is where cooked players end up
+	~players = IdentityDictionary();
 
 	~nodeMap = MultiLevelIdentityDictionary();
 

@@ -39,20 +39,10 @@ Cell : EnvironmentRedirect {
 
 	}
 
-	*addPlayer { |key, func, deps|
-		var addedDeps = Set();
-		var makeDependencies = { |dep|
-			var newDeps, newFunc;
-			if (addedDeps.includes(dep).not) {
-				addedDeps.add(dep);
-				#newDeps, newFunc = parentEnvironment[\playerTemplates][dep];
-				makeDependencies.(newDeps, newFunc);
-				newFunc.value;
-			};
-		};
-		parentEnvironment[\playerTemplates][key] = [func, deps];
-		parentEnvironment[\players][key] = Environment.make {
-			makeDependencies.(key);
+	*addPlayer { |key, func|
+		parentEnvironment[\playerTemplates].make {
+			currentEnvironment[key] = CellTemplate(func);
+			parentEnvironment[\players][key] = currentEnvironment[key].value;
 		};
 	}
 
