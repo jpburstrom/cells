@@ -1,0 +1,109 @@
+TITLE:: CellTemplate
+summary:: A template object for Cell players with dependencies
+
+related:: Classes/Cell
+
+DESCRIPTION::
+Cell templates are defined with a function defining environmental variables. The function is evaluated in a new environment, which is stored within the CellTemplate object. You can return the built environment from the code::.value:: method.
+
+The environment can define both variables and methods/actions (which is nothing more than functions assigned to environmental variables). The most common methods/actions are those called directly from the link::Classes/Cell::: code::load::, code::play:: etc.
+
+code::
+CellTemplate({
+	~someVariable = 23;
+
+	~load = {
+		"I'm likely to be called from Cell".postln;
+		~somethingCallable.value;
+	};
+
+	~somethingCallable = {
+		"But i'm called from ~load".postln;
+	};
+});
+::
+
+Methods can also have dependencies. These are defined with an link::Classes/Association::, where the key is one or many symbols, and the value is a function. The symbols are looked up in a common environment (which by default is whatever was the code::currentEnvironment:: when defining the object). The idea is something like this:
+
+numberedlist::
+## Define a template, code::~base:: with a method, say code::load::
+## Define another template, code::~foo:: with a code::load:: method, which depends on code::~base::'s load method.
+## Templates are built, and code::~foo.value:: returns an environment where code::~foo.load:: is transformed into a link::Classes/FunctionList::, calling the dependencies and sub-dependencies in order.
+## The cooked environment can then be stored in the Cell player repository. Each player is self-contained.
+::
+
+code::
+e = ().make {
+	~base = CellTemplate({
+		~load = {
+			"I'm base".postln;
+		};
+	});
+
+	~foo = CellTemplate({
+		~load = \base -> {
+			"I'm foo".postln;
+		}
+	});
+};
+
+f = e.foo.value; // Returns Environment
+f[\load].value; // Call load method
+
+::
+
+If base templates are changed, the derived templates needs to be regenerated to pick up the changes.
+
+CLASSMETHODS::
+
+METHOD:: new
+Create new template
+
+ARGUMENT:: makeFunc
+A function defining environmental variables
+
+ARGUMENT:: makeEnvir
+The Environment in which the dependency keys are looked up
+
+INSTANCEMETHODS::
+
+METHOD:: makeEnvir
+The Environment in which the dependency keys are looked up
+
+METHOD:: getMethodFunc
+Get the raw function from a method definition.
+
+ARGUMENT:: method
+A symbol
+
+returns:: a link::Classes/Function::
+
+METHOD:: value
+Get the built environment
+
+returns:: an link::Classes/Environment::
+
+METHOD:: makeFunc
+The function used to populate the environment
+
+
+METHOD:: dependencies
+Get all dependencies for the template.
+
+returns:: A link::Classes/Set::.
+
+METHOD:: rawEnvir
+Get the raw environment, with non-resolved method dependencies. Used internally.
+
+returns:: an link::Classes/Environment::
+
+METHOD:: envir
+Get the cooked environment, where method dependencies have turned into link::Classes/FunctionList::s.
+
+returns:: an link::Classes/Environment::
+
+METHOD:: build
+Lookup dependencies and build environments. Called from link::#*new::.
+
+PRIVATE:: findDepsFor, init
+
