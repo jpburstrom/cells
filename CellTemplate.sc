@@ -25,11 +25,20 @@ CellTemplate {
 			var out;
 			dependencies = this.findDepsFor(key);
 			if (dependencies.notEmpty) {
+
 				// Make a function list with all dependencies in order
-				val = FunctionList().array_(dependencies.collect { |depKey|
-					makeEnvir[depKey].getMethodFunc(key);
+				// CellFuncitonList is like a FunctionList where funcs can be looked up
+				// by key
+				val = CellFunctionList();
+				dependencies.do { |depKey|
+					val[depKey] = makeEnvir[depKey].getMethodFunc(key);
 				// Assume we have an association, and add extracted function
-				}).addFunc(val.value);
+				};
+				// Assign the main function to an arbitrary key
+				// We will probably not use it
+				// Keys are good to be able to remove certain functions if needed
+				// (eg deps which are handled from elsewhere)
+				val[\_current] = val.value;
 			};
 			envir[key] = val;
 		};
