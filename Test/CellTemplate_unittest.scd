@@ -44,10 +44,34 @@ if (thisThread.isKindOf(Routine).not) {
 
 
 	test.assert(template.notNil, "Init object");
-	test.assert(template.findDepsFor(\load) == #[server, bus, group], "Dependency order");
+	test.assert(template.findDepsFor(\load) == [\server, \bus, \group], "Dependency order");
 	test.assert(template.getMethodFunc(\load).isFunction, "getMethodFunc return value");
 	test.assert(template.value[\load].isKindOf(FunctionList), "value return value");
 	test.assert(template.value[\serverVariable] == 23, "Variables is passed from deps");
 	test.assert(template.value[\overriddenMethod] == 23, "Variables can be overridden by deps later in chain");
 	test.assert(template.value[\anotherOverride] == 23, "Variables can be overridden by top level template");
+
+	template.value.postln;
+
+	template = CellTemplate({
+		//Key could also be an array
+		~anotherOverride = 23;
+		~load = {
+			"Load syn".postln;
+		};
+	}, [\bus, \group], env);
+
+	test.assert(template.findDepsFor(\load).size == 3, "Fallback to global dependencies");
+
+
+	template = CellTemplate({
+		//Key could also be an array
+		~anotherOverride = 23;
+		~load = nil -> {
+			"Load syn".postln;
+		};
+	}, [\bus, \group], env);
+
+	test.assert(template.findDepsFor(\load).size == 0, "Nil as key disables dependencies");
+
 };
