@@ -41,7 +41,7 @@ Cell : EnvironmentRedirect {
 		players.clear;
 
 		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/synthDefs.scd").loadPaths;
-		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/players.scd").loadPaths;
+		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/playerTemplates.scd").loadPaths;
 
 	}
 
