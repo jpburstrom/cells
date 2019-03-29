@@ -39,9 +39,9 @@ Cell : EnvironmentRedirect {
 
 	}
 
-	*addPlayer { |key, func|
+	*addPlayer { |key, func, deps|
 		parentEnvironment[\playerTemplates].make {
-			currentEnvironment[key] = CellTemplate(func);
+			currentEnvironment[key] = CellTemplate(func, deps);
 			parentEnvironment[\players][key] = currentEnvironment[key].value;
 		};
 	}
