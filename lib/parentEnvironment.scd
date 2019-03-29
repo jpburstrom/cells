@@ -1,14 +1,7 @@
 "Loading parentEnvironment".debug;
 
 Environment.make {
-	// Copy these keys to proto, to not overwrite/change them in parent
-	~copyToProto = #[settings, nodeMap];
 
-	//This is where CellTemplates are stored
-	~playerTemplates = Environment();
-
-	//This is where cooked players end up
-	~players = IdentityDictionary();
 
 	~nodeMap = MultiLevelIdentityDictionary();
 

@@ -3,7 +3,7 @@ Cell : EnvironmentRedirect {
 	classvar states;
 	// An environment which holds settings and players
 	// common to all cell instances
-	classvar <parentEnvironment;
+	classvar <>copyToProto, <playerTemplates, <players;
 	classvar <>debug=false;
 
 	//Cue name (for display purposes)
@@ -25,29 +25,35 @@ Cell : EnvironmentRedirect {
 			\error -> 128
 		];
 
+		copyToProto = #[settings, nodeMap];
+		playerTemplates = Environment();
+		players = IdentityDictionary();
+
 		StartUp.add({
-			this.loadParentEnvironment;
+			this.loadPlayerTemplates;
 		});
 
 	}
 
-	*loadParentEnvironment {
+	*loadPlayerTemplates {
+
+		playerTemplates.clear;
+		players.clear;
 
 		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/synthDefs.scd").loadPaths;
-		parentEnvironment = (PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/parentEnvironment.scd").loadPaths[0];
 		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/players.scd").loadPaths;
 
 	}
 
 	*addPlayer { |key, func, deps|
-		parentEnvironment[\playerTemplates].make {
+		playerTemplates.make {
 			currentEnvironment[key] = CellTemplate(func, deps);
-			parentEnvironment[\players][key] = currentEnvironment[key].value;
+			players[key] = currentEnvironment[key].value;
 		};
 	}
 
 	*removePlayer { |key|
-		parentEnvironment[\players][key] = nil;
+		players[key] = nil;
 	}
 
 
@@ -66,9 +72,9 @@ Cell : EnvironmentRedirect {
 
 		envir.know = true;
 
-		envir.parent = parentEnvironment[\players][playerKey];
+		envir.parent = players[playerKey];
 		if (envir.parent.isNil) {
-			envir.parent = parentEnvironment[\players][\basic];
+			envir.parent = players[\basic];
 		};
 
 		// The make function is run inside the proto of the environment
@@ -79,7 +85,7 @@ Cell : EnvironmentRedirect {
 
 		// Copy some keys (eg settings, templates) to proto, to not overwrite the
 		// class-level dictionary
-		parentEnvironment[\copyToProto].do { |key|
+		copyToProto.do { |key|
 			envir.proto[key] = envir.parent[key].deepCopy;
 		};
 
