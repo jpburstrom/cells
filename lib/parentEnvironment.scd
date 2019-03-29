@@ -4,14 +4,6 @@ Environment.make {
 	// Copy these keys to proto, to not overwrite/change them in parent
 	~copyToProto = #[settings, nodeMap];
 
-	~actionKeys = #[
-		beforeInit, init, afterInit,
-		beforeLoad, load, afterLoad,
-		beforePlay, play, afterPlay,
-		beforeStop, stop, afterStop,
-		freeAll, afterFree
-	];
-
 	//This is where CellTemplates are stored
 	~playerTemplates = Environment();
 
