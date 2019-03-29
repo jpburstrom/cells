@@ -49,8 +49,39 @@ e = ().make {
 
 f = e.foo.value; // Returns Environment
 f[\load].value; // Call load method
-
 ::
+
+You can also set dependencies for all methods. In the example below, the default is to base all methods on base. You can override this by defining the method as an association, either with other dependencies as key, or code::nil::. If the latter, no dependencies are searched for that method.
+code::
+(
+e = ().make {
+	~base = CellTemplate({
+		~load = {
+			"I'm base".postln;
+		};
+
+		~something = {
+			"Something from base".postln;
+		};
+	});
+
+	~foo = CellTemplate({
+		~load = {
+			"I'm foo".postln;
+		};
+
+		~something = nil -> {
+			"Not picking up base method".postln;
+		};
+	}, [\base]);
+};
+f = e.foo.value; // Returns Environment
+f[\load].value; // Call load method
+f[\something].value; // Call something
+f
+)
+::
+
 
 If base templates are changed, the derived templates needs to be regenerated to pick up the changes.
 
@@ -61,7 +92,8 @@ Create new template
 
 ARGUMENT:: makeFunc
 A function defining environmental variables
-
+ARGUMENT:: dependencies
+Keys for global dependencies, eg other CellTemplates which are always searched when building the template
 ARGUMENT:: makeEnvir
 The Environment in which the dependency keys are looked up
 
@@ -88,7 +120,7 @@ The function used to populate the environment
 
 
 METHOD:: dependencies
-Get all dependencies for the template.
+Global dependencies for template.
 
 returns:: A link::Classes/Set::.
 
@@ -105,5 +137,5 @@ returns:: an link::Classes/Environment::
 METHOD:: build
 Lookup dependencies and build environments. Called from link::#*new::.
 
-PRIVATE:: findDepsFor, init
+PRIVATE:: findDepsFor, init, prMightHaveDeps, prUnpackFunction
 

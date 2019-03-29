@@ -25,11 +25,14 @@ CellTemplate {
 		rawEnvir = rawEnvir.make(makeFunc);
 		envir = rawEnvir.copy;
 		rawEnvir.keysValuesDo { |key, val|
-			var deps, out;
-			if (val.isFunction or: { val.isKindOf(Association) }) {
-				deps = this.findDepsFor(key);
-				out = val;
-				if (deps.notNil and: { deps.notEmpty }) {
+			if (this.prMightHaveDeps(val)) {
+				// If func is defined, use that. Otherwise fallback to val
+				var deps = this.findDepsFor(key);
+				if (val.isKindOf(Association)) {
+					val = val.value;
+				};
+				if (deps.notEmpty) {
+					var out;
 					// Make a function list with all dependencies in order
 					// CellFunctionList is like a FunctionList where funcs can be looked up
 					// by key
@@ -43,21 +46,42 @@ CellTemplate {
 					// Keys are good to be able to remove certain functions if needed
 					// (eg deps which are handled from elsewhere)
 					// TODO maybe need to access this from user template?
-					out[\_current] = val.value;
+					out[\_current] = val;
+					envir[key] = out;
+				} {
+					envir[key] = val;
 				};
-				envir[key] = out;
+			} {
+				// If func is defined, we have unpacked an association,
+				// so we need to update the envir
+				if (val.isKindOf(Association)) {
+					envir[key] = val.value;
+				};
 			}
 		};
-		envir;
+	}
+
+	prUnpackFunction { |thing|
+		if (thing.isKindOf(Association)) {
+			^thing.value;
+		} {
+			^thing
+		}
+	}
+
+	prMightHaveDeps { |thing|
+		if (thing.isKindOf(Association))  {
+			^thing.key.notNil && thing.value.isFunction
+		} {
+			^dependencies.notNil && thing.isFunction
+		};
 	}
 
 	findDepsFor { |method, out|
-		var deps;
-		if (rawEnvir[method].isKindOf(Association)) {
-			if (rawEnvir[method].key.isNil) {
-				^out
-			};
-			deps = rawEnvir[method].key
+		var deps, thing;
+		thing = rawEnvir[method];
+		if (thing.isKindOf(Association)) {
+			deps = thing.key
 		} {
 			// Fall back to global deps
 			if (rawEnvir[method].isFunction) {
