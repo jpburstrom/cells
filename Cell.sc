@@ -25,7 +25,7 @@ Cell : EnvironmentRedirect {
 			\error -> 128
 		];
 
-		copyToProto = #[settings, nodeMap];
+		copyToProto = #[settings, nodeMap, template];
 		playerTemplates = Environment();
 		players = IdentityDictionary();
 
