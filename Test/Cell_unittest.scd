@@ -105,11 +105,11 @@ if (thisThread.isKindOf(Routine).not) {
 
 		test.assert(Cell.players[\testPlayer].isNil, "Test player prototype doesn't exist");
 
-		Cell.addPlayer(\testPlayer, Environment.make {
-			~fum = {
+		Cell.addPlayer(\testPlayer, (
+			fum: {
 				true;
 			};
-		}, nil, \server);
+		), \server);
 
 		test.assert(Cell.players[\testPlayer].notNil, "Add player prototype");
 
@@ -180,7 +180,7 @@ if (thisThread.isKindOf(Routine).not) {
 		});
 		cond.hang;
 		test.assert(value == 998, "Group set sets synth value");
-
+		server.latency.wait;
 		teardown.value;
 		mother.free;
 
