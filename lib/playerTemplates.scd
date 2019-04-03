@@ -425,6 +425,10 @@ Cell.addPlayer(\synth, {
 	~prSynthTemplateLoop = { |group, callback|
 		~template[group] !? (_.keysValuesDo({ |key, args|
 			var synth;
+			// Unpack functions from template
+			if (args.isFunction) {
+				args = args.value;
+			};
 			synth = args[0];
 			args = args[1..];
 			if (args.size == 1) {
