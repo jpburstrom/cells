@@ -29,6 +29,14 @@ CellTemplate {
 			);
 		};
 
+		rawEnvir.keysValuesChange { |k, v|
+			if (v.isFunction.not) {
+				v.deepCopy;
+			} {
+				v
+			};
+		};
+
 		rawEnvir = rawEnvir.putAll(template);
 		rawEnvir.make {
 			template[\build].value;
