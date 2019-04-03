@@ -158,7 +158,7 @@ Cell.addPlayer(\server, {
 		currentEnvironment.mother !? (_.defaultGroup);
 	};
 
-	~load = { ~server.bootSync };
+	~beforeLoad = { ~server.bootSync };
 	~afterLoad = { ~server.sync };
 
 	// --- Server boot / quit ---
