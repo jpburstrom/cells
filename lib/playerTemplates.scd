@@ -343,44 +343,7 @@ Cell.addPlayer(\cells, {
 }, \base);
 
 
-Cell.addPlayer(\ctl, {
-	// Get bus from ctl key
-	~ctlBus = { |key|
-		~bus[\_ctl][key];
-	};
 
-	// Get a kr player from ctl key
-	~ctlKr = { |key|
-		var bus = ~bus[\_ctl][key];
-		In.kr(bus, bus.numChannels);
-	};
-
-	// Get a pattern from ctl key
-	// Stolen from Pkr (BenoitLib)
-	~ctlPattern = { |key|
-		var last = 0, check;
-		var busEnvir = ~bus[\_ctl];
-		check = { ~server.hasShmInterface }.try;
-
-		check.if ({
-			^Pfunc({ busEnvir[key].getSynchronous });
-		}, {
-			"No shared memory interface detected".warn;
-			busEnvir[key].get({|v| last = v;});
-			^Pfunc({ busEnvir[key].get({ |v| last = v; }); last });
-		});
-	};
-
-	// Add control synth (LFO etc)
-	~addCtl = { |key, synth, args, numChannels|
-		var bus;
-		numChannels = numChannels ? 1;
-		bus = ~addBus.(key, \control, numChannels, nil, \_ctl);
-		args = (args ?? IdentityDictionary()).asDict;
-		args[\out] = bus.index;
-		~prPlaySynth.(\ctl, key, synth, args);
-	};
-}, [\group, \bus]);
 
 // Synth related methods: FX, Ctl,
 Cell.addPlayer(\synth, {
@@ -565,9 +528,46 @@ Cell.addPlayer(\synth, {
 		currentEnvironment
 	};
 
-}, [\bus, \group, \ctl]);
+}, [\group, \bus]);
 
+Cell.addPlayer(\ctl, {
+	// Get bus from ctl key
+	~ctlBus = { |key|
+		~bus[\_ctl][key];
+	};
 
+	// Get a kr player from ctl key
+	~ctlKr = { |key|
+		var bus = ~bus[\_ctl][key];
+		In.kr(bus, bus.numChannels);
+	};
+
+	// Get a pattern from ctl key
+	// Stolen from Pkr (BenoitLib)
+	~ctlPattern = { |key|
+		var last = 0, check;
+		var busEnvir = ~bus[\_ctl];
+		check = { ~server.hasShmInterface }.try;
+
+		check.if ({
+			^Pfunc({ busEnvir[key].getSynchronous });
+		}, {
+			"No shared memory interface detected".warn;
+			busEnvir[key].get({|v| last = v;});
+			^Pfunc({ busEnvir[key].get({ |v| last = v; }); last });
+		});
+	};
+
+	// Add control synth (LFO etc)
+	~addCtl = { |key, synth, args, numChannels|
+		var bus;
+		numChannels = numChannels ? 1;
+		bus = ~addBus.(key, \control, numChannels, nil, \_ctl);
+		args = (args ?? IdentityDictionary()).asDict;
+		args[\out] = bus.index;
+		~prPlaySynth.(\ctl, key, synth, args);
+	};
+}, [\synth]);
 
 
 Cell.addPlayer(\buffer, {
