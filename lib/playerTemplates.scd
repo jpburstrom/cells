@@ -596,8 +596,10 @@ Cell.addPlayer(\buffer, {
 		~settings[\numChannels] = 2;
 		if (~template[\main].notNil and: { ~template[\main].isEmpty }) {
 			~template[\buffer] !? (_.keys.do { |key|
-				~template[\main][key] = [~settings[\defaultSynth],
-					\bufnum, {~buffers[key]}];
+				~template[\main][key] = {
+					[~settings[\defaultSynth],
+					\bufnum, {~buffers[key]}]
+				};
 			});
 		};
 	};
@@ -658,7 +660,7 @@ Cell.addPlayer(\buffer, {
 }, \synth);
 
 Cell.addPlayer(\disk, {
-	~build = {
+	~beforeInit = {
 		~settings[\defaultSynth] = {
 			~numChannelsFormat.("cellDiskPlayer_%");
 		};
