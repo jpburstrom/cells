@@ -103,7 +103,7 @@ if (thisThread.isKindOf(Routine).not) {
 		build: {
 			~foo = 23;
 			~overriddenMethod = true;
-			~serverDict[\foo] = 22;
+			~serverDict[\foo][\foo] = 22;
 		},
 		load: {}
 	), \server, env);
@@ -112,9 +112,8 @@ if (thisThread.isKindOf(Routine).not) {
 	test.assert(template.value[\overriddenMethod] == true, "Build function overrides dep methods");
 	test.assert(template.value[\load].isKindOf(CellFunctionList), "Envir defined methods still makes lists if needed");
 	test.assert(env[\server].value[\serverDict] !== template.value[\serverDict], "Dictionaries are copied from dependencies");
-	test.assert(env[\server].value[\serverDict][\foo] !== template.value[\serverDict][\foo], "Dictionaries are deep copied from dependencies");
+	test.assert(env[\server].value[\serverDict][\foo] === template.value[\serverDict][\foo], "Dictionaries are not deep copied from dependencies");
 	test.assert(env[\server].value[\serverSpecificMethod] === template.value[\serverSpecificMethod], "Non-overridden functions are identical in deps");
 	test.assert(env[\server].value[\load] === template.value[\load].array[0], "Listed functions are identical in deps");
 
 };
-

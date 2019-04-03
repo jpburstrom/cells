@@ -30,8 +30,9 @@ CellTemplate {
 		};
 
 		rawEnvir.keysValuesChange { |k, v|
-			if (v.isFunction.not) {
-				v.deepCopy;
+			if (v.isKindOf(Collection)) {
+				v.copy;
+
 			} {
 				v
 			};
