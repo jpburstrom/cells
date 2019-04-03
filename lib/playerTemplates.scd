@@ -416,10 +416,6 @@ Cell.addPlayer(\synth, {
 			});
 		};
 
-		//TODO later not hardcode this,
-		//Make it a part of template
-		~addNodeMap.(\level, \main);
-
 	};
 
 	~prSynthTemplateLoop = { |group, callback|
@@ -498,19 +494,6 @@ Cell.addPlayer(\synth, {
 		~prPlaySynth.(\fx, key, synth, args);
 	};
 
-	// Add volume-controlling synth
-	// Set a
-
-	//TODO later not hardcode this
-	~prAddVolume = { |args|
-		// This starts fading when playing synth, so it needs to start in ~play
-		~prPlaySynth.(\level, \main,
-			"cellMixer_%".format(~settings[\numChannels]).asSymbol,
-			(fadetime: {~settings[\fadeIn]},
-				out: {~bus.out}, in: {~bus.main}
-			)
-		);
-	};
 
 	// Helper method for adding synths
 	~prPlaySynth = { |group, key, synth, args|
@@ -548,7 +531,6 @@ Cell.addPlayer(\synth, {
 
 	~afterInit = ~addSynthNodeMap;
 	~beforePlay = ~addSynthsFromTemplate;
-	~beforePlay = ~prAddVolume;
 	~afterPlay = ~syncSynthNodeMap;
 
 	// Default stop: Call release on synths
