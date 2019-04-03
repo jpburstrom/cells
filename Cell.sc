@@ -74,7 +74,7 @@ Cell : EnvironmentRedirect {
 
 		envir.parent = players[playerKey];
 		if (envir.parent.isNil) {
-			envir.parent = players[\basic];
+			envir.parent = players[\base];
 		};
 
 		// The make function is run inside the proto of the environment
