@@ -1,4 +1,5 @@
 if (thisThread.isKindOf(Routine).not) {
+	UnitTestScript.reset;
 	UnitTestScript("Cell", thisProcess.nowExecutingPath).runScript;
 };
 
@@ -221,36 +222,34 @@ if (thisThread.isKindOf(Routine).not) {
 			setup.value({
 				var path = Platform.resourceDir +/+ "sounds/a11wlk01.wav";
 				~load = nil;
-				~template = (
-					buffer: (
-						test1: path,
-						test2: (
-							path: path,
-							startTime:new.startTime,
-						),
-						test3: (
-							path: path,
-							duration: new.duration,
-						),
-						test4: (
-							path: path,
-							startFrame: new.startFrame
-						),
-						test5: (
-							path: path,
-							numFrames: new.numFrames
-						),
-						test6: (
-							path: path,
-							method: \cueSoundFile
-						),
-						test7: (
-							path: path,
-							method: \cueSoundFile,
-							bufferSize: new.bufferSize
-						)
+				~template[\buffer] = (
+					test1: path,
+					test2: (
+						path: path,
+						startTime:new.startTime,
+					),
+					test3: (
+						path: path,
+						duration: new.duration,
+					),
+					test4: (
+						path: path,
+						startFrame: new.startFrame
+					),
+					test5: (
+						path: path,
+						numFrames: new.numFrames
+					),
+					test6: (
+						path: path,
+						method: \cueSoundFile
+					),
+					test7: (
+						path: path,
+						method: \cueSoundFile,
+						bufferSize: new.bufferSize
+					)
 
-					);
 				);
 
 			}, \buffer);
@@ -272,10 +271,8 @@ if (thisThread.isKindOf(Routine).not) {
 
 		setup.value({
 			~load = nil;
-			~template = (
-				buffer: (
-					test: Platform.resourceDir +/+ "sounds/a11wlk01.wav"
-				)
+			~template[\buffer] = (
+				test: Platform.resourceDir +/+ "sounds/a11wlk01.wav"
 			);
 		}, \disk);
 
