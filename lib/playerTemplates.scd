@@ -393,7 +393,7 @@ Cell.addPlayer(\synth, {
 			if (args.isFunction) {
 				args = args.value;
 			};
-			synth = args[0];
+			synth = args[0].value;
 			args = args[1..];
 			if (args.size == 1) {
 				args = args[0];
