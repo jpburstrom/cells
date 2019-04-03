@@ -44,5 +44,9 @@ CellFunctionList : FunctionList {
 		}
 	}
 
+	keys {
+		^indexMap.keys
+	}
+
 }
 
