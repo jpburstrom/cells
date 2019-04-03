@@ -380,16 +380,21 @@ Cell.addPlayer(\ctl, {
 		args[\out] = bus.index;
 		~prPlaySynth.(\ctl, key, synth, args);
 	};
-}, [\bus, \group]);
+}, [\group, \bus]);
 
 // Synth related methods: FX, Ctl,
 Cell.addPlayer(\synth, {
 
-	~build = {
+	~numChannelsFormat = { |string|
+		string.format(~settings[\numChannels]).asSymbol;
+	};
+
+	~beforeInit = {
+		~settings[\defaultSynth] = \default;
 		~updateTemplate.((
 			main: IdentityDictionary(),
 			level: IdentityDictionary[
-				\main -> { ["cellMixer_%".format(~settings[\numChannels]).asSymbol,
+				\main -> { [~numChannelsFormat.("cellMixer_%"),
 					(fadetime: {~settings[\fadeIn]}, out: {~bus.out}, in: {~bus.main})
 				] };
 			];
@@ -585,6 +590,7 @@ Cell.addPlayer(\buffer, {
 	*/
 
 	~build = {
+		~settings[\defaultSynth] = { ~numChannelsFormat.("cellBufPlayer_%") };
 		~settings[\defaultBufferMethod] = \read;
 		~settings[\cueSize] = 65536;
 		~settings[\numChannels] = 2;
@@ -607,6 +613,9 @@ Cell.addPlayer(\buffer, {
 			channels = sf.numChannels;
 		});
 
+		~settings[\numChannels] = ~settings[\numChannels].max(channels);
+		~numChannelsFormat.("cellBufPlayer_%").postln;
+
 		switch (obj[\method] ?? { ~settings[\defaultBufferMethod] },
 			\read, {
 				~buffers[key] = Buffer.read(~server, obj[\path], obj[\startFrame] ? 0, obj[\numFrames] ? -1);
@@ -626,17 +635,17 @@ Cell.addPlayer(\buffer, {
 		if (template.notNil) {
 			~buffers ?? { ~buffers = IdentityDictionary(know:true) };
 			template.keysValuesDo { |key, obj|
+				~settings[\numChannels] = 0;
 				~addBuffer.(key, obj);
 
 			};
 		};
-
 	};
 
 	~beforeInit = {
 		if (~template[\main].notNil and: { ~template[\main].isEmpty }) {
 			~template[\buffer].keys.do { |key|
-				~template[\main][key] = [~settings[\defaultSynth],
+				~template[\main][key] = [~settings[\defaultSynth].value,
 					\bufnum, {~buffers[key]}];
 			};
 		};
