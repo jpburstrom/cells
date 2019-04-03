@@ -13,6 +13,7 @@ if (thisThread.isKindOf(Routine).not) {
 		~serverSpecificMethod = {};
 		~serverDict = (foo: ());
 		~overriddenMethod = { "hello".postln };
+		~serverAndBus = {};
 		~load = {
 			"Load server".postln
 		}
@@ -23,10 +24,19 @@ if (thisThread.isKindOf(Routine).not) {
 		~build = {
 			~serverDict[\foo] = 11;
 		};
+		~serverAndBus = {};
 		~load = \server -> {
 			"Load bus".postln;
 		};
 	}, \server, env);
+
+	env[\group] = CellTemplate({
+		//Key could also be an array
+		~anotherOverride = 0;
+		~load = [\server, \bus] -> {
+			"Load group";
+		};
+	}, [\server, \bus], env);
 
 	env[\group] = CellTemplate({
 		//Key could also be an array
@@ -48,7 +58,6 @@ if (thisThread.isKindOf(Routine).not) {
 
 	test.assert(template.prMightHaveDeps({}), "Functions might have dependencies");
 	test.assert(template.prMightHaveDeps(\foo -> {}), "Associations might have dependencies");
-
 
 	test.assert(template.notNil, "Init object");
 	test.assert(template.findDepsFor(\load) == [\server, \bus, \group], "Dependency order");
@@ -88,7 +97,7 @@ if (thisThread.isKindOf(Routine).not) {
 	}, [\bus, \group], env);
 
 	test.assert(template.findDepsFor(\load).size == 0, "Nil as key disables dependencies");
-	test.assert(template.value[\load].postln.isFunction, "Nil as key builds a function");
+	test.assert(template.value[\load].isFunction, "Nil as key builds a function");
 
 	test.assert(template.value[\testAssociation].isFunction, "Association builds function");
 	test.assert(template.value[\testAssociation].value, "Association function returns ok");
@@ -117,17 +126,28 @@ if (thisThread.isKindOf(Routine).not) {
 	test.assert(env[\server].value[\serverSpecificMethod] === template.value[\serverSpecificMethod], "Non-overridden functions are identical in deps");
 	test.assert(env[\server].value[\load] === template.value[\load].array[0], "Listed functions are identical in deps");
 
-	env[\busSomething] = CellTemplate({
-	}, \bus, env);
-	template = CellTemplate({
-		~load = {
-			"thing".postln
-		};
-	}, \busSomething, env);
+	env.clear;
 
-	test.assert(template.value[\load].isKindOf(CellFunctionList),
-		"Method dependencies are still picked up from subdependencies");
+	env[\grp] = CellTemplate((
+		load: { "group load".postln }
+	), nil, env);
 
+	env[\bus] = CellTemplate((
+		load: { "bus load".postln }
+	), nil, env);
+
+	env[\ctl] = CellTemplate((load:{}), [\grp, \bus], env);
+
+	env[\syn] = CellTemplate((), [\grp, \bus], env);
+
+	value {
+		var load = env[\syn].value[\load];
+		test.assert(load.isKindOf(CellFunctionList),
+			"Methods are picked up from multiple global deps");
+		test.assert(try { load.array.size == 2 } { false },
+			"Methods have correct length"
+		);
+	}
 
 
 };

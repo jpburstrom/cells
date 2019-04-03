@@ -20,25 +20,10 @@ CellTemplate {
 
 	build {
 
-		rawEnvir = Environment();
+		rawEnvir = this.prGetMergedDependencies;
 
-		//Loop over dependencies, and put all values from them into rawEnvir
-		dependencies !? {
-			rawEnvir.putAll(
-				*dependencies.asArray.collect { |depKey| makeEnvir[depKey].value }
-			);
-		};
-
-		//Make copies of all collections
-		rawEnvir.keysValuesChange { |k, v|
-			if (v.isKindOf(Collection)) {
-				v.copy;
-			} {
-				v
-			};
-		};
-
-		//
+		// Overwrite everything! Functions are later turned into FunctionLists
+		// in envir
 		rawEnvir = rawEnvir.putAll(template);
 		rawEnvir.make {
 			template[\build].value;
@@ -71,6 +56,7 @@ CellTemplate {
 					// (eg deps which are handled from elsewhere)
 					// TODO maybe need to access this from user template?
 					out[\_current] = val;
+
 					envir[key] = out;
 				} {
 					envir[key] = val;
@@ -84,6 +70,51 @@ CellTemplate {
 			}
 		};
 
+	}
+
+	prGetMergedDependencies {
+		var out = Environment();
+		var deps;
+		if (dependencies.isNil) {
+			^Environment()
+		};
+		deps = dependencies.asArray.collect({ |k| makeEnvir[k].value });
+		out.putAll(deps[0]);
+		//Loop over the rest
+		deps[1..].do { |dep, i|
+			//keep previous key for CellFunctionList
+			var prevKey = dependencies[i];
+			var curKey = dependencies[i+1];
+			dep.keysValuesDo { |k, v|
+				var other = out[k];
+				case { other === v } {
+					//nothing
+				} { other.isNil } {
+					out[k] = v;
+				} {
+					//If not nil or the same, merge function or overwrite
+					if (v.isFunction) {
+						case {other.isFunction} {
+							out[k] = CellFunctionList()
+							.put(prevKey, other).put(curKey, v);
+						} {other.isKindOf(CellFunctionList)} {
+							out[k].put(curKey, v);
+						} {
+							out[k] = v;
+						}
+					} {
+
+						out[k] = v;
+					}
+				}
+			};
+		};
+		out.keysValuesDo { |k, v|
+			if (v.isKindOf(Collection)) {
+				out[k] = v.copy;
+			};
+		};
+		^out
 	}
 
 	prUnpackFunction { |thing|
