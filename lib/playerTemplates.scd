@@ -658,3 +658,12 @@ Cell.addPlayer(\buffer, {
 	};
 
 }, \synth);
+
+Cell.addPlayer(\disk, {
+	~build = {
+		~settings[\defaultSynth] = {
+			~numChannelsFormat.("cellDiskPlayer_%");
+		};
+		~settings[\defaultBufferMethod] = \cueSoundFile;
+	};
+}, \buffer);

@@ -1,4 +1,9 @@
+var defaultEnv = { |snd|
+	Env.asr(\atk.kr(0.02), 1, \rel.kr(0.02)).ar(2, \gate.kr(0));
+};
+
 (1..8).do { |numChannels|
+
 	SynthDef("cellMixer_%".format(numChannels), {
 		var lvl = \amp.kr(1);
 		var freeAfter = \freeWhenDone.kr(0); //Whether to free after fade
@@ -8,6 +13,24 @@
 		Out.ar(\out.kr(0), In.ar(\in.kr(0), numChannels) * env);
 		// Free synth group, the rest is taken care of by cell
 		FreeSelf.kr(Done.kr(env) * freeAfter);
-	}).add
-};
+	}).add;
 
+	SynthDef("cellBufPlayer_%".format(numChannels), {
+
+		var snd = PlayBuf.ar(numChannels, \bufnum.kr(0), \bufRate.kr(1.0), 1, \startPos.kr(0), \loop.kr(0));
+		FreeSelf.kr(Done.kr(snd));
+
+		snd = defaultEnv.value(snd);
+		Out.ar(\out.kr(0), snd);
+	}).add;
+
+	SynthDef("cellDiskPlayer_%".format(numChannels), {
+		var snd = DiskIn.ar(numChannels, \bufnum.kr(0), \loop.kr(0));
+
+		FreeSelf.kr(Done.kr(snd));
+
+		snd = defaultEnv.value(snd);
+		Out.ar(\out.kr(0), snd);
+	}).add;
+
+};
