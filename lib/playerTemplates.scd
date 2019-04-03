@@ -251,7 +251,7 @@ Cell.addPlayer(\bus, {
 		~updateTemplate.((
 			bus: (
 				//Type, channels, index (for global buses)
-				main: [\audio, ~settings[\numChannels]],
+				main: [\audio, { ~settings[\numChannels] }],
 				out: {
 					try { currentEnvironment.mother[\bus][\main] } {
 						[\audio, 2, 0]
@@ -269,9 +269,9 @@ Cell.addPlayer(\bus, {
 			~bus[grp][key] = rate;
 		} {
 			if (index.notNil) {
-				~bus[grp][key] = Bus(rate, index, numChannels, ~server);
+				~bus[grp][key] = Bus(rate, index, numChannels.value, ~server);
 			} {
-				~bus[grp][key] = Bus.alloc(rate, ~server, numChannels ? 2)
+				~bus[grp][key] = Bus.alloc(rate, ~server, numChannels.value ? 2)
 			};
 		};
 		~bus[grp][key];
