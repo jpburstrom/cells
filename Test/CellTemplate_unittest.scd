@@ -11,6 +11,7 @@ if (thisThread.isKindOf(Routine).not) {
 	env[\server] = CellTemplate({
 		~serverVariable = 23;
 		~serverSpecificMethod = {};
+		~serverDict = ();
 		~overriddenMethod = { "hello".postln };
 		~load = {
 			"Load server".postln
@@ -18,8 +19,10 @@ if (thisThread.isKindOf(Routine).not) {
 	}, nil, env);
 
 	env[\bus] = CellTemplate({
-		//Key could also be an array
 		~overriddenMethod = 23;
+		~build = {
+			~serverDict[\foo] = 11;
+		};
 		~load = \server -> {
 			"Load bus".postln;
 		};
@@ -91,8 +94,21 @@ if (thisThread.isKindOf(Routine).not) {
 	test.assert(template.value[\testFunction].isFunction, "No deps build function");
 	test.assert(template.value[\testFunction].value, "No deps function returns ok");
 
+	// Other players having server as dep is not making the server setup code run twice
+	test.assert(template.value[\serverSpecificMethod].isFunction, "Functions are only defined once per player");
+	test.assert(template.value[\serverDict][\foo] == 11, "Build function");
 
-	test.assert(template.value[\serverSpecificMethod].isFunction, "Functions are only defined once per player") // Server defines parentGroup, and other players having server as dep is not making the server setup code run twice
+	template = CellTemplate((
+		build: {
+			~foo = 23;
+			~overriddenMethod = true;
+		},
+		load: {}
+	), \server, env);
+
+	test.assert(template.value[\foo] == 23, "Pass envir to constructor");
+	test.assert(template.value[\overriddenMethod] == true, "Build function overrides dep methods");
+	test.assert(template.value[\load].isKindOf(CellFunctionList), "Envir defined methods still makes lists if needed");
 
 };
 

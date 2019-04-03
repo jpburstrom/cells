@@ -1,12 +1,15 @@
 CellTemplate {
-	var <makeFunc, <dependencies, <makeEnvir;
+	var <template, <dependencies, <makeEnvir;
 	// method->dependency dictionary
 	var <rawEnvir;
 	// cooked envir, without dictionaries
 	var <envir;
 
-	*new { |makeFunc, dependencies, makeEnvir|
-		^super.newCopyArgs(makeFunc, dependencies, makeEnvir).init;
+	*new { |template, dependencies, makeEnvir|
+		if (template.isFunction) {
+			template = Environment.make(template);
+		};
+		^super.newCopyArgs(template, dependencies, makeEnvir).init;
 	}
 
 	init {
@@ -16,8 +19,7 @@ CellTemplate {
 	}
 
 	build {
-		//Run makeFunc only to get the unique keys for this template
-		var keys = ().make(makeFunc).keys;
+
 		rawEnvir = Environment();
 
 		//Loop over dependencies, and put all values from them into rawEnvir
@@ -27,13 +29,15 @@ CellTemplate {
 			);
 		};
 
-		//Then run makeFunc inside the environment.
-		rawEnvir = rawEnvir.make(makeFunc);
+		rawEnvir = rawEnvir.putAll(template);
+		rawEnvir.make {
+			template[\build].value;
+		};
 		envir = rawEnvir.copy;
 
 		// Loop over makeFunc-defined keys, and see if any of them needs to turn into
 		// a FunctionList
-		keys.do { |key|
+		template.keys.reject(_==\build).do { |key|
 			var val = rawEnvir[key];
 			if (this.prMightHaveDeps(val)) {
 				// If func is defined, use that. Otherwise fallback to val
