@@ -8,7 +8,7 @@ if (thisThread.isKindOf(Routine).not) {
 	var cond = Condition();
 	var value = 0;
 
-	Cell.loadParentEnvironment;
+	Cell.loadPlayerTemplates;
 
 
 	server = Server("test");
@@ -102,7 +102,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 		teardown.value;
 
-		test.assert(Cell.parentEnvironment[\players][\testPlayer].isNil, "Test player prototype doesn't exist");
+		test.assert(Cell.players[\testPlayer].isNil, "Test player prototype doesn't exist");
 
 		Cell.addPlayer(\testPlayer, Environment.make {
 			~fum = {
@@ -110,13 +110,13 @@ if (thisThread.isKindOf(Routine).not) {
 			};
 		}, nil, \server);
 
-		test.assert(Cell.parentEnvironment[\players][\testPlayer].notNil, "Add player prototype");
+		test.assert(Cell.players[\testPlayer].notNil, "Add player prototype");
 
-		test.assert(Cell.parentEnvironment[\players][\testPlayer][\server].notNil, "Add server mixin");
+		test.assert(Cell.players[\testPlayer][\server].notNil, "Add server mixin");
 
 		Cell.removePlayer(\testPlayer);
 
-		test.assert(Cell.parentEnvironment[\players][\testPlayer].isNil, "Remove player prototype");
+		test.assert(Cell.players[\testPlayer].isNil, "Remove player prototype");
 
 
 		teardown.value;
