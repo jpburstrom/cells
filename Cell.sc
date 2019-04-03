@@ -77,17 +77,18 @@ Cell : EnvironmentRedirect {
 			envir.parent = players[\base];
 		};
 
+		// Copy some keys (eg settings, templates) to proto, to not overwrite the
+		// class-level dictionary
+		copyToProto.do { |key|
+			envir.proto[key] = envir.parent[key].deepCopy;
+		};
+
 		// The make function is run inside the proto of the environment
 		// that way, user data and temporary objects are kept separate from objects
 		// created during init
 		// EnvironmentRedirect.new have made the proto for us
 		envir.proto.make(func);
 
-		// Copy some keys (eg settings, templates) to proto, to not overwrite the
-		// class-level dictionary
-		copyToProto.do { |key|
-			envir.proto[key] = envir.parent[key].deepCopy;
-		};
 
 		this.use {
 			envir[\beforeInit].value(this);
