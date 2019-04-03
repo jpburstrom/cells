@@ -141,11 +141,11 @@ CellTemplate {
 		} {
 			deps = dependencies;
 		};
-		out = [];
+		out = out ?? { [] };
 		deps.do { |dep|
 			out = makeEnvir[dep].findDepsFor(method, out);
 			if (out.includes(dep).not and: { makeEnvir[dep].getMethodFunc(method).notNil } ) {
-				out = out.add(dep)
+				out = out.add(dep);
 			};
 		};
 		^out

@@ -128,15 +128,19 @@ if (thisThread.isKindOf(Routine).not) {
 
 	env.clear;
 
-	env[\grp] = CellTemplate((
+	env[\base] = CellTemplate((
 		load: { "group load".postln }
 	), nil, env);
 
+	env[\grp] = CellTemplate((
+		load: { "group load".postln }
+	), \base, env);
+
 	env[\bus] = CellTemplate((
 		load: { "bus load".postln }
-	), nil, env);
+	), \base, env);
 
-	env[\ctl] = CellTemplate((load:{}), [\grp, \bus], env);
+	env[\ctl] = CellTemplate((load:{"ctl"}), [\grp, \bus], env);
 
 	env[\syn] = CellTemplate((), [\grp, \bus], env);
 
@@ -145,7 +149,13 @@ if (thisThread.isKindOf(Routine).not) {
 		test.assert(load.isKindOf(CellFunctionList),
 			"Methods are picked up from multiple global deps");
 		test.assert(try { load.array.size == 2 } { false },
-			"Methods have correct length"
+			"FunctionList have correct length"
+		);
+		load = env[\ctl].value[\load];
+		test.assert(load.isKindOf(CellFunctionList),
+			"Methods are picked up from multiple global deps if main has function");
+				test.assert(try { load.array.size == 4 } { false },
+			"FunctionList have correct length if main has func"
 		);
 	}
 
