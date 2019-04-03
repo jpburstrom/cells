@@ -1,5 +1,9 @@
 var defaultEnv = { |snd|
-	Env.asr(\atk.kr(0.02), 1, \rel.kr(0.02)).ar(2, \gate.kr(0));
+	snd * Env.asr(\atk.kr(0.02), 1, \rel.kr(0.02)).ar(2, \gate.kr(1));
+};
+
+var defaultAmp = { |snd|
+	snd = snd * \amp.kr(1);
 };
 
 (1..8).do { |numChannels|
@@ -21,6 +25,7 @@ var defaultEnv = { |snd|
 		FreeSelf.kr(Done.kr(snd));
 
 		snd = defaultEnv.value(snd);
+		snd = defaultAmp.value(snd, numChannels);
 		Out.ar(\out.kr(0), snd);
 	}).add;
 
@@ -30,6 +35,7 @@ var defaultEnv = { |snd|
 		FreeSelf.kr(Done.kr(snd));
 
 		snd = defaultEnv.value(snd);
+		snd = defaultAmp.value(snd, numChannels);
 		Out.ar(\out.kr(0), snd);
 	}).add;
 

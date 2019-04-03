@@ -589,11 +589,17 @@ Cell.addPlayer(\buffer, {
 	);
 	*/
 
-	~build = {
+	~beforeInit = {
 		~settings[\defaultSynth] = { ~numChannelsFormat.("cellBufPlayer_%") };
 		~settings[\defaultBufferMethod] = \read;
 		~settings[\cueSize] = 65536;
 		~settings[\numChannels] = 2;
+		if (~template[\main].notNil and: { ~template[\main].isEmpty }) {
+			~template[\buffer] !? (_.keys.do { |key|
+				~template[\main][key] = [~settings[\defaultSynth],
+					\bufnum, {~buffers[key]}];
+			});
+		};
 	};
 
 	~addBuffer = { |key, obj|
@@ -614,7 +620,7 @@ Cell.addPlayer(\buffer, {
 		});
 
 		~settings[\numChannels] = ~settings[\numChannels].max(channels);
-		~numChannelsFormat.("cellBufPlayer_%").postln;
+		~numChannelsFormat.("cellBufPlayer_%");
 
 		switch (obj[\method] ?? { ~settings[\defaultBufferMethod] },
 			\read, {
@@ -642,14 +648,6 @@ Cell.addPlayer(\buffer, {
 		};
 	};
 
-	~beforeInit = {
-		if (~template[\main].notNil and: { ~template[\main].isEmpty }) {
-			~template[\buffer].keys.do { |key|
-				~template[\main][key] = [~settings[\defaultSynth].value,
-					\bufnum, {~buffers[key]}];
-			};
-		};
-	};
 
 	~freeAll = {
 		~buffers.do(_.free);
