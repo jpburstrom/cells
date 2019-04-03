@@ -184,9 +184,13 @@ Cell.addPlayer(\server, {
 Cell.addPlayer(\group, {
 	// Default group order
 	// TODO: nested groups, if needed
-	~template[\group] = #[ctl, main, fx, level, send];
-	~template[\defaultGroup] = \main;
 
+	~build = {
+		~updateTemplate.((
+			group: #[ctl, main, fx, level, send],
+			defaultGroup: \main
+		));
+	};
 
 	~addGroup = { |key, parent|
 		var group, msg;
@@ -243,16 +247,19 @@ Cell.addPlayer(\bus, {
 	// Buses are private by default, but
 	// you can provide an index for global buses
 	// TODO: a way to inject buses from outside
-	~template[\bus] = (
-		//Type, channels, index (for global buses)
-		main: [\audio, ~settings[\numChannels]],
-		out: {
-			try { currentEnvironment.mother[\bus][\main] } {
-				[\audio, 2, 0]
-			};
-		}
-	);
-
+	~build = {
+		~updateTemplate.((
+			bus: (
+				//Type, channels, index (for global buses)
+				main: [\audio, ~settings[\numChannels]],
+				out: {
+					try { currentEnvironment.mother[\bus][\main] } {
+						[\audio, 2, 0]
+					};
+				}
+			)
+		));
+	};
 
 	//Add a single bus, identified by key
 	~addBus = { |key, rate, numChannels, index, grp|
@@ -328,9 +335,11 @@ Cell.addPlayer(\buffer, {
 	);
 	*/
 
-	~settings[\defaultBufferMethod] = \read;
-	~settings[\cueSize] = 65536;
-	~settings[\numChannels] = 2;
+	~build = {
+		~settings[\defaultBufferMethod] = \read;
+		~settings[\cueSize] = 65536;
+		~settings[\numChannels] = 2;
+	};
 
 	~addBuffer = { |key, obj|
 		var method, channels;
@@ -465,7 +474,16 @@ Cell.addPlayer(\ctl, {
 // Synth related methods: FX, Ctl,
 Cell.addPlayer(\synth, {
 
-	~template[\main] = IdentityDictionary();
+	~build = {
+		~updateTemplate.((
+			main: IdentityDictionary(),
+			level: IdentityDictionary[
+				\main -> { ["cellMixer_%".format(~settings[\numChannels]).asSymbol,
+					(fadetime: {~settings[\fadeIn]}, out: {~bus.out}, in: {~bus.main})
+				] };
+			];
+		))
+	};
 
 	~addSynthsFromTemplate = {
 		var key, synth, args;
