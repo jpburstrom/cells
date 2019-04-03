@@ -286,6 +286,7 @@ if (thisThread.isKindOf(Routine).not) {
 		server.quit;
 		server.remove;
 
+		UnitTestScript.report;
 
 
 
