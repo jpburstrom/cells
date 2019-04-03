@@ -185,7 +185,7 @@ Cell.addPlayer(\group, {
 	// Default group order
 	// TODO: nested groups, if needed
 
-	~build = {
+	~beforeInit = {
 		~updateTemplate.((
 			group: #[ctl, main, fx, level, send],
 			defaultGroup: \main
@@ -247,7 +247,7 @@ Cell.addPlayer(\bus, {
 	// Buses are private by default, but
 	// you can provide an index for global buses
 	// TODO: a way to inject buses from outside
-	~build = {
+	~beforeInit = {
 		~updateTemplate.((
 			bus: (
 				//Type, channels, index (for global buses)
