@@ -16,15 +16,25 @@ CellTemplate {
 	}
 
 	build {
+		//Run makeFunc only to get the unique keys for this template
+		var keys = ().make(makeFunc).keys;
 		rawEnvir = Environment();
+
+		//Loop over dependencies, and put all values from them into rawEnvir
 		dependencies !? {
 			rawEnvir.putAll(
 				*dependencies.asArray.collect { |depKey| makeEnvir[depKey].value }
 			);
 		};
+
+		//Then run makeFunc inside the environment.
 		rawEnvir = rawEnvir.make(makeFunc);
 		envir = rawEnvir.copy;
-		rawEnvir.keysValuesDo { |key, val|
+
+		// Loop over makeFunc-defined keys, and see if any of them needs to turn into
+		// a FunctionList
+		keys.do { |key|
+			var val = rawEnvir[key];
 			if (this.prMightHaveDeps(val)) {
 				// If func is defined, use that. Otherwise fallback to val
 				var deps = this.findDepsFor(key);
@@ -59,6 +69,7 @@ CellTemplate {
 				};
 			}
 		};
+
 	}
 
 	prUnpackFunction { |thing|
