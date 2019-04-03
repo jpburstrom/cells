@@ -74,6 +74,9 @@ Cell : EnvironmentRedirect {
 
 		envir.parent = players[playerKey];
 		if (envir.parent.isNil) {
+			if (playerKey.notNil) {
+				"Cell player % not found".format(playerKey).warn;
+			};
 			envir.parent = players[\base];
 		};
 
