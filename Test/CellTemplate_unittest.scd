@@ -56,7 +56,6 @@ if (thisThread.isKindOf(Routine).not) {
 	test.assert(template.value[\load].isKindOf(CellFunctionList), "value return value");
 	test.assert(template.value[\serverVariable] == 23, "Variables are passed from deps");
 	test.assert(template.value[\overriddenMethod] == 23, "Variables can be overridden by deps later in chain");
-	test.assert(template.value[\anotherOverride] == 23, "Variables can be overridden by top level template");
 
 	template = CellTemplate({
 		//Key could also be an array
@@ -68,6 +67,8 @@ if (thisThread.isKindOf(Routine).not) {
 
 	test.assert(template.findDepsFor(\load).size == 3, "Fallback to global dependencies");
 	test.assert(template.value[\load].isKindOf(CellFunctionList), "Global deps builds a function");
+
+	test.assert(template.value[\load].array.asSet.size == template.value[\load].array.size, "FunctionLists have unique functions");
 
 
 	template = CellTemplate({
@@ -115,5 +116,18 @@ if (thisThread.isKindOf(Routine).not) {
 	test.assert(env[\server].value[\serverDict][\foo] === template.value[\serverDict][\foo], "Dictionaries are not deep copied from dependencies");
 	test.assert(env[\server].value[\serverSpecificMethod] === template.value[\serverSpecificMethod], "Non-overridden functions are identical in deps");
 	test.assert(env[\server].value[\load] === template.value[\load].array[0], "Listed functions are identical in deps");
+
+	env[\busSomething] = CellTemplate({
+	}, \bus, env);
+	template = CellTemplate({
+		~load = {
+			"thing".postln
+		};
+	}, \busSomething, env);
+
+	test.assert(template.value[\load].isKindOf(CellFunctionList),
+		"Method dependencies are still picked up from subdependencies");
+
+
 
 };

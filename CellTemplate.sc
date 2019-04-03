@@ -29,15 +29,16 @@ CellTemplate {
 			);
 		};
 
+		//Make copies of all collections
 		rawEnvir.keysValuesChange { |k, v|
 			if (v.isKindOf(Collection)) {
 				v.copy;
-
 			} {
 				v
 			};
 		};
 
+		//
 		rawEnvir = rawEnvir.putAll(template);
 		rawEnvir.make {
 			template[\build].value;
@@ -107,10 +108,7 @@ CellTemplate {
 		if (thing.isKindOf(Association)) {
 			deps = thing.key
 		} {
-			// Fall back to global deps
-			if (rawEnvir[method].isFunction) {
-				deps = dependencies;
-			};
+			deps = dependencies;
 		};
 		out = [];
 		deps.do { |dep|
