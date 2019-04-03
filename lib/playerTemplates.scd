@@ -210,7 +210,7 @@ Cell.addPlayer(\group, {
 	// All groups end up in the groups envir
 	// The envir should not be placed in the parent envir
 	// So we create it as a part of ~addGroups
-	~play = {
+	~beforePlay = {
 		~groups ?? { ~groups = IdentityDictionary(know:true) };
 		~template[\group].do { |key|
 			~addGroup.value(key);
@@ -311,95 +311,6 @@ Cell.addPlayer(\bus, {
 		};
 		~bus.clear;
 		~bus = nil;
-	};
-
-}, \server);
-
-
-Cell.addPlayer(\buffer, {
-
-	/*
-	// Buffer template template
-	// Multiple files
-	~template.files = (
-	key0: "/path",
-	key1: (
-	path: "/path",
-	method: \read,
-	startTime: 1.2, // like startFrames, but in seconds
-	startFrames: 1000,
-	duration: 2.5, // like
-	numFrames: 480000,
-	numFrames: 480000,
-	)
-	);
-	*/
-
-	~build = {
-		~settings[\defaultBufferMethod] = \read;
-		~settings[\cueSize] = 65536;
-		~settings[\numChannels] = 2;
-	};
-
-	~addBuffer = { |key, obj|
-		var method, channels;
-
-		if (obj.isKindOf(String)) {
-			obj = IdentityDictionary[\path->obj];
-		};
-
-		SoundFile.use(obj[\path], { |sf|
-			obj[\duration] !? { |dur|
-				obj[\numFrames] = (dur * sf.sampleRate).floor;
-			};
-			obj[\startTime] !? { |start|
-				obj[\startFrame] = (start * sf.sampleRate).floor;
-			};
-			channels = sf.numChannels;
-		});
-
-		switch (obj[\method] ?? { ~settings[\defaultBufferPathMethod] },
-			\read, {
-				~buffers[key] = Buffer.read(~server, obj[\path], obj[\startFrame] ? 0, obj[\numFrames] ? -1);
-			},
-			\cueSoundFile, {
-				~buffers[key] = Buffer.cueSoundFile(
-					~server, obj[\path], obj[\startFrame] ? 0, channels,
-					obj[\bufferSize] ?? { ~settings[\cueSize] ? 65536 };
-				);
-			}
-		);
-	};
-
-	// Add buses according to template
-	~load = {
-		var template = ~template[\buffer];
-		if (template.notNil) {
-			~buffers ?? { ~buffers = IdentityDictionary(know:true) };
-			template.keysValuesDo { |key, obj|
-				~addBuffer.(key, obj);
-
-			};
-		};
-
-	};
-
-	~beforeInit = {
-		if (~template[\main].notNil and: { ~template[\main].isEmpty }) {
-			~template[\buffer].keys.do { |key|
-				~template[\main][key] = [~settings[\defaultSynth],
-					\bufnum, {~buffers[key]}];
-			};
-		};
-	};
-
-	~beforeInit = ~beforeInit.addFunc(~generateBufferSynths);
-	~beforeLoad = ~beforeLoad.addFunc(~addBuffersFromTemplate);
-
-	~freeAll = {
-		~buffers.do(_.free);
-		~buffers.clear;
-		~buffers = nil;
 	};
 
 }, \server);
@@ -668,3 +579,87 @@ Cell.addPlayer(\synth, {
 
 
 
+Cell.addPlayer(\buffer, {
+
+	/*
+	// Buffer template template
+	// Multiple files
+	~template.files = (
+	key0: "/path",
+	key1: (
+	path: "/path",
+	method: \read,
+	startTime: 1.2, // like startFrames, but in seconds
+	startFrames: 1000,
+	duration: 2.5, // like
+	numFrames: 480000,
+	numFrames: 480000,
+	)
+	);
+	*/
+
+	~build = {
+		~settings[\defaultBufferMethod] = \read;
+		~settings[\cueSize] = 65536;
+		~settings[\numChannels] = 2;
+	};
+
+	~addBuffer = { |key, obj|
+		var method, channels;
+
+		if (obj.isKindOf(String)) {
+			obj = IdentityDictionary[\path->obj];
+		};
+
+		SoundFile.use(obj[\path], { |sf|
+			obj[\duration] !? { |dur|
+				obj[\numFrames] = (dur * sf.sampleRate).floor;
+			};
+			obj[\startTime] !? { |start|
+				obj[\startFrame] = (start * sf.sampleRate).floor;
+			};
+			channels = sf.numChannels;
+		});
+
+		switch (obj[\method] ?? { ~settings[\defaultBufferMethod] },
+			\read, {
+				~buffers[key] = Buffer.read(~server, obj[\path], obj[\startFrame] ? 0, obj[\numFrames] ? -1);
+			},
+			\cueSoundFile, {
+				~buffers[key] = Buffer.cueSoundFile(
+					~server, obj[\path], obj[\startFrame] ? 0, channels,
+					obj[\bufferSize] ?? { ~settings[\cueSize] ? 65536 };
+				);
+			}
+		);
+	};
+
+	// Add buses according to template
+	~beforeLoad = {
+		var template = ~template[\buffer];
+		if (template.notNil) {
+			~buffers ?? { ~buffers = IdentityDictionary(know:true) };
+			template.keysValuesDo { |key, obj|
+				~addBuffer.(key, obj);
+
+			};
+		};
+
+	};
+
+	~beforeInit = {
+		if (~template[\main].notNil and: { ~template[\main].isEmpty }) {
+			~template[\buffer].keys.do { |key|
+				~template[\main][key] = [~settings[\defaultSynth],
+					\bufnum, {~buffers[key]}];
+			};
+		};
+	};
+
+	~freeAll = {
+		~buffers.do(_.free);
+		~buffers.clear;
+		~buffers = nil;
+	};
+
+}, \synth);
