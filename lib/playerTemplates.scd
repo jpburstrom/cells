@@ -564,12 +564,14 @@ Cell.addPlayer(\buffer, {
 		~settings[\cueSize] = 65536;
 		~settings[\numChannels] = 2;
 		if (~template[\main].notNil and: { ~template[\main].isEmpty }) {
-			~template[\buffer] !? { |x| x.keys.do { |key|
-				~template[\main][key] = {
-					[~settings[\defaultSynth],
-					\bufnum, {~buffers[key]}]
-				};
-			}};
+			~template[\buffer] !? { |x|
+				x.keys.do { |key|
+					~template[\main][key] = {
+						[~settings[\defaultSynth],
+							\bufnum, {~buffers[key]}]
+					};
+				}
+			};
 		};
 	};
 
