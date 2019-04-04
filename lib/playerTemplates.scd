@@ -542,20 +542,19 @@ Cell.addPlayer(\ctl, {
 
 Cell.addPlayer(\buffer, {
 
-	/*
 	// Buffer template template
 	// Multiple files
-	~template.files = (
-	key0: "/path",
-	key1: (
-	path: "/path",
-	method: \read,
-	startTime: 1.2, // like startFrames, but in seconds
-	startFrames: 1000,
-	duration: 2.5, // like
-	numFrames: 480000,
-	numFrames: 480000,
-	)
+	/*
+	~template.buffer = (
+		key0: "/path", // Only expressed as path
+		key1: ( //As dict
+			path: "/path",
+			method: \read,
+			startTime: 1.2, // like startFrames, but in seconds
+			startFrames: 1000,
+			duration: 2.5, // like numFrames
+			numFrames: 480000
+		)
 	);
 	*/
 
