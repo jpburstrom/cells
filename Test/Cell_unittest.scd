@@ -130,7 +130,7 @@ if (thisThread.isKindOf(Routine).not) {
 		setup.value;
 
 		mother[\baby] = cell;
-		mother.addChildren(\baby);
+		mother.addChildren(\baby, cell);
 
 		test.assert(mother.children.includes(cell), "Adding children");
 		test.assert(cell.mother == mother,  "Adding children sets mother in child");

@@ -65,7 +65,7 @@ Cell : EnvironmentRedirect {
 
 		cond = Condition(true);
 		playerCond = Condition(true);
-		children = Set();
+		children = IdentityDictionary();
 		playAfterLoad = false;
 		stateNum = states[\free];
 		name = "";
@@ -284,15 +284,14 @@ Cell : EnvironmentRedirect {
 
 
 
-	addChildren { |...keys|
-		var child;
-		keys.do { |key|
-			child = envir[key];
+	addChildren { |...pairs|
+		if (pairs.size.odd, { Error("addChildren should have even number of args.\n").throw; });
+		pairs.pairsDo { |key, child|
 			if (this.validateRelative(child)) {
-				children.add(child);
+				children.put(key, child);
 				child.setMother(this);
 			} {
-				"Not a valid child".warn;
+				Error("Not a valid child").throw;
 			}
 		};
 	}
@@ -300,9 +299,9 @@ Cell : EnvironmentRedirect {
 	removeChildren { |...keys|
 		var child;
 		keys.do { |key|
-			child = envir[key];
-			children.remove(child);
-			if (child.mother == this) {
+			child = children[key];
+			children[key] = nil;
+			if (child.notNil and: { child.mother == this }) {
 				child.unsetMother;
 			};
 		};
@@ -316,8 +315,7 @@ Cell : EnvironmentRedirect {
 		if (this.validateRelative(obj)) {
 			mother = obj;
 			if (childKey.notNil) {
-				obj[childKey] = this;
-				obj.addChildren(childKey)
+				obj.addChildren(childKey, this)
 			}
 		} {
 			"Not a valid mother".warn;
@@ -335,7 +333,7 @@ Cell : EnvironmentRedirect {
 
 	siblings {
 		^mother !? {
-			mother.children.reject(this);
+			mother.children.reject(_==this);
 		};
 	}
 
