@@ -315,36 +315,6 @@ Cell.addPlayer(\bus, {
 
 }, \server);
 
-
-//XXX FIXME test this, temporary cell thing
-Cell.addPlayer(\cells, {
-
-	~init = {
-		~cells ?? { ~cells = IdentityDictionary(know:true) };
-		~template[\cells].keysValuesDo { |key, args|
-			// FIXME should these be cells from the start?
-			~cells[key] = Cell(*args);
-			currentEnvironment.addChildren(key);
-		};
-	};
-
-	~play = {
-		~cells.do(_.play);
-	};
-
-	~stop = {
-		~cells.do(_.stop);
-	};
-
-	~freeAll = {
-		~cells.do(_.free);
-	};
-
-}, \base);
-
-
-
-
 // Synth related methods: FX, Ctl,
 Cell.addPlayer(\synth, {
 
@@ -667,3 +637,33 @@ Cell.addPlayer(\disk, {
 		~settings[\defaultBufferMethod] = \cueSoundFile;
 	};
 }, \buffer);
+
+
+// Basic cell player, without routing
+Cell.addPlayer(\cells, {
+
+	~beforeInit = {
+		~cells ?? { ~cells = IdentityDictionary(know:true) };
+		~template[\cells] !? (_.keysValuesDo { |key, cell|
+			~cells[key] = cell;
+			currentEnvironment.addChildren(key, cell);
+		});
+	};
+
+	//Cell methods needs to be forwarded
+	#[load, play, stop, pause, resume, freeAll, free].do { |action|
+		currentEnvironment[action] = {
+			~cells.do(_.perform(action));
+		};
+	};
+
+	//And all player-specific methods (set, get etc) is forwarded here
+	~forward = { |selector, args|
+		~cells.collect { |cell|
+			cell.performList(selector, args);
+		};
+	};
+
+	//Needs base for template
+}, [\synth]);
+
