@@ -253,7 +253,7 @@ Cell.addPlayer(\bus, {
 				//Type, channels, index (for global buses)
 				main: [\audio, { ~settings[\numChannels] }],
 				out: {
-					try { currentEnvironment.mother[\bus][\main] } {
+					try { currentEnvironment.mother[\bus].main } {
 						[\audio, 2, 0]
 					};
 				}
