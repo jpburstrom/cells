@@ -90,7 +90,7 @@ Cell.addPlayer(\settings, {
 		// for example if a sample starts on an upbeat.
 		tempo: 1,
 		// Set timingOffset here, if needed
-		quant: nil,
+		quant: 0,
 
 
 		// --- FADES ---
