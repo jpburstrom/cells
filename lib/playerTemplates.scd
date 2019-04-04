@@ -296,10 +296,10 @@ Cell.addPlayer(\bus, {
 			}
 		)};
 
-		~template[\bus] !? (_.keysValuesDo { |key, args|
+		~template[\bus] !? { |x| x.keysValuesDo { |key, args|
 			args = args.value.asArray;
 			~addBus.(key, *args);
-		});
+		}};
 
 	};
 
@@ -339,9 +339,9 @@ Cell.addPlayer(\synth, {
 		var clock = ~settings[\clock] ? TempoClock.default;
 		~synths ?? { ~synths = IdentityDictionary(know:true) };
 		clock.schedAbs(~settings[\quant].asQuant.nextTimeOnGrid(clock), {
-			~template[\group] !? (_.do { |groupKey|
+			~template[\group] !? { |x| x.do { |groupKey|
 				~prSynthTemplateLoop.(groupKey, ~prPlaySynth);
-			});
+			}};
 			nil
 		}.inEnvir);
 	};
@@ -357,7 +357,7 @@ Cell.addPlayer(\synth, {
 	};
 
 	~prSynthTemplateLoop = { |group, callback|
-		~template[group] !? (_.keysValuesDo({ |key, args|
+		~template[group] !? { |x| x.keysValuesDo({ |key, args|
 			var synth;
 			// Unpack functions from template
 			if (args.isFunction) {
@@ -369,7 +369,7 @@ Cell.addPlayer(\synth, {
 				args = args[0];
 			};
 			callback.(group, key, synth, args);
-		}));
+		})};
 	};
 
 	// Callback for synth.onFree
@@ -564,12 +564,12 @@ Cell.addPlayer(\buffer, {
 		~settings[\cueSize] = 65536;
 		~settings[\numChannels] = 2;
 		if (~template[\main].notNil and: { ~template[\main].isEmpty }) {
-			~template[\buffer] !? (_.keys.do { |key|
+			~template[\buffer] !? { |x| x.keys.do { |key|
 				~template[\main][key] = {
 					[~settings[\defaultSynth],
 					\bufnum, {~buffers[key]}]
 				};
-			});
+			}};
 		};
 	};
 
@@ -643,10 +643,10 @@ Cell.addPlayer(\cells, {
 
 	~beforeInit = {
 		~cells ?? { ~cells = IdentityDictionary(know:true) };
-		~template[\cells] !? (_.keysValuesDo { |key, cell|
+		~template[\cells] !? { |x| x.keysValuesDo { |key, cell|
 			~cells[key] = cell;
 			currentEnvironment.addChildren(key, cell);
-		});
+		}};
 	};
 
 	//Cell methods needs to be forwarded
