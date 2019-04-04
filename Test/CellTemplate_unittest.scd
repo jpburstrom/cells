@@ -127,9 +127,8 @@ if (thisThread.isKindOf(Routine).not) {
 	test.assert(env[\server].value[\load] === template.value[\load].array[0], "Listed functions are identical in deps");
 
 	env.clear;
-
 	env[\base] = CellTemplate((
-		load: { "group load".postln }
+		load: { "base load".postln }
 	), nil, env);
 
 	env[\grp] = CellTemplate((
@@ -148,7 +147,8 @@ if (thisThread.isKindOf(Routine).not) {
 		var load = env[\syn].value[\load];
 		test.assert(load.isKindOf(CellFunctionList),
 			"Methods are picked up from multiple global deps");
-		test.assert(try { load.array.size == 2 } { false },
+		load.keys.postln;
+		test.assert(try { load.array.postln.size == 3 } { false },
 			"FunctionList have correct length"
 		);
 		load = env[\ctl].value[\load];

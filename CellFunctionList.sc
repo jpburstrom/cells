@@ -1,5 +1,5 @@
 CellFunctionList : FunctionList {
-	var indexMap;
+	var <>indexMap;
 
 	*new {
 		^super.new.init;
@@ -31,6 +31,13 @@ CellFunctionList : FunctionList {
 		}
 	}
 
+	replaceKey { |oldKey, newKey|
+		indexMap[oldKey] !? { |index|
+			indexMap[newKey] = index;
+			indexMap.removeAt(oldKey);
+		}
+	}
+
 	removeFunc { |func|
 		this.findKeyForFunc(func) !? { |key|
 			indexMap[key] = nil;
@@ -46,6 +53,24 @@ CellFunctionList : FunctionList {
 
 	keys {
 		^indexMap.keys
+	}
+
+	keysValuesDo { |function|
+		var key;
+		array.do { |func, i|
+			key = indexMap.findKeyForValue(i);
+			if (key.notNil) {
+				function.(key, func, i);
+			};
+		};
+	}
+
+	includes { |item|
+		^array.includes(item);
+	}
+
+	copy {
+		^super.copy.indexMap_(indexMap.copy);
 	}
 
 }

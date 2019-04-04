@@ -93,15 +93,27 @@ CellTemplate {
 					out[k] = v;
 				} {
 					//If not nil or the same, merge function or overwrite
-					if (v.isFunction) {
-						case {other.isFunction} {
-							out[k] = CellFunctionList()
-							.put(prevKey, other).put(curKey, v);
-						} {other.isKindOf(CellFunctionList)} {
-							out[k].put(curKey, v);
+					if (this.prFunctionCanMerge(v, other)) {
+						var list;
+						if (other.isKindOf(CellFunctionList)) {
+							list = other.copy;
+							list.replaceKey(\_current, prevKey);
 						} {
-							out[k] = v;
-						}
+							list = CellFunctionList().put(prevKey, other);
+						};
+						if (v.isKindOf(CellFunctionList)) {
+							v.replaceKey(\_current, curKey);
+							v.keysValuesDo { |key, func|
+								if (list.includes(func).not) {
+									"Adding func at %, %".format(curKey, k);
+									list[key] = func;
+								}
+							};
+						} {
+							list.put(curKey, v);
+						};
+						//out[k] = CellFunctionList.newMerged(prevKey, other, v);
+						out[k] = list;
 					} {
 
 						out[k] = v;
@@ -115,6 +127,12 @@ CellTemplate {
 			};
 		};
 		^out
+	}
+
+	prFunctionCanMerge { |...args|
+		^args.collect({ |f|
+			f.isFunction || f.isKindOf(CellFunctionList)
+		}).reduce('&&');
 	}
 
 	prUnpackFunction { |thing|
