@@ -666,3 +666,44 @@ Cell.addPlayer(\cells, {
 	//Needs base for template
 }, [\synth]);
 
+Cell.addPlayer(\pattern, {
+
+	~beforeInit = {
+		// We let pattern release itself
+		~settings[\releaseAfterStop] = false;
+	};
+
+	~beforeLoad = {
+		~player = EventPatternProxy(Pspawner({ |sp|
+			~spawner = sp;
+			sp.seq(Pchain(~pattern, Pbind(
+				\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1),
+				\out, Pfunc { ~bus !? (_.main) },
+				\group, Pfunc { ~groups !? (_.main) }
+			)));
+
+			sp.wait(~settings.tailDuration);
+
+			case
+			{ ~synths.isNil } {
+				currentEnvironment.freeAll;
+			}
+			{~synths[\main].notNil and: { ~synths[\main].notEmpty }} {
+				~groups[\main].release;
+			}
+			{ ~synths[\fx].notNil and: { ~synths[\fx].notEmpty } } {
+				~groups[\fx].release;
+			}
+			{ currentEnvironment.freeAll };
+		})).quant_(~settings[\quant]);
+	};
+
+	~afterPlay = {
+		if (~player.isPlaying.not) {
+			~player.play;
+		};
+	};
+
+
+
+}, [\synth]);
