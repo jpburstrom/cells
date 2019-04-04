@@ -588,7 +588,8 @@ Cell.addPlayer(\buffer, {
 				obj[\startFrame] = (start * sf.sampleRate).floor;
 			};
 			channels = sf.numChannels;
-		});
+			~eachSoundFile.(sf);
+		}.inEnvir);
 
 		~settings[\numChannels] = ~settings[\numChannels].max(channels);
 		~numChannelsFormat.("cellBufPlayer_%");
@@ -619,7 +620,6 @@ Cell.addPlayer(\buffer, {
 		};
 	};
 
-
 	~freeAll = {
 		~buffers.do(_.free);
 		~buffers.clear;
@@ -630,15 +630,23 @@ Cell.addPlayer(\buffer, {
 
 Cell.addPlayer(\disk, {
 	~beforeInit = {
+		~settings[\duration] = 0;
+		~settings[\setDurationFromFile] = true;
 		~settings[\defaultSynth] = {
 			~numChannelsFormat.("cellDiskPlayer_%");
 		};
 		~settings[\defaultBufferMethod] = \cueSoundFile;
 	};
+
+	~eachSoundFile = { |sf|
+		if (~settings[\setDurationFromFile]) {
+			~settings[\duration] = max(sf.duration, ~settings[\duration]);
+		}
+	};
+
 }, \buffer);
 
 
-// Basic cell player, without routing
 Cell.addPlayer(\cells, {
 
 	~beforeInit = {
