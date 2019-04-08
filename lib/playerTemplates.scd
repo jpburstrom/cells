@@ -578,6 +578,8 @@ Cell.addPlayer(\buffer, {
 	~addBuffer = { |key, obj|
 		var method, channels;
 
+		obj = obj.value;
+
 		if (obj.isKindOf(String)) {
 			obj = IdentityDictionary[\path->obj];
 		};
