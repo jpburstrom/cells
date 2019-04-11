@@ -24,7 +24,7 @@ Cell.addPlayer(\nodeMap, {
 	};
 
 	~set = { |first ...rest|
-		var key, val, out, path;
+		var key, val, out, path, node;
 		if (first.isKindOf(String)) {
 			first = first.split($.).collect(_.asSymbol);
 		} {
@@ -37,29 +37,23 @@ Cell.addPlayer(\nodeMap, {
 		if (out.isKindOf(NodeMap)) {
 			out.set(key, val);
 			if (currentEnvironment.isPlaying) {
-				~prNodeMapSend.(out, path);
+				var node = ~prGetNodeFromPath.(*path);
+				var latency = if(node.isPlaying.not, ~server.latency);
+				out.sendToNode(node, latency);
 			};
-		} {
-			nil
 		};
 		out
 	};
 
-
-	~prNodeMapSend = { |map, path|
-		var type = path[0];
-		var key = path[1];
-
+	~prGetNodeFromPath = { |type, key|
 		//Get playing node from map path
 		if (type == \group) {
-			map.sendToNode(~groups[key]);
+			~groups[key]
 		} {
 			~synths[type] !? { |typeDict|
-				map.sendToNode(typeDict[key]);
+				typeDict[key];
 			}
-
 		}
-
 	};
 
 });
