@@ -286,6 +286,32 @@ if (thisThread.isKindOf(Routine).not) {
 
 		"------- END BUFFERS --------".postln;
 
+
+		value = 0;
+		setup.value({ ~template[\main] = (
+			syn: \default,
+			syn2: `{ SinOsc.ar * 0.1 },
+			syn3: [\default, \freq, 220],
+			syn4: [`{ SinOsc.ar(\freq.kr) * 0.1 }, \freq, 220],
+		);  ~server = server }, \synth);
+		cell.play;
+		server.latency.wait;
+		test.assert(cell[\synths][\main][\syn].isPlaying, "SynthDef names as single items in synth template");
+		test.assert(cell[\synths][\main][\syn2].isPlaying, "Function refs as single items in synth template");
+		cell.synths[\main][\syn3].get(\freq, { |val|
+			value = val;
+			cond.unhang;
+		});
+		cond.hang;
+		test.assert(220 == value, "SynthDef names in array in synth template");
+		value = 0;
+		cell.synths[\main][\syn4].get(\freq, { |val|
+			value = val;
+			cond.unhang;
+		});
+		cond.hang;
+		test.assert(220 == value, "Function refs in array in synth template");
+
 		server.quit;
 		server.remove;
 
