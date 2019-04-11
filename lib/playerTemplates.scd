@@ -381,6 +381,10 @@ Cell.addPlayer(\synth, {
 			};
 			args = args.asArray;
 			synth = args[0].value;
+
+			if (synth.isFunction) {
+				synth = synth.asSynthDef(fadeTime:0, name: (key ++ this.identityHash.abs).asSymbol).add.name;
+			};
 			args = args[1..];
 			if (args.size == 1) {
 				args = args[0];
@@ -458,12 +462,7 @@ Cell.addPlayer(\synth, {
 		~nodeMap.at(group, key).putAll(args);
 		// Send using default latency, to sync with patterns et al
 		s.bind({
-			if (synth.isFunction) {
-				out = synth.play(~groups[group], args[\out], args: args.asPairs);
-			} {
-				// Assume we have a symbol
-				out = Synth(synth, args.asPairs, ~groups[group]);
-			}
+			out = Synth(synth, args.asPairs, ~groups[group]);
 		});
 		~synths[group] ?? { ~synths[group] = IdentityDictionary() };
 		~synths[group][key] = out;
