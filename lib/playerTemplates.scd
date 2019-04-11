@@ -492,16 +492,29 @@ Cell.addPlayer(\synth, {
 	};
 
 	~fadeIn = { |time|
-		~set.(\level, \main, \fadetime, time ?? { ~settings[\fadeIn] } );
-		~set.(\level, \main, \amp, ~get.(\level, \main, \amp) ? 1);
 		~set.(\level, \main, \freeWhenDone, 0);
-		currentEnvironment.play;
+		currentEnvironment.load.then {
+			if (currentEnvironment.state == \ready) {
+				var oldFade;
+				if (time.notNil) {
+					oldFade = ~settings[\fadeIn];
+					~settings[\fadeIn] = time;
+				};
+				currentEnvironment.play.then {
+					oldFade !? { ~settings[\fadeIn] = oldFade };
+				};
+			}
+		};
 	};
 
 	~fadeOut = { |time, freeWhenDone=true|
-		~set.(\level, \main, \fadetime, time ?? { ~settings[\fadeOut] });
+		//~set.(\level, \main, \fadetime, time ?? { ~settings[\fadeOut] });
 		//Access this directly, so nodeMap is not affected
-		~synths[\level][\main].set(\amp, 0, \freeWhenDone, freeWhenDone.asInteger);
+		~synths[\level][\main].set(
+			\amp, 0,
+			\freeWhenDone, freeWhenDone.asInteger,
+			\fadetime, time
+		);
 		currentEnvironment
 	};
 
