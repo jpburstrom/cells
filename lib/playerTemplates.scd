@@ -278,6 +278,7 @@ Cell.addPlayer(\bus, {
 			bus.owner_(currentEnvironment);
 		};
 		~bus[grp][key] = bus;
+		bus;
 
 	};
 
@@ -350,7 +351,11 @@ Cell.addPlayer(\synth, {
 			//FIXME: don't change tempo before beat (timingOffset);
 			clock.tempo = ~settings[\tempo] / 60;
 			~template[\group] !? { |x| x.do { |groupKey|
-				~prSynthTemplateLoop.(groupKey, ~prPlaySynth);
+				if (groupKey == \ctl) {
+					~prSynthTemplateLoop.(\ctl, ~prPlayCtl);
+				} {
+					~prSynthTemplateLoop.(groupKey, ~prPlaySynth);
+				}
 			}};
 			~syncSynthNodeMap.value;
 			nil
@@ -523,9 +528,6 @@ Cell.addPlayer(\synth, {
 		currentEnvironment
 	};
 
-}, [\group, \bus]);
-
-Cell.addPlayer(\ctl, {
 	// Get bus from ctl key
 	~ctlBus = { |key|
 		~bus[\_ctl][key];
@@ -559,10 +561,17 @@ Cell.addPlayer(\ctl, {
 		numChannels = numChannels ? 1;
 		bus = ~addBus.(key, \control, numChannels, nil, \_ctl);
 		args = (args ?? IdentityDictionary()).asDict;
-		args[\out] = bus.index;
+		args[\out] = bus;
 		~prPlaySynth.(\ctl, key, synth, args);
 	};
-}, [\synth]);
+
+	~prPlayCtl = { |grp, key, synth, args|
+		var numChannels = nil;
+		~addCtl.(key, synth, args, numChannels);
+	};
+
+}, [\group, \bus]);
+
 
 
 Cell.addPlayer(\buffer, {
@@ -655,7 +664,7 @@ Cell.addPlayer(\buffer, {
 		~buffers = nil;
 	};
 
-}, \synth);
+}, [\synth]);
 
 Cell.addPlayer(\disk, {
 	~beforeInit = {
@@ -673,7 +682,7 @@ Cell.addPlayer(\disk, {
 		}
 	};
 
-}, \buffer);
+}, [\buffer]);
 
 
 Cell.addPlayer(\cells, {
