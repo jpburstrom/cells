@@ -180,7 +180,7 @@ Cell : EnvironmentRedirect {
 		cond.test = false;
 		forkIfNeeded {
 
-			if (this.checkState(\stopped, \stopping).not) {
+			if (this.checkState(\stopped, \stopping, \free).not) {
 				this.prChangeState(\stopping);
 				playerCond.wait; //If currently loading, wait until done before cleaning up
 				this.trigAndWait(\beforeStop, \stop, \afterStop);
