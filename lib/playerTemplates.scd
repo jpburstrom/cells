@@ -262,18 +262,23 @@ Cell.addPlayer(\bus, {
 
 	//Add a single bus, identified by key
 	~addBus = { |key, rate, numChannels, index, grp|
+		var bus;
 		grp = grp ? \_default;
 		~bus[grp][key].free; // Also if nil
-		if (rate.isKindOf(Bus)) {
-			~bus[grp][key] = rate;
+		if (rate.isKindOf(CellBus)) {
+			bus = rate;
 		} {
 			if (index.notNil) {
-				~bus[grp][key] = Bus(rate, index, numChannels.value, ~server);
+				bus = CellBus(rate, index, numChannels.value, ~server);
 			} {
-				~bus[grp][key] = Bus.alloc(rate, ~server, numChannels.value ? 2)
+				bus = CellBus.alloc(rate, ~server, numChannels.value ? 2)
 			};
 		};
-		~bus[grp][key];
+		bus.owner ?? {
+			bus.owner_(currentEnvironment);
+		};
+		~bus[grp][key] = bus;
+
 	};
 
 	// Add buses according to template
@@ -303,9 +308,9 @@ Cell.addPlayer(\bus, {
 	};
 
 	~freeAll = {
-		~bus.do { |ev|
+		~bus.reject(_.isFunction).do { |ev|
 			ev.do { |bus|
-				bus.free;
+				bus.releaseBus(currentEnvironment);
 			}
 		};
 		~bus.clear;
