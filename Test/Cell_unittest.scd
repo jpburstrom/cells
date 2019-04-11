@@ -166,6 +166,8 @@ if (thisThread.isKindOf(Routine).not) {
 
 		value = 0;
 		cell.set(\main, \foo, \dummyParam, 999);
+		server.latency.wait; // Wait until node is playing
+
 		cell.synths[\main][\foo].get(\dummyParam, { |val|
 			value = val;
 			cond.unhang;
@@ -180,7 +182,6 @@ if (thisThread.isKindOf(Routine).not) {
 		});
 		cond.hang;
 		test.assert(value == 998, "Group set sets synth value");
-		server.latency.wait;
 		teardown.value;
 		mother.free;
 
@@ -201,6 +202,8 @@ if (thisThread.isKindOf(Routine).not) {
 
 		cell.set(\group, \main, \dummyParam, 997);
 		cell.play;
+		// Need to wait for node to appear
+		server.latency.wait;
 		cell.synths[\main][\foo].get(\dummyParam, { |val|
 			value = val;
 			cond.unhang;
