@@ -433,7 +433,7 @@ Cell.addPlayer(\synth, {
 					},
 					//If level synth is gone, free everything
 					\level, {
-						currentEnvironment.freeAll;
+						currentEnvironment.stop;
 					}
 				);
 
@@ -720,7 +720,7 @@ Cell.addPlayer(\pattern, {
 	};
 
 	~beforeLoad = {
-		~player = EventPatternProxy(Pspawner({ |sp|
+		~player = PatternConductor(Pspawner({ |sp|
 			~spawner = sp;
 			sp.seq(Pchain(~pattern, Pbind(
 				\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1),
@@ -728,26 +728,27 @@ Cell.addPlayer(\pattern, {
 				\group, Pfunc { ~groups !? (_.main) }
 			)));
 
-			sp.wait(~settings.tailDuration);
-
-			case
-			{ ~synths.isNil } {
-				currentEnvironment.freeAll;
-			}
-			{~synths[\main].notNil and: { ~synths[\main].notEmpty }} {
-				~groups[\main].release;
-			}
-			{ ~synths[\fx].notNil and: { ~synths[\fx].notEmpty } } {
-				~groups[\fx].release;
-			}
-			{ currentEnvironment.freeAll };
-		})).quant_(~settings[\quant]);
+		})).quant_(~settings[\quant])
 	};
 
 	~afterPlay = {
 		if (~player.isPlaying.not) {
+			~player.tempo_(~settings[\tempo] / 60);
 			~player.play;
 		};
+	};
+
+	~afterStop = {
+		fork {
+			//Wait for releases to finish
+			while { ~player.clock.queue.size >= 2 } {
+				0.1.wait;
+			};
+			//Tail duration should equal max release time for synth
+			//TODO keep track of synth releases in some clever way
+			(~settings.tailDuration + ~server.latency).wait;
+			currentEnvironment.freeAll;
+		}
 	};
 
 
