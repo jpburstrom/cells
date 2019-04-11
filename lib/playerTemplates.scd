@@ -74,19 +74,17 @@ Cell.addPlayer(\settings, {
 		duration: inf,
 		// Duration of tail
 		// Time until silent after all players have stopped playing.
-		// In case of synths, wait for tailDuration after all synths have stopped.
+		// Currently unused for synths (using register + onFree instead)
 		// In case of patterns, wait for tailDuration after pattern has stopped.
 		// This means you have to add pattern note release time to tailDuration
-		// This is useful for delays or reverbs put in the fx group
-		// TODO:
-		tailDuration: 0,
+		tailDuration: 3,
 
 		// --- SYNC ---
 		// By default, TempoClock.default is used.
 		// Tempo is set on quantized play start.
 		// quant.timingOffset can be used to start playback earlier,
 		// for example if a sample starts on an upbeat.
-		tempo: 1,
+		tempo: 60,
 		// Set timingOffset here, if needed
 		quant: 0,
 
@@ -344,6 +342,8 @@ Cell.addPlayer(\synth, {
 		var clock = ~settings[\clock] ? TempoClock.default;
 		~synths ?? { ~synths = IdentityDictionary(know:true) };
 		clock.schedAbs(~settings[\quant].asQuant.nextTimeOnGrid(clock), {
+			//FIXME: don't change tempo before beat (timingOffset);
+			clock.tempo = ~settings[\tempo] / 60;
 			~template[\group] !? { |x| x.do { |groupKey|
 				~prSynthTemplateLoop.(groupKey, ~prPlaySynth);
 			}};
