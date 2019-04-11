@@ -211,12 +211,10 @@ Cell : EnvironmentRedirect {
 
 	freeAll {
 		if (this.checkState(\free).not) {
-
 			this.use(envir[\freeAll]);
 			this.use(envir[\afterFree]);
 			this.prChangeState(\free);
 		};
-
 	}
 
 	free {
