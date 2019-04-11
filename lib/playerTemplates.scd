@@ -38,7 +38,11 @@ Cell.addPlayer(\nodeMap, {
 			out.set(key, val);
 			if (currentEnvironment.isPlaying) {
 				var node = ~prGetNodeFromPath.(*path);
-				var latency = if(node.isPlaying.not, ~server.latency);
+				//FIXME: Weird check. Groups are created immediately and currently
+				//not registered, so they will never be playing.
+				//Like this, group messages will never be sent with latency,
+				//which means they will not work immediately after play
+				var latency = if(node.isKindOf(Synth) && node.isPlaying.not, ~server.latency);
 				out.sendToNode(node, latency);
 			};
 		};
@@ -224,7 +228,7 @@ Cell.addPlayer(\group, {
 		~groups.keysValuesDo { |key, node|
 			var map = ~nodeMap[\group][key];
 			if (map.notEmpty) {
-				map.sendToNode(node);
+				map.sendToNode(node, ~server.latency);
 			}
 		};
 	};
@@ -325,7 +329,11 @@ Cell.addPlayer(\synth, {
 			main: IdentityDictionary(),
 			level: IdentityDictionary[
 				\main -> { [~numChannelsFormat.("cellMixer_%"),
-					(fadetime: {~settings[\fadeIn]}, out: {~bus.out}, in: {~bus.main})
+					(
+						fadetime: { ~settings[\fadeIn] },
+						out: { ~bus.out },
+						in: { ~bus.main }
+					)
 				] };
 			];
 		))
@@ -339,6 +347,7 @@ Cell.addPlayer(\synth, {
 			~template[\group] !? { |x| x.do { |groupKey|
 				~prSynthTemplateLoop.(groupKey, ~prPlaySynth);
 			}};
+			~syncSynthNodeMap.value;
 			nil
 		}.inEnvir);
 	};
@@ -458,15 +467,16 @@ Cell.addPlayer(\synth, {
 			dict.keysValuesDo { |key, node|
 				~nodeMap[type][key] !? { |map|
 					// Use default latency, to sync with s.bind in ~prPlaySynth
+					map.updateArgs;
 					map.sendToNode(node, ~server.latency);
 				}
 			}
 		};
+
 	};
 
 	~afterInit = ~addSynthNodeMap;
 	~beforePlay = ~addSynthsFromTemplate;
-	~afterPlay = ~syncSynthNodeMap;
 
 	// Default stop: Call release on synths
 	// and let them free the cell when done playing
