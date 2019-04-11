@@ -222,7 +222,10 @@ Cell.addPlayer(\group, {
 	~afterPlay = {
 		//Sync node map
 		~groups.keysValuesDo { |key, node|
-			~nodeMap[\group][key].sendToNode(node);
+			var map = ~nodeMap[\group][key];
+			if (map.notEmpty) {
+				map.sendToNode(node);
+			}
 		};
 	};
 
