@@ -875,3 +875,9 @@ Cell.addPlayer(\pattern, {
 
 
 }, [\synth]);
+
+Cell.addPlayer(\bufferPattern, {
+	~beforeInit = {
+		~template[\main] = nil;
+	};
+}, [\pattern, \buffer]);
