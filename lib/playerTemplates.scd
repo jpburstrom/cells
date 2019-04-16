@@ -72,6 +72,7 @@ Cell.addPlayer(\markers, {
 		},
 		reset: { |ev|
 			ev.out.clear;
+			ev.state = \default;
 		},
 		default: { |ev, line|
 			var sub = line.split(Char.space)[0].toLower.asSymbol;
@@ -155,6 +156,7 @@ Cell.addPlayer(\markers, {
 		},
 
 		parse: { |ev, headerString|
+			ev.reset;
 			headerString.split(Char.nl).do { |line|
 				ev.run(line)
 			};
@@ -164,7 +166,7 @@ Cell.addPlayer(\markers, {
 
 	~getMarkersFromSoundFile = { |sf|
 		~markerParser.parse(sf.readHeaderAsString);
-		~markers.putAll(~markerParser.getMarkers).postln;
+		~markers.putAll(~markerParser.getMarkers);
 	};
 
 	~markers = IdentityDictionary();
