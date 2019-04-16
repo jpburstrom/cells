@@ -841,12 +841,13 @@ Cell.addPlayer(\pattern, {
 
 	~beforeLoad = {
 		~player = PatternConductor(Pspawner({ |sp|
+			var dur = ~settings[\duration] / ~player.tempo;
 			~spawner = sp;
-			sp.seq(Pchain(~pattern, Pbind(
+			sp.seq(Pfindur(dur, Pchain(~pattern, Pbind(
 				\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1),
 				\out, Pfunc { ~bus !? (_.main) },
 				\group, Pfunc { ~groups !? (_.main) }
-			)));
+			))));
 
 		})).quant_(~settings[\quant])
 	};
