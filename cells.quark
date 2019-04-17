@@ -3,7 +3,7 @@
   summary: "A way to prototype and wrap playing objects",
   version: "0.2.0",
   schelp: "Cell",
-  dependencies: ["wslib"],
+  dependencies: [],
   license: "GPL",
   copyright: "Johannes Burström 2019"
 )
