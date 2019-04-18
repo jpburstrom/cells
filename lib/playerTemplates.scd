@@ -463,7 +463,7 @@ Cell.addPlayer(\synth, {
 		~synths ?? { ~synths = IdentityDictionary(know:true) };
 		clock.schedAbs(~settings[\quant].asQuant.nextTimeOnGrid(clock), {
 			//FIXME: don't change tempo before beat (timingOffset);
-			clock.tempo = ~settings[\tempo] / 60;
+			//clock.tempo = ~settings[\tempo] / 60;
 			~template[\group] !? { |x| x.do { |groupKey|
 				if (groupKey == \ctl) {
 					~prSynthTemplateLoop.(\ctl, ~prPlayCtl);
@@ -841,7 +841,7 @@ Cell.addPlayer(\pattern, {
 
 	~beforeLoad = {
 		~player = PatternConductor(Pspawner({ |sp|
-			var dur = ~settings[\duration] / ~player.tempo;
+			var dur = ~settings[\duration] * ~player.tempo;
 			~spawner = sp;
 			sp.seq(Pfindur(dur, Pchain(~pattern, Pbind(
 				\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1),
