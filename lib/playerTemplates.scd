@@ -849,6 +849,20 @@ Cell.addPlayer(\pattern, {
 				\group, Pfunc { ~groups !? (_.main) }
 			))));
 
+			sp.wait(~settings.tailDuration);
+
+			case
+			{ ~synths.isNil } {
+				currentEnvironment.freeAll;
+			}
+			{~synths[\main].notNil and: { ~synths[\main].notEmpty }} {
+				~groups[\main].release;
+			}
+			{ ~synths[\fx].notNil and: { ~synths[\fx].notEmpty } } {
+				~groups[\fx].release;
+			}
+			{ currentEnvironment.freeAll };
+
 		})).quant_(~settings[\quant])
 	};
 
