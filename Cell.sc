@@ -11,6 +11,8 @@ Cell : EnvironmentRedirect {
 	var <cond, playerCond;
 	var <mother, <children;
 	var <playAfterLoad;
+	// If playing, set to play start time
+	var <playTime;
 	var stateNum;
 
 	*initClass {
@@ -164,7 +166,9 @@ Cell : EnvironmentRedirect {
 				states[\free], { playAfterLoad = true; this.load },
 				states[\loading], { playAfterLoad = true; },
 				states[\ready], {
-					this.trigAndWait(\beforePlay, \play, \afterPlay);
+					this.trigAndWait(\beforePlay, \play);
+					playTime = SystemClock.seconds;
+					this.trigAndWait(\afterPlay);
 					if (this.checkState(\stopping).not) {
 						this.prChangeState(\playing);
 					};
