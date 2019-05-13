@@ -224,6 +224,14 @@ Cell.addPlayer(\settings, {
 			\out -> {~bus.main}
 		]
 	);
+
+	~getDuration = {
+		~settings[\duration];
+	};
+
+	~getClock = {
+		~settings[\clock] ? TempoClock.default;
+	};
 });
 
 Cell.addPlayer(\base, {
