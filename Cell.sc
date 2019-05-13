@@ -340,6 +340,66 @@ Cell : EnvironmentRedirect {
 		};
 	}
 
+	// Round seconds to closest quantized beat
+	roundToQuant { |seconds|
+		var clock = envir.getClock;
+		var phase, quant = envir.getQuant;
+		phase = quant.phase - quant.timingOffset;
+		quant = quant.quant;
+
+		if (quant == 0) { ^seconds + phase };
+		if (quant < 0) { quant = beatsPerBar * quant.neg };
+		if (phase < 0) { phase = phase % quant };
+
+		seconds = clock.secs2beats(seconds);
+
+		^clock.beatsToSecs(
+			round(seconds - clock.baseBarBeat - (phase % quant), quant)
+			+ baseBarBeat + phase
+		);
+	}
+
+	timeToPos { |cue, offset=0, quantSync|
+		^playTime !? {
+			var cueTime = case(
+				{ cue == \playStart }, { 0 },
+				{ cue == \playEnd }, { envir.settings[\duration] },
+				{ cue.isKindOf(Symbol) }, {
+					cue = envir.getMarkerTime(cue);
+				},
+				{ cue.isNumber }, { cue }
+			);
+			cueTime !? {
+				//Set cueTime to absolute seconds
+				cueTime = playTime + cueTime + offset;
+				//Sync with quant
+				if (quantSync.notNil) {
+					cueTime = this.roundToQuant(cueTime);
+					cueTime = clock.beats2secs(clock.secs2beats(cueTime).round(quant));
+					//If cueTime is close, the rounding might make us
+					//end up with a time in the past,
+					//In that case, go with next time instead
+					if (cueTime < clock.seconds) {
+						cueTime = clock.beats2secs(clock.nextTimeOnGrid(quant));
+					};
+				};
+				// Finally, return time until position
+				cueTime - envir.getClock.seconds;
+			};
+		}
+	}
+
+	waitForPos { |cue, offset, quantSync|
+		var time = this.timeToPos(cue);
+		if (this.class.debug) {
+			time.debug("Wait for position");
+		};
+		if (time.notNil) {
+			time.wait;
+		};
+		^time
+	}
+
 	doFunctionPerform { arg selector, args;
 		envir[\forward] !? {
 			if(envir[selector].isNil) {
