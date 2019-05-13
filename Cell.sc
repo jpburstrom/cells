@@ -203,6 +203,7 @@ Cell : EnvironmentRedirect {
 		if (this.checkState(\stopped, \free).not) {
 			this.prChangeState(\stopped);
 		};
+		playTime = nil;
 	}
 
 	pause {
