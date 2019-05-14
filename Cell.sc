@@ -166,7 +166,7 @@ Cell : EnvironmentRedirect {
 				states[\free], { playAfterLoad = true; this.load },
 				states[\loading], { playAfterLoad = true; },
 				states[\ready], {
-					playTime = this.getClock.beats2secs(this.getQuant.nextTimeOnGrid(this.getClock));
+					playTime = this.getClock.beats2secs(this.playQuant.nextTimeOnGrid(this.getClock));
 					this.trigAndWait(\beforePlay, \play, \afterPlay);
 					if (this.checkState(\stopping).not) {
 						this.prChangeState(\playing);

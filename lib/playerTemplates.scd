@@ -199,8 +199,13 @@ Cell.addPlayer(\settings, {
 		// quant.timingOffset can be used to start playback earlier,
 		// for example if a sample starts on an upbeat.
 		tempo: 60,
+
+		// Quant == grid. To sync play, use playQuant.
 		// Set timingOffset here, if needed
 		quant: 0,
+
+		// Quant for play sync
+		playQuant: 0,
 
 
 		// --- FADES ---
@@ -232,6 +237,15 @@ Cell.addPlayer(\settings, {
 	~getClock = {
 		~settings[\clock] ? TempoClock.default;
 	};
+
+	~getQuant = {
+		~settings[\quant].asQuant;
+	};
+
+	~playQuant = {
+		~settings[\playQuant].asQuant;
+	};
+
 });
 
 Cell.addPlayer(\base, {
@@ -469,7 +483,7 @@ Cell.addPlayer(\synth, {
 		var key, synth, args;
 		var clock = ~settings[\clock] ? TempoClock.default;
 		~synths ?? { ~synths = IdentityDictionary(know:true) };
-		clock.schedAbs(~settings[\quant].asQuant.nextTimeOnGrid(clock), {
+		clock.play({
 			//FIXME: don't change tempo before beat (timingOffset);
 			//clock.tempo = ~settings[\tempo] / 60;
 			~template[\group] !? { |x| x.do { |groupKey|
@@ -481,7 +495,7 @@ Cell.addPlayer(\synth, {
 			}};
 			~syncSynthNodeMap.value;
 			nil
-		}.inEnvir);
+		}.inEnvir, currentEnvironment.playQuant);
 	};
 
 	~addSynthNodeMap = {
@@ -871,7 +885,7 @@ Cell.addPlayer(\pattern, {
 			}
 			{ currentEnvironment.freeAll };
 
-		})).quant_(~settings[\quant])
+		})).quant_(~settings[\playQuant])
 	};
 
 	~afterPlay = {
