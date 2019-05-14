@@ -141,12 +141,14 @@ Cell : EnvironmentRedirect {
 
 	}
 
-	load {
+	load { |ffwd=0|
 		CmdPeriod.doOnce(this);
 		cond.test = false;
+		envir[\fastForward] = ffwd;
 		forkIfNeeded {
 			if (this.checkState(\stopped, \error, \free)) {
 				this.prChangeState(\loading);
+				clock = TempoClock(envir[\settings][\tempo] / 60);
 				this.trigAndWait(\beforeLoad, \load, \afterLoad);
 				if (this.checkState(\stopping, \error).not) {
 					this.prChangeState(\ready);
@@ -161,16 +163,15 @@ Cell : EnvironmentRedirect {
 		};
 	}
 
-	play {
+	play { |ffwd=0|
 		cond.test = false;
 		forkIfNeeded {
 			switch(stateNum,
-				states[\stopped], { playAfterLoad = true; this.load },
-				states[\free], { playAfterLoad = true; this.load },
+				states[\stopped], { playAfterLoad = true; this.load(ffwd) },
+				states[\free], { playAfterLoad = true; this.load(ffwd) },
 				states[\loading], { playAfterLoad = true; },
 				states[\ready], {
 					playTime = masterClock.beats2secs(this.playQuant.nextTimeOnGrid(masterClock));
-					clock = TempoClock(envir[\settings][\tempo] / 60);
 					this.trigAndWait(\beforePlay, \play, \afterPlay);
 					if (this.checkState(\stopping).not) {
 						this.prChangeState(\playing);

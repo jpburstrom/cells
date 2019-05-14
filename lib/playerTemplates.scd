@@ -759,7 +759,7 @@ Cell.addPlayer(\buffer, {
 				obj[\startFrame] = (start * sf.sampleRate).floor;
 			};
 			channels = sf.numChannels;
-			~eachSoundFile.(sf);
+			~eachSoundFile.(sf, obj);
 		}.inEnvir);
 
 		~settings[\numChannels] = ~settings[\numChannels].max(channels);
@@ -810,10 +810,20 @@ Cell.addPlayer(\disk, {
 		~settings[\defaultBufferMethod] = \cueSoundFile;
 	};
 
-	~eachSoundFile = { |sf|
+	~eachSoundFile = { |sf, obj|
+		var ffwd = currentEnvironment[\fastForward] ? 0;
+
+
 		if (~settings[\setDurationFromFile]) {
 			~settings[\duration] = max(sf.duration, ~settings[\duration]);
 		};
+
+		if (ffwd.isNegative) {
+			ffwd = (~settings[\duration] + ffwd).max(0);
+		};
+
+		obj[\startFrame] = (obj[\startFrame] ? 0) + (ffwd * sf.sampleRate);
+		~settings[\duration] =  ~settings[\duration] - ffwd;
 
 		if (~settings[\setMarkersFromFile]) {
 			~getMarkersFromSoundFile.(sf);
@@ -859,8 +869,9 @@ Cell.addPlayer(\pattern, {
 	};
 
 	~beforeLoad = {
-		~player = EventPatternProxy(Pspawner({ |sp|
-			var dur = ~settings[\duration] * currentEnvironment.clock.tempo;
+		var ptn = Pspawner({ |sp|
+			var tempo = currentEnvironment.clock.tempo;
+			var dur = ~settings[\duration] * tempo;
 			~spawner = sp;
 			sp.seq(Pfindur(dur, Pchain(~pattern, Pbind(
 				\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1),
@@ -868,7 +879,7 @@ Cell.addPlayer(\pattern, {
 				\group, Pfunc { ~groups !? (_.main) }
 			))));
 
-			sp.wait(~settings.tailDuration);
+			sp.wait(~settings.tailDuration * tempo);
 
 			case
 			{ ~synths.isNil } {
@@ -882,12 +893,35 @@ Cell.addPlayer(\pattern, {
 			}
 			{ currentEnvironment.freeAll };
 
-		})).quant_(~settings[\playQuant]).clock_(currentEnvironment.clock);
+		});
+		//.quant_(~settings[\playQuant]).clock_(currentEnvironment.clock);
+
+		~player = ptn.asEventStreamPlayer;
 	};
 
 	~afterPlay = {
 		if (~player.isPlaying.not) {
-			~player.play;
+			{
+				var rest;
+				var clock = currentEnvironment.clock;
+				currentEnvironment[\fastForward] !? { |ffwd|
+					if (ffwd.isNegative) {
+						if (~settings[\duration] != inf) {
+							ffwd = ~settings[\duration] + ffwd;
+						} {
+							ffwd = 0;
+						}
+					};
+
+					//Adjust from seconds to beats
+					ffwd = ffwd * clock.tempo;
+
+					rest = ~player.originalStream.fastForward(ffwd);
+					rest.wait;
+				};
+				~player.play(clock);
+			}.inEnvir.fork(currentEnvironment.masterClock, ~settings[\playQuant]);
+
 		};
 	};
 
