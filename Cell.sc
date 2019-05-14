@@ -348,13 +348,14 @@ Cell : EnvironmentRedirect {
 		phase = (quant.phase ? 0) - (quant.timingOffset ? 0);
 		quant = quant.quant;
 
+
 		if (quant == 0) { ^seconds + phase };
 		if (quant < 0) { quant = clock.beatsPerBar * quant.neg };
 		if (phase < 0) { phase = phase % quant };
 
 		seconds = clock.secs2beats(seconds);
 
-		^clock.beatsToSecs(
+		^clock.beats2secs(
 			round(seconds - clock.baseBarBeat - (phase % quant), quant)
 			+ clock.baseBarBeat + phase
 		);
@@ -373,25 +374,34 @@ Cell : EnvironmentRedirect {
 			cueTime !? {
 				var clock = this.getClock;
 				//Set cueTime to absolute seconds
-				cueTime = playTime + cueTime + offset;
+				cueTime = cueTime + offset;
 				//Sync with quant
 				if (quantSync.notNil) {
-					cueTime = this.roundToQuant(cueTime);
+					//This is weird.
+					//We need to calculate cueTime relative to start time,
+					//rather than the clock
+					//The best would probably be to play everything on a new clock
+					//or reset the clock to zero every time
+					//But for now, calculate where beat 0 is
+					var offset = clock.beats2secs(0);
+					//offset by beat 0 and then subtract again to get rounded cueTime
+					cueTime = this.roundToQuant(cueTime + offset) - offset;
 					//If cueTime is close, the rounding might make us
 					//end up with a time in the past,
 					//In that case, go with next beat instead
-					if (cueTime < clock.seconds) {
-						cueTime = clock.beats2secs(clock.nextTimeOnGrid(this.getQuant));
+					if ((cueTime + playTime) < clock.seconds) {
+						//FIXME: AARGH
+						cueTime = cueTime + clock.beatDur;
 					};
 				};
 				// Finally, return time until position
-				cueTime - clock.seconds;
+				cueTime + playTime - clock.seconds;
 			};
 		}
 	}
 
-	waitForPos { |cue, offset, quantSync|
-		var time = this.timeToPos(cue);
+	waitForPos { |cue, offset=0, quantSync|
+		var time = this.timeToPos(cue, offset, quantSync);
 		if (this.class.debug) {
 			time.debug("Wait for position");
 		};
