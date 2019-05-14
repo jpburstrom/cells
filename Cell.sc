@@ -340,21 +340,23 @@ Cell : EnvironmentRedirect {
 	}
 
 	// Round seconds to closest quantized beat
+	// Haven't found a way to do this on clock,
+	// so this is mostly borrowed from TempoClock:nextTimeOnGrid
 	roundToQuant { |seconds|
-		var clock = envir.getClock;
-		var phase, quant = envir.getQuant;
+		var clock = this.getClock;
+		var phase, quant = this.getQuant;
 		phase = quant.phase - quant.timingOffset;
 		quant = quant.quant;
 
 		if (quant == 0) { ^seconds + phase };
-		if (quant < 0) { quant = beatsPerBar * quant.neg };
+		if (quant < 0) { quant = clock.beatsPerBar * quant.neg };
 		if (phase < 0) { phase = phase % quant };
 
 		seconds = clock.secs2beats(seconds);
 
 		^clock.beatsToSecs(
 			round(seconds - clock.baseBarBeat - (phase % quant), quant)
-			+ baseBarBeat + phase
+			+ clock.baseBarBeat + phase
 		);
 	}
 
@@ -364,26 +366,26 @@ Cell : EnvironmentRedirect {
 				{ cue == \playStart }, { 0 },
 				{ cue == \playEnd }, { envir.settings[\duration] },
 				{ cue.isKindOf(Symbol) }, {
-					cue = envir.getMarkerTime(cue);
+					cue = this.getMarkerTime(cue);
 				},
 				{ cue.isNumber }, { cue }
 			);
 			cueTime !? {
+				var clock = this.getClock;
 				//Set cueTime to absolute seconds
 				cueTime = playTime + cueTime + offset;
 				//Sync with quant
 				if (quantSync.notNil) {
 					cueTime = this.roundToQuant(cueTime);
-					cueTime = clock.beats2secs(clock.secs2beats(cueTime).round(quant));
 					//If cueTime is close, the rounding might make us
 					//end up with a time in the past,
-					//In that case, go with next time instead
+					//In that case, go with next beat instead
 					if (cueTime < clock.seconds) {
-						cueTime = clock.beats2secs(clock.nextTimeOnGrid(quant));
+						cueTime = clock.beats2secs(clock.nextTimeOnGrid(this.getQuant));
 					};
 				};
 				// Finally, return time until position
-				cueTime - envir.getClock.seconds;
+				cueTime - clock.seconds;
 			};
 		}
 	}

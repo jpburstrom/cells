@@ -174,6 +174,10 @@ Cell.addPlayer(\markers, {
 
 	~markers = IdentityDictionary();
 
+	~getMarkerTime = { |marker|
+		~markers[marker] ? 0;
+	};
+
 });
 
 Cell.addPlayer(\settings, {
