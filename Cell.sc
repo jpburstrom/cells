@@ -11,8 +11,10 @@ Cell : EnvironmentRedirect {
 	var <cond, playerCond;
 	var <mother, <children;
 	var <playAfterLoad;
-	// If playing, set to play start time
+	// Play start time according to masterClock (seconds)
 	var <playTime;
+	var <>masterClock;
+	var <clock;
 	var stateNum;
 
 	*initClass {
@@ -70,6 +72,7 @@ Cell : EnvironmentRedirect {
 		children = IdentityDictionary();
 		playAfterLoad = false;
 		stateNum = states[\free];
+		masterClock = TempoClock.default;
 		name = "";
 
 		envir.know = true;
@@ -166,7 +169,8 @@ Cell : EnvironmentRedirect {
 				states[\free], { playAfterLoad = true; this.load },
 				states[\loading], { playAfterLoad = true; },
 				states[\ready], {
-					playTime = this.getClock.beats2secs(this.playQuant.nextTimeOnGrid(this.getClock));
+					playTime = masterClock.beats2secs(this.playQuant.nextTimeOnGrid(masterClock));
+					clock = TempoClock(envir[\settings][\tempo] / 60);
 					this.trigAndWait(\beforePlay, \play, \afterPlay);
 					if (this.checkState(\stopping).not) {
 						this.prChangeState(\playing);
@@ -217,6 +221,7 @@ Cell : EnvironmentRedirect {
 			this.use(envir[\freeAll]);
 			this.use(envir[\afterFree]);
 			playTime = nil;
+			clock = nil;
 			this.prChangeState(\free);
 		};
 	}
@@ -343,7 +348,6 @@ Cell : EnvironmentRedirect {
 	// Haven't found a way to do this on clock,
 	// so this is mostly borrowed from TempoClock:nextTimeOnGrid
 	roundToQuant { |seconds|
-		var clock = this.getClock;
 		var phase, quant = this.getQuant;
 		phase = (quant.phase ? 0) - (quant.timingOffset ? 0);
 		quant = quant.quant;
@@ -372,7 +376,6 @@ Cell : EnvironmentRedirect {
 				{ cue.isNumber }, { cue }
 			);
 			cueTime !? {
-				var clock = this.getClock;
 				//Set cueTime to absolute seconds
 				cueTime = cueTime + offset;
 				//Sync with quant

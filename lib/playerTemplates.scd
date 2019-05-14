@@ -238,10 +238,6 @@ Cell.addPlayer(\settings, {
 		~settings[\duration];
 	};
 
-	~getClock = {
-		~settings[\clock] ? TempoClock.default;
-	};
-
 	~getQuant = {
 		~settings[\quant].asQuant;
 	};
@@ -485,11 +481,8 @@ Cell.addPlayer(\synth, {
 
 	~addSynthsFromTemplate = {
 		var key, synth, args;
-		var clock = ~settings[\clock] ? TempoClock.default;
 		~synths ?? { ~synths = IdentityDictionary(know:true) };
-		clock.play({
-			//FIXME: don't change tempo before beat (timingOffset);
-			//clock.tempo = ~settings[\tempo] / 60;
+		currentEnvironment.masterClock.play({
 			~template[\group] !? { |x| x.do { |groupKey|
 				if (groupKey == \ctl) {
 					~prSynthTemplateLoop.(\ctl, ~prPlayCtl);
@@ -866,8 +859,8 @@ Cell.addPlayer(\pattern, {
 	};
 
 	~beforeLoad = {
-		~player = PatternConductor(Pspawner({ |sp|
-			var dur = ~settings[\duration] * ~player.tempo;
+		~player = EventPatternProxy(Pspawner({ |sp|
+			var dur = ~settings[\duration] * currentEnvironment.clock.tempo;
 			~spawner = sp;
 			sp.seq(Pfindur(dur, Pchain(~pattern, Pbind(
 				\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1),
@@ -889,12 +882,11 @@ Cell.addPlayer(\pattern, {
 			}
 			{ currentEnvironment.freeAll };
 
-		})).quant_(~settings[\playQuant])
+		})).quant_(~settings[\playQuant]).clock_(currentEnvironment.clock);
 	};
 
 	~afterPlay = {
 		if (~player.isPlaying.not) {
-			~player.tempo_(~settings[\tempo] / 60);
 			~player.play;
 		};
 	};
