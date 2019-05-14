@@ -345,7 +345,7 @@ Cell : EnvironmentRedirect {
 	roundToQuant { |seconds|
 		var clock = this.getClock;
 		var phase, quant = this.getQuant;
-		phase = quant.phase - quant.timingOffset;
+		phase = (quant.phase ? 0) - (quant.timingOffset ? 0);
 		quant = quant.quant;
 
 		if (quant == 0) { ^seconds + phase };
