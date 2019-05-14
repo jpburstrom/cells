@@ -175,7 +175,19 @@ Cell.addPlayer(\markers, {
 	~markers = IdentityDictionary();
 
 	~getMarkerTime = { |marker|
-		~markers[marker] ? 0;
+		var time;
+		if (marker == \end) {
+			time = ~markers[marker];
+		} {
+			time = ~markers[marker] ? 0;
+		};
+		if (time.notNil) {
+			time / (~settings[\sampleRate] ? 1);
+		} {
+			//If time is nil, it equals a missing \end
+			//So let's fall back to duration
+			~settings[\duration]
+		};
 	};
 
 });
@@ -820,6 +832,7 @@ Cell.addPlayer(\disk, {
 
 		if (ffwd.isNegative) {
 			ffwd = (~settings[\duration] + ffwd).max(0);
+			~fastForward = ffwd;
 		};
 
 		obj[\startFrame] = (obj[\startFrame] ? 0) + (ffwd * sf.sampleRate);
@@ -827,8 +840,11 @@ Cell.addPlayer(\disk, {
 
 		if (~settings[\setMarkersFromFile]) {
 			~getMarkersFromSoundFile.(sf);
-
 		};
+
+		//FIXME: Check for multiple files/rates
+		~settings[\sampleRate] = sf.sampleRate;
+
 	};
 
 }, [\buffer]);
@@ -904,14 +920,16 @@ Cell.addPlayer(\pattern, {
 			{
 				var rest;
 				var clock = currentEnvironment.clock;
-				currentEnvironment[\fastForward] !? { |ffwd|
+				~fastForward !? { |ffwd|
 					if (ffwd.isNegative) {
 						if (~settings[\duration] != inf) {
 							ffwd = ~settings[\duration] + ffwd;
 						} {
 							ffwd = 0;
-						}
+						};
+						~fastForward = ffwd;
 					};
+
 
 					//Adjust from seconds to beats
 					ffwd = ffwd * clock.tempo;

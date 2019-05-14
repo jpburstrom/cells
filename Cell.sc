@@ -378,7 +378,7 @@ Cell : EnvironmentRedirect {
 			);
 			cueTime !? {
 				//Set cueTime to absolute seconds
-				cueTime = cueTime + offset;
+				cueTime = cueTime + offset - envir[\fastForward];
 				//Sync with quant
 				if (quantSync.notNil) {
 					//This is weird.
