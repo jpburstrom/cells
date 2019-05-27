@@ -923,7 +923,7 @@ Cell.addPlayer(\pattern, {
 				ffwd = ffwd * clock.tempo;
 
 				rest = ~player.originalStream.fastForward(ffwd);
-				(rest * clock.tempo / currentEnvironment.masterClock.tempo).wait;
+				(rest * clock.tempo / thisThread.clock.tempo).wait;
 			};
 			~player.play(clock);
 		}
