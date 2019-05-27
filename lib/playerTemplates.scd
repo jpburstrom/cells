@@ -216,13 +216,9 @@ Cell.addPlayer(\settings, {
 		// for example if a sample starts on an upbeat.
 		tempo: 60,
 
-		// Quant == grid. To sync play, use playQuant.
+		// Quant == grid.
 		// Set timingOffset here, if needed
 		quant: 0,
-
-		// Quant for play sync
-		playQuant: 0,
-
 
 		// --- FADES ---
 		// Fades are post-fx, and overrides tail settings.
@@ -254,9 +250,6 @@ Cell.addPlayer(\settings, {
 		~settings[\quant].asQuant;
 	};
 
-	~playQuant = {
-		~settings[\playQuant].asQuant;
-	};
 
 });
 
@@ -492,19 +485,16 @@ Cell.addPlayer(\synth, {
 	};
 
 	~addSynthsFromTemplate = {
-		var key, synth, args;
+		var action;
 		~synths ?? { ~synths = IdentityDictionary(know:true) };
-		currentEnvironment.masterClock.play({
-			~template[\group] !? { |x| x.do { |groupKey|
-				if (groupKey == \ctl) {
-					~prSynthTemplateLoop.(\ctl, ~prPlayCtl);
-				} {
-					~prSynthTemplateLoop.(groupKey, ~prPlaySynth);
-				}
-			}};
-			~syncSynthNodeMap.value;
-			nil
-		}.inEnvir, currentEnvironment.playQuant);
+		~template[\group] !? { |x| x.do { |groupKey|
+			if (groupKey == \ctl) {
+				~prSynthTemplateLoop.(\ctl, ~prPlayCtl);
+			} {
+				~prSynthTemplateLoop.(groupKey, ~prPlaySynth);
+			}
+		}};
+		~syncSynthNodeMap.value;
 	};
 
 	~addSynthNodeMap = {
@@ -910,37 +900,33 @@ Cell.addPlayer(\pattern, {
 			{ currentEnvironment.freeAll };
 
 		});
-		//.quant_(~settings[\playQuant]).clock_(currentEnvironment.clock);
 
 		~player = ptn.asEventStreamPlayer;
 	};
 
 	~afterPlay = {
 		if (~player.isPlaying.not) {
-			{
-				var rest;
-				var clock = currentEnvironment.clock;
-				~fastForward !? { |ffwd|
-					if (ffwd.isNegative) {
-						if (~settings[\duration] != inf) {
-							ffwd = ~settings[\duration] + ffwd;
-						} {
-							ffwd = 0;
-						};
-						~fastForward = ffwd;
+			var rest;
+			var clock = currentEnvironment.clock;
+			~fastForward !? { |ffwd|
+				if (ffwd.isNegative) {
+					if (~settings[\duration] != inf) {
+						ffwd = ~settings[\duration] + ffwd;
+					} {
+						ffwd = 0;
 					};
-
-
-					//Adjust from seconds to beats
-					ffwd = ffwd * clock.tempo;
-
-					rest = ~player.originalStream.fastForward(ffwd);
-					rest.wait;
+					~fastForward = ffwd;
 				};
-				~player.play(clock);
-			}.inEnvir.fork(currentEnvironment.masterClock, ~settings[\playQuant]);
 
-		};
+
+				//Adjust from seconds to beats
+				ffwd = ffwd * clock.tempo;
+
+				rest = ~player.originalStream.fastForward(ffwd);
+				(rest * clock.tempo / currentEnvironment.masterClock.tempo).wait;
+			};
+			~player.play(clock);
+		}
 	};
 
 	~afterStop = {

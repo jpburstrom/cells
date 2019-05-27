@@ -11,10 +11,8 @@ Cell : EnvironmentRedirect {
 	var <cond, playerCond;
 	var <mother, <children;
 	var <playAfterLoad;
-	// Play start time according to masterClock (seconds)
-	var <playTime;
-	var <>masterClock;
 	var <clock;
+	var <>syncClock, <>syncQuant;
 	var stateNum;
 
 	*initClass {
@@ -26,7 +24,8 @@ Cell : EnvironmentRedirect {
 			\paused -> 16,
 			\stopping -> 32,
 			\free -> 64,
-			\error -> 128
+			\waitForPlay -> 128,
+			\error -> 256
 		];
 
 		copyToProto = #[settings, nodeMap, template, markers];
@@ -70,9 +69,10 @@ Cell : EnvironmentRedirect {
 		cond = Condition(true);
 		playerCond = Condition(true);
 		children = IdentityDictionary();
+		syncQuant = 0;
+		syncClock = TempoClock.default;
 		playAfterLoad = false;
 		stateNum = states[\free];
-		masterClock = TempoClock.default;
 		name = "";
 
 		envir.know = true;
@@ -148,13 +148,12 @@ Cell : EnvironmentRedirect {
 		forkIfNeeded {
 			if (this.checkState(\stopped, \error, \free)) {
 				this.prChangeState(\loading);
-				clock = TempoClock(envir[\settings][\tempo] / 60);
 				this.trigAndWait(\beforeLoad, \load, \afterLoad);
 				if (this.checkState(\stopping, \error).not) {
 					this.prChangeState(\ready);
 					if (playAfterLoad) {
 						playAfterLoad = false;
-						this.play;
+						this.play(ffwd);
 					};
 				}
 			};
@@ -163,24 +162,37 @@ Cell : EnvironmentRedirect {
 		};
 	}
 
-	play { |ffwd=0|
+	play { |ffwd=0, argQuant, argClock|
 		cond.test = false;
+		argQuant !? { syncQuant = argQuant };
+		argClock !? { syncClock = argClock };
 		forkIfNeeded {
 			switch(stateNum,
-				states[\stopped], { playAfterLoad = true; this.load(ffwd) },
-				states[\free], { playAfterLoad = true; this.load(ffwd) },
-				states[\loading], { playAfterLoad = true; },
+				states[\stopped], { playAfterLoad = true; this.load(ffwd, argQuant, argClock) },
+				states[\free], { playAfterLoad = true; this.load(ffwd, argQuant, argClock) },
+				states[\loading], { playAfterLoad = true; cond.test = true; cond.signal },
 				states[\ready], {
-					playTime = masterClock.beats2secs(this.playQuant.nextTimeOnGrid(masterClock));
-					this.trigAndWait(\beforePlay, \play, \afterPlay);
-					if (this.checkState(\stopping).not) {
-						this.prChangeState(\playing);
-					};
+					// Play time in seconds (absolute)
+					clock = TempoClock(envir[\settings][\tempo] / 60);
+					//Set beats to sync 0 with syncClock's next beat according to syncQuant.
+					//timeToNextBeat is in seconds, so multiply with this clock's tempo.
+					clock.beats = (syncClock.timeToNextBeat(syncQuant ? 0) ? 0) * clock.tempo.neg;
+					this.prChangeState(\waitForPlay);
+
+					clock.schedAbs(0, {
+						fork {
+							this.trigAndWait(\beforePlay, \play, \afterPlay);
+							if (this.checkState(\stopping).not) {
+								this.prChangeState(\playing);
+							};
+							cond.test = true;
+							cond.signal;
+						}
+					});
 				},
-				states[\paused], { this.resume }
+				states[\paused], { this.resume; cond.test = true; cond.signal }
 			);
-			cond.test = true;
-			cond.signal;
+
 		};
 	}
 
@@ -221,7 +233,6 @@ Cell : EnvironmentRedirect {
 		if (this.checkState(\free).not) {
 			this.use(envir[\freeAll]);
 			this.use(envir[\afterFree]);
-			playTime = nil;
 			clock = nil;
 			this.prChangeState(\free);
 		};
@@ -366,8 +377,12 @@ Cell : EnvironmentRedirect {
 		);
 	}
 
-	timeToPos { |cue, offset=0, quantSync|
-		^playTime !? {
+	// Time (in seconds) to position, relative to this clock
+	// Offset: An offset in seconds. Positive offset = later.
+	// quantSync: if true, quantize time to closest beat as defined in ~settings[\quant].
+	// Offset is added before quant, subject to change.
+	timeToPos { |cue, offset=0, quantSync=false|
+		^clock !? {
 			var cueTime = case(
 				{ cue == \playStart }, { 0 },
 				{ cue == \playEnd }, { envir.settings[\duration] },
@@ -377,35 +392,28 @@ Cell : EnvironmentRedirect {
 				{ cue.isNumber }, { cue }
 			);
 			cueTime !? {
-				//Set cueTime to absolute seconds
-				cueTime = cueTime + offset - envir[\fastForward];
+				//Set cueTime to seconds
+				cueTime = clock.beats2secs(0) + cueTime + offset - envir[\fastForward];
+
 				//Sync with quant
-				if (quantSync.notNil) {
-					//This is weird.
-					//We need to calculate cueTime relative to start time,
-					//rather than the clock
-					//The best would probably be to play everything on a new clock
-					//or reset the clock to zero every time
-					//But for now, calculate where beat 0 is
-					var offset = clock.beats2secs(0);
-					//offset by beat 0 and then subtract again to get rounded cueTime
-					cueTime = this.roundToQuant(cueTime + offset) - offset;
+				if (quantSync) {
+					cueTime = this.roundToQuant(cueTime);
 					//If cueTime is close, the rounding might make us
 					//end up with a time in the past,
 					//In that case, go with next beat instead
-					if ((cueTime + playTime) < clock.seconds) {
-						//FIXME: AARGH
-						cueTime = cueTime + clock.beatDur;
+					if (cueTime < clock.seconds) {
+						cueTime = this.clock.beats2secs(this.getQuant.nextTimeOnGrid(clock));
 					};
 				};
-				// Finally, return time until position
-				cueTime + playTime - clock.seconds;
+				cueTime - clock.seconds;
 			};
 		}
 	}
 
 	waitForPos { |cue, offset=0, quantSync|
 		var time = this.timeToPos(cue, offset, quantSync);
+		var tempo = thisThread.clock.tryPerform(\tempo) ? 1;
+		time = time * clock.tempo / tempo;
 		if (this.class.debug) {
 			time.debug("Wait for position");
 		};
