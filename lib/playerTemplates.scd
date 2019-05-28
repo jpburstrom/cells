@@ -243,7 +243,7 @@ Cell.addPlayer(\settings, {
 	);
 
 	~getDuration = {
-		~settings[\duration];
+		~settings[\duration] - ~fastForward;
 	};
 
 	~getQuant = {
@@ -826,7 +826,6 @@ Cell.addPlayer(\disk, {
 		};
 
 		obj[\startFrame] = (obj[\startFrame] ? 0) + (ffwd * sf.sampleRate);
-		~settings[\duration] =  ~settings[\duration] - ffwd;
 
 		if (~settings[\setMarkersFromFile]) {
 			~getMarkersFromSoundFile.(sf);

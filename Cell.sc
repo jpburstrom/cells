@@ -149,6 +149,17 @@ Cell : EnvironmentRedirect {
 			if (this.checkState(\stopped, \error, \free)) {
 				this.prChangeState(\loading);
 				this.trigAndWait(\beforeLoad, \load, \afterLoad);
+
+				if (envir[\fastForward].isNegative) {
+					//TODO: This is a fallback,
+					//Usually players take care of converting negative ffwd values,
+					//but it's currently spread out in the player code. Find a
+					//way to do this only once, but still adjust play starts according
+					//to each player's needs
+					var ffwd = envir.settings[\duration] + envir[\fastForward];
+					if (ffwd == inf) { ffwd = 0 };
+					envir[\fastForward] = ffwd;
+				};
 				if (this.checkState(\stopping, \error).not) {
 					this.prChangeState(\ready);
 					if (playAfterLoad) {
@@ -389,7 +400,7 @@ Cell : EnvironmentRedirect {
 		^clock !? {
 			var cueTime = case(
 				{ cue == \playStart }, { 0 },
-				{ cue == \playEnd }, { envir.settings[\duration] },
+				{ cue == \playEnd }, { this.getDuration },
 				{ cue.isKindOf(Symbol) }, {
 					cue = this.getMarkerTime(cue);
 				},
@@ -397,7 +408,7 @@ Cell : EnvironmentRedirect {
 			);
 			cueTime !? {
 				//Set cueTime to seconds
-				cueTime = clock.beats2secs(0) + cueTime + offset - envir[\fastForward];
+				cueTime = clock.beats2secs(0) + cueTime + offset;
 
 				//Sync with quant
 				if (quantSync) {
