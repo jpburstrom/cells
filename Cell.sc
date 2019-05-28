@@ -408,7 +408,7 @@ Cell : EnvironmentRedirect {
 			);
 			cueTime !? {
 				//Set cueTime to seconds
-				cueTime = clock.beats2secs(0) + cueTime + offset;
+				cueTime = clock.beats2secs(0) + cueTime;
 
 				//Sync with quant
 				if (quantSync) {
@@ -420,7 +420,7 @@ Cell : EnvironmentRedirect {
 						cueTime = this.clock.beats2secs(this.getQuant.nextTimeOnGrid(clock));
 					};
 				};
-				cueTime - clock.seconds;
+				cueTime - clock.seconds + offset;
 			};
 		}
 	}
