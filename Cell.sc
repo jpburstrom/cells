@@ -373,11 +373,11 @@ Cell : EnvironmentRedirect {
 		if (quant < 0) { quant = clock.beatsPerBar * quant.neg };
 		if (phase < 0) { phase = phase % quant };
 
-		seconds = clock.secs2beats(seconds);
+		seconds = syncClock.secs2beats(seconds);
 
-		^clock.beats2secs(
-			round(seconds - clock.baseBarBeat - (phase % quant), quant)
-			+ clock.baseBarBeat + phase
+		^syncClock.beats2secs(
+			roundUp(seconds - syncClock.baseBarBeat - (phase % quant), quant)
+			+ syncClock.baseBarBeat + phase
 		);
 	}
 
