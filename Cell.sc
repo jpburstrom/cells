@@ -425,7 +425,7 @@ Cell : EnvironmentRedirect {
 		}
 	}
 
-	waitForPos { |cue, offset=0, quantSync|
+	waitForPos { |cue, offset=0, quantSync=false|
 		var time = this.timeToPos(cue, offset, quantSync);
 		var tempo = thisThread.clock.tryPerform(\tempo) ? 1;
 		if (time.notNil) {
