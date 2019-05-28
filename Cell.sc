@@ -428,11 +428,11 @@ Cell : EnvironmentRedirect {
 	waitForPos { |cue, offset=0, quantSync|
 		var time = this.timeToPos(cue, offset, quantSync);
 		var tempo = thisThread.clock.tryPerform(\tempo) ? 1;
-		time = time * clock.tempo / tempo;
-		if (this.class.debug) {
-			time.debug("Wait for position");
-		};
 		if (time.notNil) {
+			time = time * clock.tempo / tempo;
+			if (this.class.debug) {
+				time.debug("Wait for position");
+			};
 			time.wait;
 		};
 		^time
