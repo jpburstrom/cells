@@ -168,11 +168,15 @@ Cell : EnvironmentRedirect {
 		argClock !? { syncClock = argClock };
 		forkIfNeeded {
 			switch(stateNum,
-				states[\stopped], { playAfterLoad = true; this.load(ffwd, argQuant, argClock) },
-				states[\free], { playAfterLoad = true; this.load(ffwd, argQuant, argClock) },
-				states[\loading], { playAfterLoad = true; cond.test = true; cond.signal },
+				states[\stopped], { playAfterLoad = true;  this.load(ffwd) },
+				states[\free], { playAfterLoad = true; this.load(ffwd) },
+				states[\loading], { playAfterLoad = true },
 				states[\ready], {
 					// Play time in seconds (absolute)
+					if (ffwd != envir[\fastForward]) {
+						this.free;
+						this.play(ffwd)
+					};
 					clock = TempoClock(envir[\settings][\tempo] / 60);
 					//Set beats to sync 0 with syncClock's next beat according to syncQuant.
 					//timeToNextBeat is in seconds, so multiply with this clock's tempo.
