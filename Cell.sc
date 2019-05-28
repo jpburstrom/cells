@@ -141,10 +141,10 @@ Cell : EnvironmentRedirect {
 
 	}
 
-	load { |ffwd=0|
+	load { |ffwd|
 		CmdPeriod.doOnce(this);
 		cond.test = false;
-		envir[\fastForward] = ffwd;
+		envir[\fastForward] = ffwd ? envir[\fastForward] ? 0;
 		forkIfNeeded {
 			if (this.checkState(\stopped, \error, \free)) {
 				this.prChangeState(\loading);
@@ -153,7 +153,7 @@ Cell : EnvironmentRedirect {
 					this.prChangeState(\ready);
 					if (playAfterLoad) {
 						playAfterLoad = false;
-						this.play(ffwd);
+						this.play;
 					};
 				}
 			};
@@ -162,10 +162,14 @@ Cell : EnvironmentRedirect {
 		};
 	}
 
-	play { |ffwd=0, argQuant, argClock|
+	play { |ffwd, argQuant, argClock|
 		cond.test = false;
 		argQuant !? { syncQuant = argQuant };
 		argClock !? { syncClock = argClock };
+		if (this.isReady and: { ffwd.notNil }) {
+			this.free;
+			this.play(ffwd);
+		};
 		forkIfNeeded {
 			switch(stateNum,
 				states[\stopped], { playAfterLoad = true;  this.load(ffwd) },
@@ -173,10 +177,6 @@ Cell : EnvironmentRedirect {
 				states[\loading], { playAfterLoad = true },
 				states[\ready], {
 					// Play time in seconds (absolute)
-					if (ffwd != envir[\fastForward]) {
-						this.free;
-						this.play(ffwd)
-					};
 					clock = TempoClock(envir[\settings][\tempo] / 60);
 					//Set beats to sync 0 with syncClock's next beat according to syncQuant.
 					//timeToNextBeat is in seconds, so multiply with this clock's tempo.
