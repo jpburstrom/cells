@@ -186,7 +186,7 @@ Cell.addPlayer(\markers, {
 		} {
 			//If time is nil, it equals a missing \end
 			//So let's fall back to duration
-			~settings[\duration]
+			~getDuration.value;
 		};
 	};
 
