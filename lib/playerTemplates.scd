@@ -243,7 +243,7 @@ Cell.addPlayer(\settings, {
 	);
 
 	~getDuration = {
-		~settings[\duration] - ~fastForward;
+		(~settings[\duration] - ~fastForward) / currentEnvironment.clock.tempo;
 	};
 
 	~getQuant = {
