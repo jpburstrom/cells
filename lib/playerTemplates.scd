@@ -194,6 +194,23 @@ Cell.addPlayer(\markers, {
 
 Cell.addPlayer(\settings, {
 
+	// Merge in place
+	~dictMerge = { |template, obj|
+		obj.keysValuesDo { |k, v|
+			if (template[k].isNil) {
+				template[k] = v;
+			} {
+				if (template[k].isKindOf(Dictionary) and: { v.isKindOf(Dictionary) } ) {
+					~dictMerge.(template[k], v)
+				} {
+					// Overwrite single values
+					template[k] = v;
+				}
+			};
+		};
+
+	};
+
 	~settings = (
 		//Number of out channels
 		numChannels: 2,
@@ -250,6 +267,10 @@ Cell.addPlayer(\settings, {
 		~settings[\quant].asQuant;
 	};
 
+	~updateSettings = { |obj|
+		~dictMerge.(~settings, obj);
+	};
+
 
 });
 
@@ -257,23 +278,7 @@ Cell.addPlayer(\base, {
 
 	~template = IdentityDictionary();
 	~updateTemplate = { |obj|
-		// Merge in place
-		var dictMerge = { |template, obj|
-			obj.keysValuesDo { |k, v|
-				if (template[k].isNil) {
-					template[k] = v;
-				} {
-					if (template[k].isKindOf(Dictionary) and: { v.isKindOf(Dictionary) } ) {
-						dictMerge.(template[k], v)
-					} {
-						// Overwrite single values
-						template[k] = v;
-					}
-				};
-			};
-
-		};
-		dictMerge.(~template, obj);
+		~dictMerge.(~template, obj);
 	};
 
 }, [\settings, \markers]);
