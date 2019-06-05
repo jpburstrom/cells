@@ -8,6 +8,7 @@ Cell : EnvironmentRedirect {
 
 	//Cue name (for display purposes)
 	var <>name;
+	var modFunc, playerType;
 	var <cond, playerCond;
 	var <mother, <children;
 	var <playAfterLoad;
@@ -73,6 +74,10 @@ Cell : EnvironmentRedirect {
 		syncClock = TempoClock.default;
 		playAfterLoad = false;
 		stateNum = states[\free];
+
+		modFunc = func;
+		playerType = playerKey;
+
 		name = "";
 
 		envir.know = true;
@@ -451,6 +456,24 @@ Cell : EnvironmentRedirect {
 		^this.use { this[selector].functionPerformList(\value, args) };
 	}
 
+	copy {
+		^this.class.new(modFunc, playerType);
+	}
+
+	clone { |func, playerKey|
+
+		if (func.isNil) {
+			func = modFunc
+		} {
+			func = modFunc.addFunc(func);
+		};
+
+		if (playerKey.isNil) {
+			playerKey = playerType
+		};
+
+		^this.class.new(func, playerType);
+	}
 
 	printOn { arg stream; stream << this.class.name << "(" <<< name <<")" }
 }
