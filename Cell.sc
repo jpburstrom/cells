@@ -165,6 +165,8 @@ Cell : EnvironmentRedirect {
 					if (ffwd == inf) { ffwd = 0 };
 					envir[\fastForward] = ffwd;
 				};
+				// Play time in seconds (absolute)
+				clock = TempoClock(envir[\settings][\tempo] / 60);
 				if (this.checkState(\stopping, \error).not) {
 					this.prChangeState(\ready);
 					if (playAfterLoad) {
@@ -192,8 +194,6 @@ Cell : EnvironmentRedirect {
 				states[\free], { playAfterLoad = true; this.load(ffwd) },
 				states[\loading], { playAfterLoad = true },
 				states[\ready], {
-					// Play time in seconds (absolute)
-					clock = TempoClock(envir[\settings][\tempo] / 60);
 					//Set beats to sync 0 with syncClock's next beat according to syncQuant.
 					//timeToNextBeat is in seconds, so multiply with this clock's tempo.
 					clock.beats = (syncClock.timeToNextBeat(syncQuant ? 0) ? 0) * clock.tempo.neg;
