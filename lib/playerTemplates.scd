@@ -174,18 +174,20 @@ Cell.addPlayer(\markers, {
 
 	~markers = IdentityDictionary();
 
-	~getMarkerTime = { |marker|
+	~getMarkerTime = { |marker, fallback=true|
 		var time;
 		time = ~markers[marker];
 		if (time.notNil) {
 			time / (~settings[\sampleRate] ? 1);
 		} {
-			case
-			{ marker == \start } {
-				time = 0;
-			}
-			{ marker == \end } {
-				time = ~getDuration.value;
+			if (fallback) {
+				case
+				{ marker == \start } {
+					time = 0;
+				}
+				{ marker == \end } {
+					time = ~getDuration.value;
+				}
 			}
 
 		}
