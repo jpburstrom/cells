@@ -176,18 +176,19 @@ Cell.addPlayer(\markers, {
 
 	~getMarkerTime = { |marker|
 		var time;
-		if (marker == \end) {
-			time = ~markers[marker];
-		} {
-			time = ~markers[marker] ? 0;
-		};
+		time = ~markers[marker];
 		if (time.notNil) {
 			time / (~settings[\sampleRate] ? 1);
 		} {
-			//If time is nil, it equals a missing \end
-			//So let's fall back to duration
-			~getDuration.value;
-		};
+			case
+			{ marker == \start } {
+				time = 0;
+			}
+			{ marker == \end } {
+				time = ~getDuration.value;
+			}
+
+		}
 	};
 
 });
