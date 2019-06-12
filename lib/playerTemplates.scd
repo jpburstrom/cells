@@ -263,7 +263,7 @@ Cell.addPlayer(\settings, {
 	);
 
 	~getDuration = {
-		~settings[\duration] - (~fastForward ? 0);
+		~settings[\duration];
 	};
 
 	~getQuant = {
@@ -929,10 +929,12 @@ Cell.addPlayer(\pattern, {
 
 
 				//Adjust from seconds to beats
+				/*
 				ffwd = ffwd * clock.tempo;
 
 				rest = ~player.originalStream.fastForward(ffwd);
 				(rest * clock.tempo / thisThread.clock.tempo).wait;
+				*/
 			};
 			~player.play(clock);
 		}

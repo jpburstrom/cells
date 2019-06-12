@@ -196,7 +196,11 @@ Cell : EnvironmentRedirect {
 				states[\ready], {
 					//Set beats to sync 0 with syncClock's next beat according to syncQuant.
 					//timeToNextBeat is in seconds, so multiply with this clock's tempo.
-					clock.beats = (syncClock.timeToNextBeat(syncQuant ? 0) ? 0) * clock.tempo.neg;
+
+					clock.beats = (envir[\fastForward] -
+						((syncClock.timeToNextBeat(syncQuant ? 0) ? 0) /
+						syncClock.tempo)) * clock.tempo;
+
 					this.prChangeState(\waitForPlay);
 
 					clock.schedAbs(0, {
@@ -406,7 +410,7 @@ Cell : EnvironmentRedirect {
 			var playPos,
 			cueTime = case(
 				{ cue == \playStart }, { 0 },
-				{ cue == \playEnd }, { this.getDuration },
+				{ cue == \playEnd }, { this.settings[\duration] },
 				{ cue.isKindOf(Symbol) }, {
 					cue = this.getMarkerTime(cue);
 				},
@@ -416,12 +420,14 @@ Cell : EnvironmentRedirect {
 			if (this.checkState(\playing, \waitForPlay)) {
 				playPos = clock.seconds;
 			} {
-				playPos = clock.beats2secs(0);
+				playPos = clock.beats2secs((envir[\fastForward] ? 0) * clock.tempo);
 			};
 
 			cueTime !? {
-				//Set cueTime to seconds
-				cueTime = clock.beats2secs(0) + cueTime - envir[\fastForward];
+				//Set cueTime to seconds relative to cue start
+				//(ignore ffwd)
+				cueTime = clock.beats2secs(0) + cueTime;
+
 
 				//Sync with quant
 				if (quantSync) {
