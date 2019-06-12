@@ -644,8 +644,9 @@ Cell.addPlayer(\synth, {
 		~synths = nil;
 	};
 
-	~fadeIn = { |time|
+	~fadeIn = { |time, curve=4|
 		~set.(\level, \main, \freeWhenDone, 0);
+		~set.(\level, \main, \curve, curve);
 		currentEnvironment.load.then {
 			if (currentEnvironment.state == \ready) {
 				var oldFade;
@@ -660,11 +661,12 @@ Cell.addPlayer(\synth, {
 		};
 	};
 
-	~fadeOut = { |time, freeWhenDone=true|
+	~fadeOut = { |time, curve=(-4), freeWhenDone=true|
 		//~set.(\level, \main, \fadetime, time ?? { ~settings[\fadeOut] });
 		//Access this directly, so nodeMap is not affected
 		~synths[\level][\main].set(
 			\amp, 0,
+			\curve, curve,
 			\freeWhenDone, freeWhenDone.asInteger,
 			\fadetime, time
 		);
