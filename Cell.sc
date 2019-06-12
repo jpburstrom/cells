@@ -413,7 +413,7 @@ Cell : EnvironmentRedirect {
 			);
 			cueTime !? {
 				//Set cueTime to seconds
-				cueTime = clock.beats2secs(0) + cueTime - envir[\fastForward];
+				cueTime = clock.beats2secs(0) + cueTime;
 
 				//Sync with quant
 				if (quantSync) {
