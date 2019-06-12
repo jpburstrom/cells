@@ -42,14 +42,15 @@ if (thisThread.isKindOf(Routine).not) {
 
 
 	setup.value;
-	test.assert(cell.timeToPos(\playEnd).isNil, "timeToPos is nil before play start");
+	test.assertFloatEquals(cell.timeToPos(\playEnd), 5, "timeToPos works before play start");
+	0.1.wait;
+	test.assertFloatEquals(cell.timeToPos(\playEnd), 5, "timeToPos is not advanced before play start");
 	cell.play;
 
 	test.assertFloatEquals(cell.timeToPos(\playStart), 0.0, "timeToPos playStart is 0.0 on play start");
 	test.assertFloatEquals(cell.timeToPos(\playEnd), 5.0, "timeToPos playEnd equals duration on play start");
 
 	teardown.value;
-	"ok".postln;
 	setup.value;
 	(1..16).do { |quant|
 
@@ -75,9 +76,23 @@ if (thisThread.isKindOf(Routine).not) {
 
 	teardown.value;
 
-	"ok".postln;
 	setup.value(load:false).play(-1);
-	"ok".postln;
 	test.assertFloatEquals(cell.timeToPos(\playEnd), 1, "negative fastForward counts from end");
-	"ok".postln;
+
+	teardown.value;
+
+	setup.value({
+		~settings[\tempo] = 120;
+		~settings[\duration] = 60;
+		~pattern = Pbind();
+	}, \pattern);
+
+	test.assertFloatEquals(cell.timeToPos(\end), 60);
+
+	cell.play(30);
+
+	test.assertFloatEquals(cell.timeToPos(\end), 30);
+
+	teardown.value;
+
 }

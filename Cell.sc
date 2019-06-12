@@ -403,7 +403,8 @@ Cell : EnvironmentRedirect {
 	// Offset is added before quant, subject to change.
 	timeToPos { |cue, offset=0, quantSync=false|
 		^clock !? {
-			var cueTime = case(
+			var playPos,
+			cueTime = case(
 				{ cue == \playStart }, { 0 },
 				{ cue == \playEnd }, { this.getDuration },
 				{ cue.isKindOf(Symbol) }, {
@@ -411,6 +412,13 @@ Cell : EnvironmentRedirect {
 				},
 				{ cue.isNumber }, { cue }
 			);
+
+			if (this.checkState(\playing, \waitForPlay)) {
+				playPos = clock.seconds;
+			} {
+				playPos = clock.beats2secs(0);
+			};
+
 			cueTime !? {
 				//Set cueTime to seconds
 				cueTime = clock.beats2secs(0) + cueTime;
@@ -425,7 +433,7 @@ Cell : EnvironmentRedirect {
 						cueTime = this.clock.beats2secs(this.getQuant.nextTimeOnGrid(clock));
 					};
 				};
-				cueTime - clock.seconds + offset;
+				cueTime - playPos + offset;
 			};
 		}
 	}
