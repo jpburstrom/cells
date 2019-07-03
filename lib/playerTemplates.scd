@@ -763,6 +763,9 @@ Cell.addPlayer(\buffer, {
 			obj = IdentityDictionary[\path->obj];
 		};
 
+		// Free previous buffer if needed
+		~buffers[key].free;
+
 		SoundFile.use(obj[\path], { |sf|
 			obj[\duration] !? { |dur|
 				obj[\numFrames] = (dur * sf.sampleRate).floor;
