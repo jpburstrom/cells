@@ -768,10 +768,10 @@ Cell.addPlayer(\buffer, {
 
 		SoundFile.use(obj[\path], { |sf|
 			obj[\duration] !? { |dur|
-				obj[\numFrames] = (dur * sf.sampleRate).floor;
+				obj[\numFrames] = (dur.value(sf) * sf.sampleRate).floor;
 			};
 			obj[\startTime] !? { |start|
-				obj[\startFrame] = (start * sf.sampleRate).floor;
+				obj[\startFrame] = (start.value(sf) * sf.sampleRate).floor;
 			};
 			channels = sf.numChannels;
 			~eachSoundFile.(sf, obj);
