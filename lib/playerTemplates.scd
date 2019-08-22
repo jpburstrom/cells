@@ -139,9 +139,9 @@ Cell.addPlayer(\markers, {
 				};
 			},
 
-			getMarkers: { |ev|
+			getMarkers: { |ev, offset|
 				var loopKeys = ev.out.loops.keys;
-				[ev.out.lbl, ev.out.pos].flop
+				[ev.out.lbl, ev.out.pos - (offset ? 0)].flop
 				.reject({ |v, i| loopKeys.includes(i) })
 				.flat
 				.asDict
@@ -166,10 +166,10 @@ Cell.addPlayer(\markers, {
 		);
 	};
 
-	~getMarkersFromSoundFile = { |sf|
+	~getMarkersFromSoundFile = { |sf, offset|
 		var parser = ~markerParser.value;
 		parser.parse(sf.readHeaderAsString);
-		~markers.putAll(parser.getMarkers);
+		~markers.putAll(parser.getMarkers(offset));
 	};
 
 	~markers = IdentityDictionary();
@@ -838,11 +838,12 @@ Cell.addPlayer(\disk, {
 			~fastForward = ffwd;
 		};
 
-		obj[\startFrame] = (obj[\startFrame] ? 0) + (ffwd * sf.sampleRate);
 
 		if (~settings[\setMarkersFromFile]) {
-			~getMarkersFromSoundFile.(sf);
+			~getMarkersFromSoundFile.(sf, obj[\startFrame]);
 		};
+
+		obj[\startFrame] = (obj[\startFrame] ? 0) + (ffwd * sf.sampleRate);
 
 		//FIXME: Check for multiple files/rates
 		~settings[\sampleRate] = sf.sampleRate;
