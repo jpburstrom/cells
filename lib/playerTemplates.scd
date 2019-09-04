@@ -816,9 +816,9 @@ Cell.addPlayer(\buffer, {
 
 Cell.addPlayer(\disk, {
 	~beforeInit = {
-		~settings[\duration] = 0;
 		~settings[\setDurationFromFile] = true;
 		~settings[\setMarkersFromFile] = true;
+		~settings[\defaultSynthArgs][\duration] = ~settings[\duration];
 		~settings[\defaultSynth] = {
 			~numChannelsFormat.("cellDiskPlayer_%");
 		};
@@ -828,8 +828,10 @@ Cell.addPlayer(\disk, {
 	~eachSoundFile = { |sf, obj|
 		var ffwd = currentEnvironment[\fastForward] ? 0;
 
-
 		if (~settings[\setDurationFromFile]) {
+			if (~settings[\duration] == inf) {
+				~settings[\duration] = 0;
+			};
 			~settings[\duration] = max(sf.duration, ~settings[\duration]);
 		};
 

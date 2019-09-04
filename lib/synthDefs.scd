@@ -6,6 +6,12 @@ var defaultAmp = { |snd|
 	snd = snd * \amp.kr(1);
 };
 
+var selfReleasingEnv = { |snd|
+	var duration = \duration.kr(inf).min(9999);
+	snd = snd * Env.asr(\atk.kr(0.02), 1, \rel.kr(0.02)).ar(2, \gate.kr(1));
+	snd = snd * Env([1, 1, 0], [duration, \rel.kr]).ar(2);
+};
+
 (1..8).do { |numChannels|
 
 	SynthDef("cellMixer_%".format(numChannels), {
@@ -37,7 +43,7 @@ var defaultAmp = { |snd|
 
 		FreeSelf.kr(Done.kr(snd));
 
-		snd = defaultEnv.value(snd);
+		snd = selfReleasingEnv.value(snd);
 		snd = defaultAmp.value(snd, numChannels);
 		Out.ar(\out.kr(0), snd);
 	}).add;
