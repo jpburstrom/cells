@@ -2,7 +2,6 @@ if (thisThread.isKindOf(Routine).not) {
 	UnitTestScript.reset;
 	UnitTestScript("Cell", thisProcess.nowExecutingPath).runScript;
 };
-
 {
 	|test|
 	var server, cell, setup, mother, teardown;
@@ -53,7 +52,10 @@ if (thisThread.isKindOf(Routine).not) {
 		test.assert(cell.checkState(\ready, \playing), "checkState multiple works");
 		test.assert(cell.checkState(\playing, \ready), "checkState multiple works (2)");
 		cell.play;
-		test.assert(cell.checkState(\playing), "state equals playing after play");
+		cell.state.postln;
+		test.assert(cell.checkState(\waitForPlay), "state equals waitForPlay after play");
+		0.wait;
+		test.assert(cell.checkState(\playing), "state equals playing after yield");
 		cell.stop;
 		test.assert(cell.checkState(\stopped), "state equals stopped after stop");
 		cell.freeAll;
