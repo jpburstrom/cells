@@ -821,7 +821,7 @@ Cell.addPlayer(\disk, {
 	~beforeInit = {
 		~settings[\setDurationFromFile] = true;
 		~settings[\setMarkersFromFile] = true;
-		~settings[\defaultSynthArgs][\duration] = ~settings[\duration];
+		~settings[\defaultSynthArgs][\duration] = { ~settings[\duration] };
 		~settings[\defaultSynth] = {
 			~numChannelsFormat.("cellDiskPlayer_%");
 		};
