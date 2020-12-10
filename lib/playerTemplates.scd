@@ -141,10 +141,13 @@ Cell.addPlayer(\markers, {
 
 			getMarkers: { |ev, offset|
 				var loopKeys = ev.out.loops.keys;
-				[ev.out.lbl, ev.out.pos - (offset ? 0)].flop
-				.reject({ |v, i| loopKeys.includes(i) })
-				.flat
-				.asDict
+				//FIXME This might cause negative positions. is that ok?
+				if (ev.out.pos.notNil) {
+					[ev.out.lbl, ev.out.pos - (offset ? 0)].flop
+					.reject({ |v, i| loopKeys.includes(i) })
+					.flat
+					.asDict
+				}
 			},
 
 			getRegions: { |ev|
@@ -169,7 +172,7 @@ Cell.addPlayer(\markers, {
 	~getMarkersFromSoundFile = { |sf, offset|
 		var parser = ~markerParser.value;
 		parser.parse(sf.readHeaderAsString);
-		~markers.putAll(parser.getMarkers(offset));
+		parser.getMarkers(offset) !? (~markers.putAll(_));
 	};
 
 	~markers = IdentityDictionary();
