@@ -303,7 +303,7 @@ Cell.addPlayer(\server, {
 	~parentGroup = {
 		// If cell has mother, set parentGroup to its main group
 		// Override for other behaviour
-		currentEnvironment.mother !? (_.defaultGroup);
+		//currentEnvironment.mother !? (_.defaultGroup);
 	};
 
 	~beforeLoad = { ~server.bootSync };
@@ -864,7 +864,7 @@ Cell.addPlayer(\cells, {
 		~cells ?? { ~cells = IdentityDictionary(know:true) };
 		~template[\cells] !? { |x| x.keysValuesDo { |key, cell|
 			~cells[key] = cell;
-			currentEnvironment.addChildren(key, cell);
+			//currentEnvironment.addChildren(key, cell);
 		}};
 	};
 

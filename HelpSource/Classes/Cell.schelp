@@ -74,23 +74,6 @@ A link::Classes/Condition:: which is set to wait whenever player is waiting to c
 METHOD:: wait
 Wait for link::#-cond::.
 
-SUBSECTION:: Cell hierarchy
-
-METHOD:: validateRelative
-argument:: other
-METHOD:: siblings
-METHOD:: mother
-METHOD:: children
-METHOD:: addChildren
-argument::  ... keys
-Look up cells in the environment by key, and set code::this:: as mother for those cells. 
-METHOD:: setMother
-argument:: obj
-Validate and set obj as mother for cell
-argument:: childKey
-if provided, put code::this:: in code::obj:: environment under code::childKey::, and add as child.
-
-
 PRIVATE:: prChangeState, doOnServerTree, playAfterLoad, checkState, doFunctionPerform, trigAndWait, init, initPlayer, freeAll, afterStop
 
 

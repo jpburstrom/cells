@@ -7,7 +7,7 @@ if (thisThread.isKindOf(Routine).not) {
 {
 
 	|test|
-	var server, cell, setup, mother, teardown;
+	var server, cell, setup, teardown;
 	var cond = Condition();
 	var value = 0;
 

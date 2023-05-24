@@ -10,7 +10,6 @@ Cell : EnvironmentRedirect {
 	var <>name;
 	var modFunc, playerType;
 	var <cond, playerCond;
-	var <mother, <children;
 	var <playAfterLoad;
 	var <clock;
 	var <>syncClock, <>syncQuant;
@@ -69,7 +68,6 @@ Cell : EnvironmentRedirect {
 
 		cond = Condition(true);
 		playerCond = Condition(true);
-		children = IdentityDictionary();
 		syncQuant = 0;
 		syncClock = TempoClock.default;
 		playAfterLoad = false;
@@ -263,11 +261,6 @@ Cell : EnvironmentRedirect {
 	}
 
 	free {
-		this.children.do { |child|
-			child.free;
-			child.unsetMother;
-		};
-		this.children.clear;
 		if (this.checkState(\stopping, \stopped, \free, \error).not) {
 			forkIfNeeded {
 				this.stop(true);
@@ -323,61 +316,6 @@ Cell : EnvironmentRedirect {
 		if (this.checkState.(\stopped, \free).not) {
 			this.freeAll;
 		}
-	}
-
-
-
-	addChildren { |...pairs|
-		if (pairs.size.odd, { Error("addChildren should have even number of args.\n").throw; });
-		pairs.pairsDo { |key, child|
-			if (this.validateRelative(child)) {
-				children.put(key, child);
-				child.setMother(this);
-			} {
-				Error("Not a valid child").throw;
-			}
-		};
-	}
-
-	removeChildren { |...keys|
-		var child;
-		keys.do { |key|
-			child = children[key];
-			children[key] = nil;
-			if (child.notNil and: { child.mother == this }) {
-				child.unsetMother;
-			};
-		};
-	}
-
-	// Set mother
-	// if childKey is provided,
-	// set this as children of mother
-	// under key childKey
-	setMother { |obj, childKey|
-		if (this.validateRelative(obj)) {
-			mother = obj;
-			if (childKey.notNil) {
-				obj.addChildren(childKey, this)
-			}
-		} {
-			"Not a valid mother".warn;
-		}
-	}
-
-	unsetMother {
-		mother = nil;
-	}
-
-	//Chek if an object could be a valid child/mother
-	validateRelative { |other|
-		^other.isKindOf(this.class)
-	}
-
-	siblings {
-		^mother !? {
-			mother.children.reject(_==this);
-		};
 	}
 
 	// Round seconds to closest quantized beat

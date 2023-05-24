@@ -4,7 +4,7 @@ if (thisThread.isKindOf(Routine).not) {
 };
 {
 	|test|
-	var server, cell, setup, mother, teardown;
+	var server, cell, setup, teardown;
 	var cond = Condition();
 	var value = 0;
 
@@ -123,69 +123,6 @@ if (thisThread.isKindOf(Routine).not) {
 
 
 		teardown.value;
-
-		"------ CELL HIERARCHY ------".postln;
-
-		// --- Mother test 1 ---
-
-		mother = Cell().name_("mother");
-		setup.value;
-
-		mother[\baby] = cell;
-		mother.addChildren(\baby, cell);
-
-		test.assert(mother.children.includes(cell), "Adding children");
-		test.assert(cell.mother == mother,  "Adding children sets mother in child");
-
-		mother.free;
-
-		test.assert(mother.children.size == 0, "Removing children on free");
-		test.assert(cell.mother.isNil,  "Freeing mother removes ref in child");
-
-		teardown.value;
-
-		// --- Mother test 2 ---
-
-		mother = Cell({ ~template[\main] = (); ~server = server }, \synth).name_("mother");
-		setup.value({ ~template[\main] = (foo: [\silence]);  ~server = server }, \synth, false);
-
-
-		cell.setMother(mother, \baby);
-		test.assert(mother.children.includes(cell), "setMother with key adds child to mother");
-		test.assert(cell.mother == mother, "setMother with key sets mother");
-
-		mother.play;
-		cell.play;
-		// server.queryAllNodes;
-
-		test.assert(cell.bus[\out] == mother.bus[\main], "Child out bus is mother main bus");
-		test.assert(cell.parentGroup == mother.groups[\main], "Child parentGroup is mother main group");
-
-
-		mother.removeChildren(\baby);
-		test.assert(mother.children.includes(cell).not, "removeChildren");
-		test.assert(cell.mother.isNil, "removeChildren unsets mother in child");
-
-		value = 0;
-		cell.set(\main, \foo, \dummyParam, 999);
-		server.latency.wait; // Wait until node is playing
-
-		cell.synths[\main][\foo].get(\dummyParam, { |val|
-			value = val;
-			cond.unhang;
-		});
-		cond.hang;
-		test.assert(value == 999, "Set sets synth value");
-		value = 0;
-		cell.set(\group, \main, \dummyParam, 998);
-		cell.synths[\main][\foo].get(\dummyParam, { |val|
-			value = val;
-			cond.unhang;
-		});
-		cond.hang;
-		test.assert(value == 998, "Group set sets synth value");
-		teardown.value;
-		mother.free;
 
 		setup.value({ ~template[\main] = (foo: [\silence]);  ~server = server }, \synth, false);
 		cell.set(\main, \foo, \dummyParam, 998);
