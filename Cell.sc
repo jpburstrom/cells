@@ -1,7 +1,6 @@
 Cell : EnvironmentRedirect {
 
-	classvar states;
-	classvar <>copyToProto,
+	classvar states,
 	// An environment where templates are made
 	<templateEnvironment,
 	// The actual templates
@@ -30,7 +29,6 @@ Cell : EnvironmentRedirect {
 			\error -> 256
 		];
 
-		copyToProto = #[settings, nodeMap, template, markers];
 		templateEnvironment = Environment();
 		templates = IdentityDictionary();
 
@@ -41,10 +39,8 @@ Cell : EnvironmentRedirect {
 	}
 
 	*loadTemplates {
-
 		templateEnvironment.clear;
 		templates.clear;
-
 		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/synthDefs.scd").loadPaths;
 		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/templates.scd").loadPaths;
 
@@ -92,8 +88,8 @@ Cell : EnvironmentRedirect {
 
 		// Copy some keys (eg settings, templates) to proto, to not overwrite the
 		// class-level dictionary
-		copyToProto.do { |key|
-			envir.proto[key] = envir.parent[key].deepCopy;
+		envir.parent[\instanceData].keysValuesDo { |key, data|
+			envir.proto[key] = data.deepCopy;
 		};
 
 		// The make function is run inside the proto of the environment

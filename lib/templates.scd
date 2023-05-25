@@ -1,12 +1,23 @@
+Cell.addTemplate(\initData, {
+	~build = {
+		~instanceData = IdentityDictionary().know_(true); //Instance-level data
+	};
+	~addInstanceData = { |key, value|
+		~instanceData[key] = value;
+	}
+});
+
 Cell.addTemplate(\nodeMap, {
 
-	~nodeMap = MultiLevelIdentityDictionary();
+	~build = {
+		~addInstanceData.(\nodemap, MultiLevelIdentityDictionary());
+	};
 
 	~addNodeMap = { |...path|
-		var map = ~nodeMap.atPath(path);
+		var map = ~nodemap.atPath(path);
 		if (map.isNil) {
 			map = NodeMap();
-			~nodeMap.putAtPath(path, map);
+			~nodemap.putAtPath(path, map);
 		};
 		map
 	};
@@ -20,7 +31,7 @@ Cell.addTemplate(\nodeMap, {
 			first = first.asArray;
 		};
 		path = first ++ rest;
-		out = ~nodeMap.at(*path);
+		out = ~nodemap.at(*path);
 	};
 
 	~set = { |first ...rest|
@@ -33,7 +44,7 @@ Cell.addTemplate(\nodeMap, {
 		path = first ++ rest;
 		val = path.pop;
 		key = path.pop;
-		out = ~nodeMap.at(*path);
+		out = ~nodemap.at(*path);
 		if (out.isKindOf(NodeMap)) {
 			out.set(key, val);
 			if (currentEnvironment.isPlaying) {
@@ -60,9 +71,15 @@ Cell.addTemplate(\nodeMap, {
 		}
 	};
 
-});
+}, \initData);
 
 Cell.addTemplate(\markers, {
+
+	~build = {
+		//This is created in ~cell, but we refer to it as ~markers since
+		//functions are running in instance
+		~addInstanceData.(\markers, IdentityDictionary());
+	};
 
 	~markerParser = {
 		(
@@ -175,7 +192,6 @@ Cell.addTemplate(\markers, {
 		parser.getMarkers(offset) !? (~markers.putAll(_));
 	};
 
-	~markers = IdentityDictionary();
 
 	~getMarkerTime = { |marker, fallback=true|
 		var time;
@@ -196,7 +212,7 @@ Cell.addTemplate(\markers, {
 		}
 	};
 
-});
+}, \initData);
 
 Cell.addTemplate(\settings, {
 
@@ -217,53 +233,56 @@ Cell.addTemplate(\settings, {
 
 	};
 
-	~settings = (
-		//Number of out channels
-		numChannels: 2,
+	~build = {
+		//This is later referred to as ~settings
+		~addInstanceData.(\settings, (
+			//Number of out channels
+			numChannels: 2,
 
 
-		// --- DURATIONS ---
-		// Total cell duration
-		duration: inf,
-		// Duration of tail
-		// Time until silent after all players have stopped playing.
-		// Currently unused for synths (using register + onFree instead)
-		// In case of patterns, wait for tailDuration after pattern has stopped.
-		// This means you have to add pattern note release time to tailDuration
-		tailDuration: 3,
+			// --- DURATIONS ---
+			// Total cell duration
+			duration: inf,
+			// Duration of tail
+			// Time until silent after all players have stopped playing.
+			// Currently unused for synths (using register + onFree instead)
+			// In case of patterns, wait for tailDuration after pattern has stopped.
+			// This means you have to add pattern note release time to tailDuration
+			tailDuration: 3,
 
-		// --- SYNC ---
-		// By default, TempoClock.default is used.
-		// Tempo is set on quantized play start.
-		// quant.timingOffset can be used to start playback earlier,
-		// for example if a sample starts on an upbeat.
-		tempo: 60,
+			// --- SYNC ---
+			// By default, TempoClock.default is used.
+			// Tempo is set on quantized play start.
+			// quant.timingOffset can be used to start playback earlier,
+			// for example if a sample starts on an upbeat.
+			tempo: 60,
 
-		// Quant == grid.
-		// Set timingOffset here, if needed
-		quant: 0,
+			// Quant == grid.
+			// Set timingOffset here, if needed
+			quant: 0,
 
-		// --- FADES ---
-		// Fades are post-fx, and overrides tail settings.
-		// This means it should be safe to free everything when a fadeOut has completed.
-		// Fade in duration.
-		fadeIn: 0,
-		// Curve of fadeIn envelope - only float?
-		fadeInCurve: 8,
-		// Fade out duration. This overrides tailDuration.
-		fadeOut: 0,
-		// Curve
-		fadeOutCurve: -8,
+			// --- FADES ---
+			// Fades are post-fx, and overrides tail settings.
+			// This means it should be safe to free everything when a fadeOut has completed.
+			// Fade in duration.
+			fadeIn: 0,
+			// Curve of fadeIn envelope - only float?
+			fadeInCurve: 8,
+			// Fade out duration. This overrides tailDuration.
+			fadeOut: 0,
+			// Curve
+			fadeOutCurve: -8,
 
-		// If true, release main synths in .afterStop
-		releaseAfterStop: true,
+			// If true, release main synths in .afterStop
+			releaseAfterStop: true,
 
 
-		// Default arguments for new synths
-		defaultSynthArgs:  IdentityDictionary[
-			\out -> {~bus.main}
-		]
-	);
+			// Default arguments for new synths
+			defaultSynthArgs:  IdentityDictionary[
+				\out -> {~bus.main}
+			]
+		));
+	};
 
 	~getDuration = {
 		~settings[\duration];
@@ -276,9 +295,7 @@ Cell.addTemplate(\settings, {
 	~updateSettings = { |obj|
 		~dictMerge.(~settings, obj);
 	};
-
-
-});
+}, \initData);
 
 Cell.addTemplate(\base, {
 
@@ -376,7 +393,7 @@ Cell.addTemplate(\group, {
 	~afterPlay = {
 		//Sync node map
 		~groups.keysValuesDo { |key, node|
-			var map = ~nodeMap[\group][key];
+			var map = ~nodemap[\group][key];
 			if (map.notEmpty) {
 				map.sendToNode(node, ~server.latency);
 			}
@@ -605,7 +622,7 @@ Cell.addTemplate(\synth, {
 		var out;
 		args = ~settings[\defaultSynthArgs].copy.putAll(args);
 		args = args.collect(_.value);
-		~nodeMap.at(group, key).putAll(args);
+		~nodemap.at(group, key).putAll(args);
 		// Send using default latency, to sync with patterns et al
 		s.bind({
 			out = Synth(synth, args.asPairs, ~groups[group]);
@@ -621,7 +638,7 @@ Cell.addTemplate(\synth, {
 	~syncSynthNodeMap = {
 		~synths.keysValuesDo { |type, dict|
 			dict.keysValuesDo { |key, node|
-				~nodeMap[type][key] !? { |map|
+				~nodemap[type][key] !? { |map|
 					// Use default latency, to sync with s.bind in ~prPlaySynth
 					map.updateArgs;
 					map.sendToNode(node, ~server.latency);
