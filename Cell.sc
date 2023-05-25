@@ -48,14 +48,14 @@ Cell : EnvironmentRedirect {
 
 	}
 
-	*addPlayer { |key, func, deps|
+	*addTemplate { |key, func, deps|
 		playerTemplates.make {
 			currentEnvironment[key] = CellTemplate(func, deps);
 			players[key] = currentEnvironment[key].value;
 		};
 	}
 
-	*removePlayer { |key|
+	*removeTemplate { |key|
 		players[key] = nil;
 	}
 

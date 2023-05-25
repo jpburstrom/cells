@@ -107,7 +107,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 		test.assert(Cell.players[\testPlayer].isNil, "Test player prototype doesn't exist");
 
-		Cell.addPlayer(\testPlayer, (
+		Cell.addTemplate(\testPlayer, (
 			fum: {
 				true;
 			};
@@ -117,7 +117,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 		test.assert(Cell.players[\testPlayer][\server].notNil, "Add server mixin");
 
-		Cell.removePlayer(\testPlayer);
+		Cell.removeTemplate(\testPlayer);
 
 		test.assert(Cell.players[\testPlayer].isNil, "Remove player prototype");
 

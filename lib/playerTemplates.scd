@@ -1,4 +1,4 @@
-Cell.addPlayer(\nodeMap, {
+Cell.addTemplate(\nodeMap, {
 
 	~nodeMap = MultiLevelIdentityDictionary();
 
@@ -62,7 +62,7 @@ Cell.addPlayer(\nodeMap, {
 
 });
 
-Cell.addPlayer(\markers, {
+Cell.addTemplate(\markers, {
 
 	~markerParser = {
 		(
@@ -198,7 +198,7 @@ Cell.addPlayer(\markers, {
 
 });
 
-Cell.addPlayer(\settings, {
+Cell.addTemplate(\settings, {
 
 	// Merge in place
 	~dictMerge = { |template, obj|
@@ -280,7 +280,7 @@ Cell.addPlayer(\settings, {
 
 });
 
-Cell.addPlayer(\base, {
+Cell.addTemplate(\base, {
 
 	~template = IdentityDictionary();
 	~updateTemplate = { |obj|
@@ -289,7 +289,7 @@ Cell.addPlayer(\base, {
 
 }, [\settings, \markers]);
 
-Cell.addPlayer(\server, {
+Cell.addTemplate(\server, {
 	//FIXME we should not hardcode server here
 	//Use function ?
 	~server = Server.default;
@@ -329,7 +329,7 @@ Cell.addPlayer(\server, {
 
 }, [\base, \nodeMap]);
 
-Cell.addPlayer(\group, {
+Cell.addTemplate(\group, {
 	// Default group order
 	// TODO: nested groups, if needed
 
@@ -392,7 +392,7 @@ Cell.addPlayer(\group, {
 }, \server);
 
 
-Cell.addPlayer(\bus, {
+Cell.addTemplate(\bus, {
 
 	// Buses, following the group scheme above
 	// Buses are private by default, but
@@ -473,7 +473,7 @@ Cell.addPlayer(\bus, {
 }, \server);
 
 // Synth related methods: FX, Ctl,
-Cell.addPlayer(\synth, {
+Cell.addTemplate(\synth, {
 
 	~numChannelsFormat = { |string|
 		string.format(~settings[\numChannels]).asSymbol;
@@ -722,7 +722,7 @@ Cell.addPlayer(\synth, {
 
 
 
-Cell.addPlayer(\buffer, {
+Cell.addTemplate(\buffer, {
 
 	// Buffer template template
 	// Multiple files
@@ -817,7 +817,7 @@ Cell.addPlayer(\buffer, {
 
 }, [\synth]);
 
-Cell.addPlayer(\disk, {
+Cell.addTemplate(\disk, {
 	~beforeInit = {
 		~settings[\setDurationFromFile] = true;
 		~settings[\setMarkersFromFile] = true;
@@ -858,7 +858,7 @@ Cell.addPlayer(\disk, {
 }, [\buffer]);
 
 
-Cell.addPlayer(\cells, {
+Cell.addTemplate(\cells, {
 
 	~beforeInit = {
 		~cells ?? { ~cells = IdentityDictionary(know:true) };
@@ -885,7 +885,7 @@ Cell.addPlayer(\cells, {
 	//Needs base for template
 }, [\synth]);
 
-Cell.addPlayer(\pattern, {
+Cell.addTemplate(\pattern, {
 
 	~beforeInit = {
 		// We let pattern release itself
@@ -971,7 +971,7 @@ Cell.addPlayer(\pattern, {
 
 }, [\synth]);
 
-Cell.addPlayer(\bufferPattern, {
+Cell.addTemplate(\bufferPattern, {
 	~beforeInit = {
 		~template[\main] = nil;
 	};

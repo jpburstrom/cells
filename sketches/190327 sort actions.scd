@@ -5,7 +5,7 @@
 
 (
 //Add player
-Cell.addPlayer { |key, func, deps|
+Cell.addTemplate { |key, func, deps|
 	parentEnvironment.playerTemplates[key] = deps -> func;
 	this.buildPlayer(key);
 }

@@ -17,21 +17,21 @@ like link::Classes/Event::, know is set to true by default.
 
 METHOD:: initClass
 
-METHOD:: addPlayer
-Add a base player to the global dictionary.
+METHOD:: addTemplate
+Add a base template to the global dictionary.
 argument:: key
-An identifier for the player
+An identifier for the template
 argument:: envirOrFunc
-A function or environment to define the player behaviour
+A function or environment to define the template
 argument:: basePlayerKey
-Another key to base the player on
+Another template key to base the player on
 argument:: ... mixinKeys
 The parentEnvironment is divided into sub-environments defining defaults and behaviours for synths, buffers, groups etc. These are imported into the player environment.
-code::Cell.parentEnvironment[\mixins].keys:: 
+code::Cell.parentEnvironment[\mixins].keys::
 
 
 
-METHOD:: removePlayer
+METHOD:: removeTemplate
 
 INSTANCEMETHODS::
 
