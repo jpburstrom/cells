@@ -8,7 +8,7 @@ if (thisThread.isKindOf(Routine).not) {
 	var cond = Condition();
 	var value = 0;
 
-	Cell.loadPlayerTemplates;
+	Cell.loadTemplates;
 
 
 	server = Server("test");
@@ -17,7 +17,7 @@ if (thisThread.isKindOf(Routine).not) {
 		Out.ar(0, DC.ar.dup);
 	}).add;
 
-	setup = { |func, playerKey, load=true|
+	setup = { |func, templateKey, load=true|
 		cell.free;
 		cell = Cell({
 			~server = server;
@@ -29,7 +29,7 @@ if (thisThread.isKindOf(Routine).not) {
 			~freeAll = ~freeAll.addFunc({
 				~buf.free;
 			});
-		}.addFunc(func), playerKey).name_("test");
+		}.addFunc(func), templateKey).name_("test");
 		if (load) {
 			cell.load;
 		};

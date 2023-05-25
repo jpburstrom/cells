@@ -1,9 +1,11 @@
 Cell : EnvironmentRedirect {
 
 	classvar states;
-	// An environment which holds settings and players
-	// common to all cell instances
-	classvar <>copyToProto, <playerTemplates, <players;
+	classvar <>copyToProto,
+	// An environment where templates are made
+	<templateEnvironment,
+	// The actual templates
+	<templates;
 	classvar <>debug=false;
 
 	//Cue name (for display purposes)
@@ -29,42 +31,42 @@ Cell : EnvironmentRedirect {
 		];
 
 		copyToProto = #[settings, nodeMap, template, markers];
-		playerTemplates = Environment();
-		players = IdentityDictionary();
+		templateEnvironment = Environment();
+		templates = IdentityDictionary();
 
 		StartUp.add({
-			this.loadPlayerTemplates;
+			this.loadTemplates;
 		});
 
 	}
 
-	*loadPlayerTemplates {
+	*loadTemplates {
 
-		playerTemplates.clear;
-		players.clear;
+		templateEnvironment.clear;
+		templates.clear;
 
 		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/synthDefs.scd").loadPaths;
-		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/playerTemplates.scd").loadPaths;
+		(PathName(this.filenameSymbol.asString).pathOnly +/+ "lib/templates.scd").loadPaths;
 
 	}
 
 	*addTemplate { |key, func, deps|
-		playerTemplates.make {
+		templateEnvironment.make {
 			currentEnvironment[key] = CellTemplate(func, deps);
-			players[key] = currentEnvironment[key].value;
+			templates[key] = currentEnvironment[key].value;
 		};
 	}
 
 	*removeTemplate { |key|
-		players[key] = nil;
+		templates[key] = nil;
 	}
 
 
-	*new { |func, playerKey, know=true|
-		^super.new.init(func, playerKey, know);
+	*new { |func, templateKey, know=true|
+		^super.new.init(func, templateKey, know);
 	}
 
-	init { |func, playerKey|
+	init { |func, templateKey|
 
 		cond = Condition(true);
 		playerCond = Condition(true);
@@ -74,18 +76,18 @@ Cell : EnvironmentRedirect {
 		stateNum = states[\free];
 
 		modFunc = func;
-		playerType = playerKey;
+		playerType = templateKey;
 
 		name = "";
 
 		envir.know = true;
 
-		envir.parent = players[playerKey];
+		envir.parent = templates[templateKey];
 		if (envir.parent.isNil) {
-			if (playerKey.notNil) {
-				"Cell player % not found".format(playerKey).warn;
+			if (templateKey.notNil) {
+				"Cell player % not found".format(templateKey).warn;
 			};
-			envir.parent = players[\base];
+			envir.parent = templates[\base];
 		};
 
 		// Copy some keys (eg settings, templates) to proto, to not overwrite the
@@ -97,6 +99,7 @@ Cell : EnvironmentRedirect {
 		// The make function is run inside the proto of the environment
 		// that way, user data and temporary objects are kept separate from objects
 		// created during init
+		// parent ->
 		// EnvironmentRedirect.new have made the proto for us
 		envir.proto.make(func);
 
@@ -155,7 +158,7 @@ Cell : EnvironmentRedirect {
 
 				if (envir[\fastForward].isNegative) {
 					//TODO: This is a fallback,
-					//Usually players take care of converting negative ffwd values,
+					//Usually player templates take care of converting negative ffwd values,
 					//but it's currently spread out in the player code. Find a
 					//way to do this only once, but still adjust play starts according
 					//to each player's needs
@@ -412,7 +415,7 @@ Cell : EnvironmentRedirect {
 		^this.class.new(modFunc, playerType);
 	}
 
-	clone { |func, playerKey|
+	clone { |func, templateKey|
 
 		if (func.isNil) {
 			func = modFunc
@@ -420,8 +423,8 @@ Cell : EnvironmentRedirect {
 			func = modFunc.addFunc(func);
 		};
 
-		if (playerKey.isNil) {
-			playerKey = playerType
+		if (templateKey.isNil) {
+			templateKey = playerType
 		};
 
 		^this.class.new(func, playerType);

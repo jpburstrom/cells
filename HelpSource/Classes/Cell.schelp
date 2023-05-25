@@ -9,7 +9,7 @@ METHOD:: new
 Create a new object
 argument:: func
 An init function which is run inside the proto environment. Here you can define functions and default values for the cell.
-argument:: playerKey
+argument:: templateKey
 Choose a base player: code::\synth::, code::\buffer:: code::\disk:: code::\pattern:: etc.
 argument:: know
 like link::Classes/Event::, know is set to true by default.
