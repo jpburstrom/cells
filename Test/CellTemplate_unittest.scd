@@ -147,8 +147,8 @@ if (thisThread.isKindOf(Routine).not) {
 		var load = env[\syn].value[\load];
 		test.assert(load.isKindOf(CellFunctionList),
 			"Methods are picked up from multiple global deps");
-		load.keys.postln;
-		test.assert(try { load.array.postln.size == 3 } { false },
+		// load.keys.postln;
+		test.assert(try { load.array.size == 3 } { false },
 			"FunctionList have correct length"
 		);
 		load = env[\ctl].value[\load];
