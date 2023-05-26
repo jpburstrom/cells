@@ -98,7 +98,16 @@ Cell : EnvironmentRedirect {
 		// parent ->
 		// EnvironmentRedirect.new have made the proto for us
 		pairs.pairsDo { |k, v|
-			envir.proto[k] = v.tryPerform(\merge, envir.proto[k], { |new, default| new }) ? v;
+			if (envir.proto[k].respondsTo(\keysValuesDo)) {
+				v = v.value;
+				if (v.isKindOf(IdentityDictionary)) {
+					envir.proto[k] = this.mergeDict(envir.proto[k], v)
+				} {
+					Error("%: Wrong type. Needs to return an IdentityDictionary on .value. Was %.".format(k, v.class)).throw;
+				}
+			} {
+				envir.proto[k] = v;
+			}
 		};
 
 
@@ -109,6 +118,24 @@ Cell : EnvironmentRedirect {
 		};
 
 	}
+
+	mergeDict { |template, obj|
+		obj.keysValuesDo { |k, v|
+			v.postln;
+			if (template[k].isNil) {
+				template[k] = v;
+			} {
+				if (template[k].isKindOf(Dictionary) and: { v.isKindOf(Dictionary) } ) {
+					this.mergeDict(template[k], v)
+				} {
+					// Overwrite single values
+					template[k] = v;
+				}
+			};
+		};
+		^template
+	}
+
 
 	//Run specific trigger(s) in envir, eg play, stop etc.
 	//Should be run within a routine
