@@ -236,10 +236,9 @@ Cell.addTemplate(\settings, {
 	~build = {
 		//This is later referred to as ~settings
 		~addInstanceData.(\settings, (
+			server: { Server.default },
 			//Number of out channels
 			numChannels: 2,
-
-
 			// --- DURATIONS ---
 			// Total cell duration
 			duration: inf,
@@ -249,18 +248,15 @@ Cell.addTemplate(\settings, {
 			// In case of patterns, wait for tailDuration after pattern has stopped.
 			// This means you have to add pattern note release time to tailDuration
 			tailDuration: 3,
-
 			// --- SYNC ---
 			// By default, TempoClock.default is used.
 			// Tempo is set on quantized play start.
 			// quant.timingOffset can be used to start playback earlier,
 			// for example if a sample starts on an upbeat.
 			tempo: 60,
-
 			// Quant == grid.
 			// Set timingOffset here, if needed
 			quant: 0,
-
 			// --- FADES ---
 			// Fades are post-fx, and overrides tail settings.
 			// This means it should be safe to free everything when a fadeOut has completed.
@@ -272,11 +268,8 @@ Cell.addTemplate(\settings, {
 			fadeOut: 0,
 			// Curve
 			fadeOutCurve: -8,
-
 			// If true, release main synths in .afterStop
 			releaseAfterStop: true,
-
-
 			// Default arguments for new synths
 			defaultSynthArgs:  IdentityDictionary[
 				\out -> {~bus.main}
@@ -299,7 +292,10 @@ Cell.addTemplate(\settings, {
 
 Cell.addTemplate(\base, {
 
-	~template = IdentityDictionary();
+	~build = {
+		~addInstanceData.(\template, IdentityDictionary());
+	};
+
 	~updateTemplate = { |obj|
 		~dictMerge.(~template, obj);
 	};
@@ -308,19 +304,11 @@ Cell.addTemplate(\base, {
 
 Cell.addTemplate(\server, {
 	//FIXME we should not hardcode server here
-	//Use function ?
-	~server = Server.default;
+	//Use settings!
 
-	//Default group for synths etc
-	~defaultGroup = nil;
-
-	// Group to put everything else
-	// If nil, default group (1)
-	// Set this before load
-	~parentGroup = {
-		// If cell has mother, set parentGroup to its main group
-		// Override for other behaviour
-		//currentEnvironment.mother !? (_.defaultGroup);
+	~beforeInit = {
+		~server = ~settings[\server].value;
+		~server.debug("server");
 	};
 
 	~beforeLoad = { ~server.bootSync };
@@ -344,7 +332,7 @@ Cell.addTemplate(\server, {
 		ServerQuit.remove(currentEnvironment, ~server);
 	};
 
-}, [\base, \nodeMap]);
+}, \base);
 
 Cell.addTemplate(\group, {
 	// Default group order
