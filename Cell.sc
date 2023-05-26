@@ -165,7 +165,8 @@ Cell : EnvironmentRedirect {
 					envir[\fastForward] = ffwd;
 				};
 				// Play time in seconds (absolute)
-				clock = TempoClock(envir[\settings][\tempo] / 60);
+				// LATER: make sure we have an envir with settings ready so we don't need the nil check
+				clock = TempoClock((envir[\settings][\tempo] ? 60) / 60);
 				if (this.checkState(\stopping, \error).not) {
 					this.prChangeState(\ready);
 					if (playAfterLoad) {
