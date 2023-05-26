@@ -56,7 +56,7 @@ CellTemplate {
 				// by key
 				out = CellFunctionList();
 				deps.do { |depKey|
-					out[depKey] = makeEnvir[depKey].getMethodFunc(key);
+					out[depKey] = makeEnvir[depKey].getMethodFunc(key, depKey);
 					// Assume we have an association, and add extracted function
 				};
 				// Assign the main function to an arbitrary key
@@ -168,20 +168,27 @@ CellTemplate {
 		out = out ?? { [] };
 		deps.do { |dep|
 			out = makeEnvir[dep].findDepsFor(method, out);
-			if (out.includes(dep).not and: { makeEnvir[dep].getMethodFunc(method).notNil } ) {
+			if (out.includes(dep).not and: {
+				var template = makeEnvir[dep];
+				template.getMethodFunc(method, dep).notNil
+			} ) {
 				out = out.add(dep);
 			};
 		};
 		^out
 	}
 
-	getMethodFunc { |method|
+	getMethodFunc { |method, key|
 		var func = rawEnvir[method];
 		if (func.respondsTo(\key)) {
 			func = func.value;
 		};
-		if (func.isFunction.not) {
+		if (func.isKindOf(AbstractFunction).not) {
 			func = nil;
+		} {
+			if (func.isKindOf(CellFunctionList)) {
+				func = func[\_current] ?? { func[key] };
+			}
 		};
 		^func;
 	}
