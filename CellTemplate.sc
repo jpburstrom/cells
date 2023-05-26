@@ -26,7 +26,7 @@ CellTemplate {
 		// in envir
 		rawEnvir = rawEnvir.putAll(template);
 		rawEnvir.make {
-			template[\build].value;
+			~build.value;
 		};
 		envir = rawEnvir.copy;
 
