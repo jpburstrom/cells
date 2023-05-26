@@ -9,22 +9,24 @@ if (thisThread.isKindOf(Routine).not) {
 	var env = ();
 
 	env[\server] = CellTemplate({
-		~serverVariable = 23;
-		~serverSpecificMethod = {};
-		~serverDict = (foo: ());
-		~overriddenMethod = { "hello".postln };
-		~serverAndBus = {};
+		~build = {
+			~serverVariable = 23;
+			~serverSpecificMethod = {};
+			~serverDict = (foo: ());
+			~overriddenMethod = { "hello".postln };
+			~serverAndBus = {};
+		};
 		~load = {
 			"Load server".postln
 		}
 	}, nil, env);
 
 	env[\bus] = CellTemplate({
-		~overriddenMethod = 23;
 		~build = {
+			~overriddenMethod = 23;
 			~serverDict[\foo] = 11;
+			~serverAndBus = {};
 		};
-		~serverAndBus = {};
 		~load = \server -> {
 			"Load bus".postln;
 		};
@@ -32,7 +34,9 @@ if (thisThread.isKindOf(Routine).not) {
 
 	env[\group] = CellTemplate({
 		//Key could also be an array
-		~anotherOverride = 0;
+		~build = {
+			~anotherOverride = 0;
+		};
 		~load = [\server, \bus] -> {
 			"Load group";
 		};
@@ -40,7 +44,9 @@ if (thisThread.isKindOf(Routine).not) {
 
 	env[\group] = CellTemplate({
 		//Key could also be an array
-		~anotherOverride = 0;
+		~build = {
+			~anotherOverride = 0;
+		};
 		~load = [\server, \bus] -> {
 			"Load group";
 		};
@@ -49,7 +55,9 @@ if (thisThread.isKindOf(Routine).not) {
 
 	template = CellTemplate({
 		//Key could also be an array
-		~anotherOverride = 23;
+		~build = {
+			~anotherOverride = 23;
+		};
 		~load = [\bus, \group] -> {
 			"Load syn".postln;
 		};
@@ -64,11 +72,13 @@ if (thisThread.isKindOf(Routine).not) {
 	test.assert(template.getMethodFunc(\load).isFunction, "getMethodFunc return value");
 	test.assert(template.value[\load].isKindOf(CellFunctionList), "value return value");
 	test.assert(template.value[\serverVariable] == 23, "Variables are passed from deps");
-	test.assert(template.value[\overriddenMethod] == 23, "Variables can be overridden by deps later in chain");
+	test.assert(template.value[\anotherOverride] == 23, "Variables can be overridden by deps later in chain");
 
 	template = CellTemplate({
 		//Key could also be an array
-		~anotherOverride = 23;
+		~build = {
+			~anotherOverride = 23;
+		};
 		~load = {
 			"Load syn".postln;
 		};
@@ -82,7 +92,9 @@ if (thisThread.isKindOf(Routine).not) {
 
 	template = CellTemplate({
 		//Key could also be an array
-		~anotherOverride = 23;
+		~build = {
+			~anotherOverride = 23;
+		};
 		~testFunction = {
 			true
 		};
@@ -106,7 +118,6 @@ if (thisThread.isKindOf(Routine).not) {
 
 	// Other players having server as dep is not making the server setup code run twice
 	test.assert(template.value[\serverSpecificMethod].isFunction, "Functions are only defined once per player");
-	test.assert(template.value[\serverDict][\foo] == 11, "Build function");
 
 
 	template = CellTemplate((
@@ -121,23 +132,30 @@ if (thisThread.isKindOf(Routine).not) {
 	test.assert(template.value[\foo] == 23, "Pass envir to constructor");
 	test.assert(template.value[\overriddenMethod] == true, "Build function overrides dep methods");
 	test.assert(template.value[\load].isKindOf(CellFunctionList), "Envir defined methods still makes lists if needed");
+	test.assert(env[\server].value[\serverDict].notNil, "serverDict is not nil");
 	test.assert(env[\server].value[\serverDict] !== template.value[\serverDict], "Dictionaries are copied from dependencies");
-	test.assert(env[\server].value[\serverDict][\foo] === template.value[\serverDict][\foo], "Dictionaries are not deep copied from dependencies");
-	test.assert(env[\server].value[\serverSpecificMethod] === template.value[\serverSpecificMethod], "Non-overridden functions are identical in deps");
+	test.assert(env[\server].value[\serverDict][\foo] !== template.value[\serverDict][\foo], "Dictionaries are deep copied from dependencies");
+	test.assert(env[\server].value[\serverSpecificMethod] !== template.value[\serverSpecificMethod], "Non-overridden functions are not identical in deps");
 	test.assert(env[\server].value[\load] === template.value[\load].array[0], "Listed functions are identical in deps");
 
 	env.clear;
 	env[\base] = CellTemplate((
+		build: { "building".postln; ~list = List[1]; currentEnvironment.postln;  },
 		load: { "base load".postln }
 	), nil, env);
 
 	env[\grp] = CellTemplate((
+		build: { ~list.add(2) },
 		load: { "group load".postln }
 	), \base, env);
 
 	env[\bus] = CellTemplate((
+		build: { ~list.add(3) },
 		load: { "bus load".postln }
 	), \base, env);
+
+	env[\multipleDeps] = CellTemplate((
+	), [\bus, \grp], env); //(([\base, \bus]);
 
 	env[\ctl] = CellTemplate((load:{"ctl"}), [\grp, \bus], env);
 
@@ -145,6 +163,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 	value {
 		var load = env[\syn].value[\load];
+		var multipleDeps = env[\multipleDeps].value;
 		test.assert(load.isKindOf(CellFunctionList),
 			"Methods are picked up from multiple global deps");
 		// load.keys.postln;
@@ -157,6 +176,8 @@ if (thisThread.isKindOf(Routine).not) {
 				test.assert(try { load.array.size == 4 } { false },
 			"FunctionList have correct length if main has func"
 		);
+		multipleDeps.cs.postln;
+		test.assertEquals(multipleDeps[\list].size, 3, "multiple dependencies on build");
 	}
 
 
