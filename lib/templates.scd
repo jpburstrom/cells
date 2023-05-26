@@ -334,6 +334,38 @@ Cell.addTemplate(\server, {
 
 }, \base);
 
+Cell.addTemplate(\track, {
+
+	~build = {
+		~instanceData[\template][\track] = (
+			post: ( out: 0 )
+		);
+	};
+
+	~beforeInit = {
+		~track = Track.newFromDict(~template[\track].value);
+	};
+
+	// All groups end up in the groups envir
+	// The envir should not be placed in the parent envir
+	// So we create it as a part of ~addGroups
+	~beforePlay = {
+		~track.play;
+	};
+
+	~afterPlay = {
+	};
+
+	~afterStop = {
+		~track.stop;
+	};
+
+	~freeAll = {
+		~track.free;
+	}
+
+}, \server);
+
 Cell.addTemplate(\group, {
 	// Default group order
 	// TODO: nested groups, if needed
