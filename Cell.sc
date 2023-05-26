@@ -9,7 +9,7 @@ Cell : EnvironmentRedirect {
 
 	//Cue name (for display purposes)
 	var <>name;
-	var modFunc, playerType;
+	var <argPairs, playerType;
 	var <cond, playerCond;
 	var <playAfterLoad;
 	var <clock;
@@ -58,11 +58,11 @@ Cell : EnvironmentRedirect {
 	}
 
 
-	*new { |func, templateKey, know=true|
-		^super.new.init(func, templateKey, know);
+	*new { |templateKey ... pairs|
+		^super.new.init(templateKey, pairs);
 	}
 
-	init { |func, templateKey|
+	init { |templateKey, pairs|
 
 		cond = Condition(true);
 		playerCond = Condition(true);
@@ -71,7 +71,7 @@ Cell : EnvironmentRedirect {
 		playAfterLoad = false;
 		stateNum = states[\free];
 
-		modFunc = func;
+		argPairs = pairs;
 		playerType = templateKey;
 
 		name = "";
@@ -97,7 +97,9 @@ Cell : EnvironmentRedirect {
 		// created during init
 		// parent ->
 		// EnvironmentRedirect.new have made the proto for us
-		envir.proto.make(func);
+		pairs.pairsDo { |k, v|
+			envir.proto[k] = v.tryPerform(\merge, envir.proto[k], { |new, default| new }) ? v;
+		};
 
 
 		this.use {
@@ -408,22 +410,20 @@ Cell : EnvironmentRedirect {
 	}
 
 	copy {
-		^this.class.new(modFunc, playerType);
+		^this.class.new(playerType, *argPairs);
 	}
 
-	clone { |func, templateKey|
+	clone { |templateKey ... pairs|
 
-		if (func.isNil) {
-			func = modFunc
-		} {
-			func = modFunc.addFunc(func);
-		};
+		var old = argPairs.asDict;
+		var new = pairs.asDict;
+		pairs = old.putAll(new).asPairs;
 
 		if (templateKey.isNil) {
 			templateKey = playerType
 		};
 
-		^this.class.new(func, playerType);
+		^this.class.new(templateKey, *pairs);
 	}
 
 	printOn { arg stream; stream << this.class.name << "(" <<< name <<")" }
