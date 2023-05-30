@@ -7,72 +7,6 @@ Cell.addTemplate(\initData, {
 	}
 });
 
-Cell.addTemplate(\nodeMap, {
-
-	~build = {
-		~addInstanceData.(\nodemap, MultiLevelIdentityDictionary());
-	};
-
-	~addNodeMap = { |...path|
-		var map = ~nodemap.atPath(path);
-		if (map.isNil) {
-			map = NodeMap();
-			~nodemap.putAtPath(path, map);
-		};
-		map
-	};
-
-	// Get values from running synths
-	~get = { |first ...rest|
-		var out, path;
-		if (first.isKindOf(String)) {
-			first = first.split($.).collect(_.asSymbol);
-		} {
-			first = first.asArray;
-		};
-		path = first ++ rest;
-		out = ~nodemap.at(*path);
-	};
-
-	~set = { |first ...rest|
-		var key, val, out, path, node;
-		if (first.isKindOf(String)) {
-			first = first.split($.).collect(_.asSymbol);
-		} {
-			first = first.asArray;
-		};
-		path = first ++ rest;
-		val = path.pop;
-		key = path.pop;
-		out = ~nodemap.at(*path);
-		if (out.isKindOf(NodeMap)) {
-			out.set(key, val);
-			if (currentEnvironment.isPlaying) {
-				var node = ~prGetNodeFromPath.(*path);
-				//FIXME: Weird check. Groups are created immediately and currently
-				//not registered, so they will never be playing.
-				//Like this, group messages will never be sent with latency,
-				//which means they will not work immediately after play
-				var latency = if(node.isKindOf(Synth) && node.isPlaying.not, ~server.latency);
-				out.sendToNode(node, latency);
-			};
-		};
-		out
-	};
-
-	~prGetNodeFromPath = { |type, key|
-		//Get playing node from map path
-		if (type == \group) {
-			~groups[key]
-		} {
-			~synths[type] !? { |typeDict|
-				typeDict[key];
-			}
-		}
-	};
-
-}, \initData);
-
 Cell.addTemplate(\markers, {
 
 	~build = {
@@ -366,170 +300,20 @@ Cell.addTemplate(\track, {
 
 }, \server);
 
-Cell.addTemplate(\group, {
-	// Default group order
-	// TODO: nested groups, if needed
-
-	~beforeInit = {
-		~updateTemplate.((
-			group: #[ctl, main, fx, level, send],
-			defaultGroup: \main
-		));
-	};
-
-	~addGroup = { |key, parent|
-		var group, msg;
-		~groups[key] !? (_.free);
-		//If parent is set, use that
-		// Otherwise, use parentGroup. If nil,
-		// it defaults to Group(1) (nil.asTarget)
-		parent = parent ?? ~parentGroup; // calls .value on ~parentGroup
-		group = Group.basicNew(~server);
-		msg = group.addToTailMsg(parent);
-		~groups[key] = group;
-		//No need to have latency here, do it as fast as possible
-		~server.sendBundle(nil, msg);
-		group
-	};
-
-	// All groups end up in the groups envir
-	// The envir should not be placed in the parent envir
-	// So we create it as a part of ~addGroups
-	~beforePlay = {
-		~groups ?? { ~groups = IdentityDictionary(know:true) };
-		~template[\group].do { |key|
-			~addGroup.value(key);
-		};
-		~defaultGroup = ~groups[~template[\defaultGroup]];
-	};
-
-	~afterInit = {
-		// add node map
-		~template[\group].do { |key|
-			~addNodeMap.(\group, key);
-		};
-	};
-
-	~afterPlay = {
-		//Sync node map
-		~groups.keysValuesDo { |key, node|
-			var map = ~nodemap[\group][key];
-			if (map.notEmpty) {
-				map.sendToNode(node, ~server.latency);
-			}
-		};
-	};
-
-	~freeAll = {
-		~groups.do(_.free);
-		~groups.clear;
-		~groups = nil;
-	}
-
-}, \server);
-
-
-Cell.addTemplate(\bus, {
-
-	// Buses, following the group scheme above
-	// Buses are private by default, but
-	// you can provide an index for global buses
-	// TODO: a way to inject buses from outside
-	~beforeInit = {
-		~updateTemplate.((
-			bus: (
-				//Type, channels, index (for global buses)
-				main: [\audio, { ~settings[\numChannels] }],
-				out: {
-					try { currentEnvironment.mother[\bus].main } {
-						[\audio, 2, 0]
-					};
-				}
-			)
-		));
-	};
-
-	//Add a single bus, identified by key
-	~addBus = { |key, rate, numChannels, index, grp|
-		var bus;
-		grp = grp ? \_default;
-		~bus[grp][key].free; // Also if nil
-		if (rate.isKindOf(CellBus)) {
-			bus = rate;
-		} {
-			if (index.notNil) {
-				bus = CellBus(rate, index, numChannels.value, ~server);
-			} {
-				bus = CellBus.alloc(rate, ~server, numChannels.value ? 2)
-			};
-		};
-		bus.owner ?? {
-			bus.owner_(currentEnvironment);
-		};
-		~bus[grp][key] = bus;
-		bus;
-
-	};
-
-	// Add buses according to template
-	~beforeLoad = {
-		~bus ?? { ~bus = (
-			_default: (),
-			_ctl: (),
-			// We use a strange feature of events:
-			// when calling ~bus.foo, the event is forwarding the
-			// message to this function, which tries to find it
-			// and otherwise forwards it the _default event
-			// so we still can use ~bus.foo for accessing buses
-			forward: { |self, key|
-				if (self[key].notNil) {
-					self[key].value;
-				} {
-					self[\_default][key]
-				}
-			}
-		)};
-
-		~template[\bus] !? { |x| x.keysValuesDo { |key, args|
-			args = args.value.asArray;
-			~addBus.(key, *args);
-		}};
-
-	};
-
-	~freeAll = {
-		~bus.reject(_.isFunction).do { |ev|
-			ev.do { |bus|
-				bus.releaseBus(currentEnvironment);
-			}
-		};
-		~bus.clear;
-		~bus = nil;
-	};
-
-}, \server);
-
 // Synth related methods: FX, Ctl,
 Cell.addTemplate(\synth, {
 
-	~numChannelsFormat = { |string|
-		string.format(~settings[\numChannels]).asSymbol;
+	~build = {
+		~instanceData[\template][\track] = (
+			//FIXME ~settings[\defaultSendTarget]
+			post: ( out: 0 )
+		);
 	};
 
-	~beforeInit = {
-		~settings[\defaultSynth] = \default;
-		~updateTemplate.((
-			main: IdentityDictionary(),
-			level: IdentityDictionary[
-				\main -> { [~numChannelsFormat.("cellMixer_%"),
-					(
-						fadetime: { ~settings[\fadeIn] },
-						out: { ~bus.out },
-						in: { ~bus.main }
-					)
-				] };
-			];
-		))
+
+
+	~numChannelsFormat = { |string|
+		string.format(~settings[\numChannels]).asSymbol;
 	};
 
 	~addSynthsFromTemplate = {
