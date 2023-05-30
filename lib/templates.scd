@@ -224,6 +224,10 @@ Cell.addTemplate(\settings, {
 		));
 	};
 
+	~numChannelsFormat = { |string|
+		string.format(~settings[\numChannels].value)
+	};
+
 	~getDuration = {
 		~settings[\duration];
 	};
