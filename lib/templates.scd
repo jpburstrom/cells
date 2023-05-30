@@ -292,12 +292,27 @@ Cell.addTemplate(\track, {
 
 	~build = {
 		~instanceData[\template][\track] = (
-			post: ( out: 0 )
+			//FIXME ~settings[\defaultSendTarget]
+			post: ( out: 0 ),
 		);
+		~instanceData[\settings][\track] = (
+			fadeGroup: \post,
+			fadeSlot: \out,
+			fadeParam: \level,
+			numChannels: { ~settings.numChannels }
+		)
 	};
 
+
 	~beforeInit = {
-		~track = Track.newFromDict(~template[\track].value);
+		//For now, just copy ~settings[\numChannels] to track.
+		//TODO make it possible to pass in user settings that's not part of the
+		//track settings template
+		~template[\track][\settings] = ~settings[\track].collect({ |v|
+			v.value;
+		});
+		~track = Track.newFromDict(~template[\track]);
+		~trackAuto = TrackAuto(~track, ~track[~settings[\track][\fadeGroup], ~settings[\track][\fadeSlot]], ~settings[\track][\fadeParam]);
 	};
 
 	// All groups end up in the groups envir
@@ -316,6 +331,35 @@ Cell.addTemplate(\track, {
 
 	~freeAll = {
 		~track.free;
+	};
+
+	~fadeIn = { |endLevel=1, dur=3, curve|
+		//In case we're not ready to play. This will also boot server if needed
+		currentEnvironment.load.then {
+			~trackAuto.fadeIn(endLevel, dur, curve)
+		}
+	};
+
+	~fadeOut = { |dur=3, curve, stopCell=false|
+		if (stopCell) {
+			var stopFunc = { |obj, what|
+				if (obj == ~trackAuto and: { what == \finish }) {
+					~getCell.value.stop;
+				} {
+					//Assuming slot object
+					if (what == \stopped) {
+						//We need to reset to previous value,
+						//and it needs to be done after slot has finished playing
+						//Then we're ready for replaying cell
+						~trackAuto.reset(false);
+					}
+				};
+				obj.removeDependant(stopFunc)
+			};
+			~trackAuto.slot.addDependant(stopFunc.inEnvir);
+			~trackAuto.addDependant(stopFunc.inEnvir);
+		};
+		~trackAuto.fadeOut(dur, curve)
 	}
 
 }, \server);
@@ -323,243 +367,23 @@ Cell.addTemplate(\track, {
 // Synth related methods: FX, Ctl,
 Cell.addTemplate(\synth, {
 
-	~build = {
-		~instanceData[\template][\track] = (
-			//FIXME ~settings[\defaultSendTarget]
-			post: ( out: 0 )
-		);
-	};
-
-
-
-	~numChannelsFormat = { |string|
-		string.format(~settings[\numChannels]).asSymbol;
-	};
-
-	~addSynthsFromTemplate = {
-		var action;
-		~synths ?? { ~synths = IdentityDictionary(know:true) };
-		~template[\group] !? { |x| x.do { |groupKey|
-			if (groupKey == \ctl) {
-				~prSynthTemplateLoop.(\ctl, ~prPlayCtl);
-			} {
-				~prSynthTemplateLoop.(groupKey, ~prPlaySynth);
-			}
-		}};
-		~syncSynthNodeMap.value;
-	};
-
-	~addSynthNodeMap = {
-		~template[\group].do { |groupKey|
-			~prSynthTemplateLoop.(groupKey, { |group, key, synth, args|
-				var map;
-				map = ~addNodeMap.(group, key);
-			});
+	~validateArgs = nil -> { |args|
+		if (args[0].isSymbol.not and: { args[0].respondsTo(\asTrackGroupItem) }) {
+			var synth = args.removeAt(0);
+			var key = "%_%".format((synth.tryPerform(\key) ? "synth"), synth.hash.asHexString).asSymbol;
+			args = ~dictMerge.value((
+				template: (
+					track: (
+						main: ().put(key, synth)
+					)
+				)
+			), args.asDict);
+			args.postln;
 		};
-
+		args.asPairs;
 	};
 
-	~prSynthTemplateLoop = { |group, callback|
-		~template[group] !? { |x| x.keysValuesDo({ |key, args|
-			var synth;
-			// Unpack functions from template
-			if (args.isFunction) {
-				args = args.value;
-			};
-			args = args.asArray;
-			synth = args[0].value;
-
-			if (synth.isFunction) {
-				synth = synth.asSynthDef(fadeTime:0, name: (key ++ this.identityHash.abs).asSymbol).add.name;
-			};
-			args = args[1..];
-			if (args.size == 1) {
-				args = args[0];
-			};
-			callback.(group, key, synth, args);
-		})};
-	};
-
-	// Callback for synth.onFree
-	// Removes synth from ~synths set
-	~onSynthFree = { |group, key|
-		~synths !? {
-			~synths[group][key] = nil;
-
-			//Things to do when no synths are playing inside group
-			if (~synths[group].isEmpty) {
-				switch(group,
-
-					// We're checking if any main or fx synths are still playing
-					// If no main synths are left:
-					//   If fx are playing, release the fx synths
-					//   Otherwise free the cell
-
-					// If no fx synths are left:
-					//    If no main synths are playing, free the cell
-
-					// Ctl and volume synths are just abruptly free'd.
-					\main, {
-						if (~synths[\fx].notNil) {
-							if (~synths[\fx].notEmpty) {
-								~groups[\fx].release;
-							} {
-								//If we're last synth playing, free after release
-								currentEnvironment.freeAll;
-							}
-						} {
-							currentEnvironment.freeAll;
-						}
-
-					},
-					\fx, {
-						// Free cell when fx and main are not playing anymore
-						if (~synths[\main].isNil or: { ~synths[\main].isEmpty }) {
-							currentEnvironment.freeAll;
-						}
-					},
-					//If level synth is gone, free everything
-					\level, {
-						currentEnvironment.stop;
-					}
-				);
-
-			}
-		}
-
-	};
-
-	// Add synth
-	~addSynth = { |key, synth, args|
-
-		~prPlaySynth.(\main, key, synth, args)
-	};
-
-	// Add effect synth
-	~addFx = { |key, synth, args|
-		~prPlaySynth.(\fx, key, synth, args);
-	};
-
-
-	// Helper method for adding synths
-	~prPlaySynth = { |group, key, synth, args|
-		var out;
-		args = ~settings[\defaultSynthArgs].copy.putAll(args);
-		args = args.collect(_.value);
-		~nodemap.at(group, key).putAll(args);
-		// Send using default latency, to sync with patterns et al
-		s.bind({
-			out = Synth(synth, args.asPairs, ~groups[group]);
-		});
-		~synths[group] ?? { ~synths[group] = IdentityDictionary() };
-		~synths[group][key] = out;
-		out.onFree({ |syn|
-			~onSynthFree.(group, key);
-		}.inEnvir);
-		out;
-	};
-
-	~syncSynthNodeMap = {
-		~synths.keysValuesDo { |type, dict|
-			dict.keysValuesDo { |key, node|
-				~nodemap[type][key] !? { |map|
-					// Use default latency, to sync with s.bind in ~prPlaySynth
-					map.updateArgs;
-					map.sendToNode(node, ~server.latency);
-				}
-			}
-		};
-
-	};
-
-	~afterInit = ~addSynthNodeMap;
-	~beforePlay = ~addSynthsFromTemplate;
-
-	// Default stop: Call release on synths
-	// and let them free the cell when done playing
-	~afterStop = {
-		if (~settings.releaseAfterStop) {
-			~defaultGroup.release;
-		}
-	};
-
-	~afterFree = {
-		~synths.clear;
-		~synths = nil;
-	};
-
-	~fadeIn = { |time, curve=4|
-		~set.(\level, \main, \freeWhenDone, 0);
-		~set.(\level, \main, \curve, curve);
-		currentEnvironment.load.then {
-			if (currentEnvironment.state == \ready) {
-				var oldFade;
-				if (time.notNil) {
-					oldFade = ~settings[\fadeIn];
-					~settings[\fadeIn] = time;
-				};
-				currentEnvironment.play.then {
-					oldFade !? { ~settings[\fadeIn] = oldFade };
-				};
-			}
-		};
-	};
-
-	~fadeOut = { |time, curve=(-4), freeWhenDone=true|
-		//~set.(\level, \main, \fadetime, time ?? { ~settings[\fadeOut] });
-		//Access this directly, so nodeMap is not affected
-		~synths[\level][\main].set(
-			\amp, 0,
-			\curve, curve,
-			\freeWhenDone, freeWhenDone.asInteger,
-			\fadetime, time
-		);
-		currentEnvironment
-	};
-
-	// Get bus from ctl key
-	~ctlBus = { |key|
-		~bus[\_ctl][key];
-	};
-
-	// Get a kr player from ctl key
-	~ctlKr = { |key|
-		var bus = ~bus[\_ctl][key];
-		In.kr(bus, bus.numChannels);
-	};
-
-	// Get a pattern from ctl key
-	// Stolen from Pkr (BenoitLib)
-	~ctlPattern = { |key|
-		var last = 0, check;
-		var busEnvir = ~bus[\_ctl];
-		check = { ~server.hasShmInterface }.try;
-
-		check.if ({
-			^Pfunc({ busEnvir[key].getSynchronous });
-		}, {
-			"No shared memory interface detected".warn;
-			busEnvir[key].get({|v| last = v;});
-			^Pfunc({ busEnvir[key].get({ |v| last = v; }); last });
-		});
-	};
-
-	// Add control synth (LFO etc)
-	~addCtl = { |key, synth, args, numChannels|
-		var bus;
-		numChannels = numChannels ? 1;
-		bus = ~addBus.(key, \control, numChannels, nil, \_ctl);
-		args = (args ?? IdentityDictionary()).asDict;
-		args[\out] = bus;
-		~prPlaySynth.(\ctl, key, synth, args);
-	};
-
-	~prPlayCtl = { |grp, key, synth, args|
-		var numChannels = nil;
-		~addCtl.(key, synth, args, numChannels);
-	};
-
-}, [\group, \bus]);
+}, [\track]);
 
 
 
@@ -581,16 +405,17 @@ Cell.addTemplate(\buffer, {
 	);
 	*/
 
-	~validateArgs = { |args|
+	//No dependencies here, please
+	~validateArgs = nil -> { |args|
 		if (args[0].isString) {
 			var path = args.removeAt(0);
 			var key = path.basename.splitext[0].asSymbol;
 			args = args.asDict;
-			args = ~dictMerge.value(args.asDict, (
+			args = ~dictMerge.value((
 				template: (
 					buffer: ().put(key, path)
 				)
-			));
+			), args.asDict);
 		};
 		args.asPairs;
 	};
