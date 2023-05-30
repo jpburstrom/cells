@@ -524,20 +524,23 @@ Cell.addTemplate(\buffer, {
 }, [\synth]);
 
 Cell.addTemplate(\disk, {
-	~beforeInit = {
-		~settings[\setDurationFromFile] = true;
-		~settings[\setMarkersFromFile] = true;
-		~settings[\defaultSynthArgs][\duration] = { ~settings[\duration] };
-		~settings[\defaultSynth] = {
-			~numChannelsFormat.("cellDiskPlayer_%");
-		};
-		~settings[\defaultBufferMethod] = \cueSoundFile;
+
+	~build = {
+		~instanceData[\settings][\buffer] = (
+			setDurationFromFile: true,
+			setMarkersFromFile: true,
+			//~settings[\defaultSynthArgs][\duration] = { ~settings[\duration] };
+			defaultSynth: {
+				~numChannelsFormat.("cellDiskPlayer_%");
+			},
+			defaultBufferMethod: \cueSoundFile,
+		)
 	};
 
 	~eachSoundFile = { |sf, obj|
 		var ffwd = currentEnvironment[\fastForward] ? 0;
 
-		if (~settings[\setDurationFromFile]) {
+		if (~settings[\buffer][\setDurationFromFile]) {
 			if (~settings[\duration] == inf) {
 				~settings[\duration] = 0;
 			};
@@ -550,7 +553,7 @@ Cell.addTemplate(\disk, {
 		};
 
 
-		if (~settings[\setMarkersFromFile]) {
+		if (~settings[\buffer][\setMarkersFromFile]) {
 			~getMarkersFromSoundFile.(sf, obj[\startFrame]);
 		};
 
