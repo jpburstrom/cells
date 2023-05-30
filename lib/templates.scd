@@ -159,18 +159,24 @@ Cell.addTemplate(\settings, {
 
 	// Merge in place
 	~dictMerge = { |template, obj|
-		obj.keysValuesDo { |k, v|
-			if (template[k].isNil) {
-				template[k] = v;
-			} {
-				if (template[k].isKindOf(Dictionary) and: { v.isKindOf(Dictionary) } ) {
-					~dictMerge.(template[k], v)
-				} {
-					// Overwrite single values
+		var keys = (template.keys ++ obj.keys).asArray;
+		keys.postln;
+		keys.do { |k|
+			var v = obj[k];
+			if (v.notNil) {
+				if (template[k].isNil) {
 					template[k] = v;
-				}
-			};
+				} {
+					if (template[k].isKindOf(Dictionary) and: { v.isKindOf(Dictionary) } ) {
+						~dictMerge.(template[k], v)
+					} {
+						// Overwrite single values
+						template[k] = v;
+					}
+				};
+			}
 		};
+		template;
 
 	};
 
