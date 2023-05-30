@@ -311,6 +311,9 @@ Cell.addTemplate(\track, {
 		~template[\track][\settings] = ~settings[\track].collect({ |v|
 			v.value;
 		});
+	};
+
+	~beforeLoad = {
 		~track = Track.newFromDict(~template[\track]);
 		~trackAuto = TrackAuto(~track, ~track[~settings[\track][\fadeGroup], ~settings[\track][\fadeSlot]], ~settings[\track][\fadeParam]);
 	};
