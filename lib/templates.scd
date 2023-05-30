@@ -777,6 +777,20 @@ Cell.addTemplate(\buffer, {
 	);
 	*/
 
+	~validateArgs = { |args|
+		if (args[0].isString) {
+			var path = args.removeAt(0);
+			var key = path.basename.splitext[0].asSymbol;
+			args = args.asDict;
+			args = ~dictMerge.value(args.asDict, (
+				template: (
+					buffer: ().put(key, path)
+				)
+			));
+		};
+		args.asPairs;
+	};
+
 	~beforeInit = {
 		~settings[\defaultSynth] = { ~numChannelsFormat.("cellBufPlayer_%") };
 		~settings[\defaultBufferMethod] = \read;
