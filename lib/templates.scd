@@ -417,6 +417,13 @@ Cell.addTemplate(\buffer, {
 		)
 	);
 	*/
+	~build = {
+		~instanceData[\settings][\buffer] = (
+			defaultSynth: { ~numChannelsFormat.("cellBufPlayer_%") },
+			defaultBufferMethod: \read,
+			cueSize: 65536
+		)
+	};
 
 	//No dependencies here, please
 	~validateArgs = nil -> { |args|
@@ -434,23 +441,24 @@ Cell.addTemplate(\buffer, {
 	};
 
 	~beforeInit = {
-		~settings[\defaultSynth] = { ~numChannelsFormat.("cellBufPlayer_%") };
-		~settings[\defaultBufferMethod] = \read;
-		~settings[\cueSize] = 65536;
-		~settings[\numChannels] = 2;
-		if (~template[\main].notNil and: { ~template[\main].isEmpty }) {
+		var mainTemplate = ~template[\track][\main];
+		if (mainTemplate.isEmpty) {
 			~template[\buffer] !? { |x|
-				x.keys.do { |key|
-					~template[\main][key] = {
-						[~settings[\defaultSynth],
-							\bufnum, {~buffers[key]}]
-					};
+				~settings[\numChannels] = 0; //let buffers set numChannels
+				x.keysValuesChange { |key, obj|
+					obj = ~checkFile.(key, obj);
+					mainTemplate[key] = TrackSynth(
+						~settings[\buffer][\defaultSynth].value,
+						//TODO need to dereference this before it becomes a TrackSlotParam
+						(bufnum: Thunk({ ~buffers[key] }.inEnvir))
+					);
+					obj
 				}
 			};
 		};
 	};
 
-	~addBuffer = { |key, obj|
+	~checkFile = { |key, obj|
 		var method, channels;
 
 		obj = obj.value;
@@ -459,8 +467,6 @@ Cell.addTemplate(\buffer, {
 			obj = IdentityDictionary[\path->obj];
 		};
 
-		// Free previous buffer if needed
-		~buffers[key].free;
 
 		SoundFile.use(obj[\path], { |sf|
 			obj[\duration] !? { |dur|
@@ -469,24 +475,33 @@ Cell.addTemplate(\buffer, {
 			obj[\startTime] !? { |start|
 				obj[\startFrame] = (start.value(sf) * sf.sampleRate).floor;
 			};
-			channels = sf.numChannels;
+			obj[\numChannels] = sf.numChannels;
 			~eachSoundFile.(sf, obj);
 		}.inEnvir);
 
-		~settings[\numChannels] = ~settings[\numChannels].max(channels);
-		~numChannelsFormat.("cellBufPlayer_%");
+		~settings[\numChannels] = ~settings[\numChannels].max(obj[\numChannels]);
 
-		switch (obj[\method] ?? { ~settings[\defaultBufferMethod] },
+		obj;
+
+	};
+
+	~addBuffer = { |key, obj|
+
+		// Free previous buffer if needed
+		~buffers[key].free;
+
+		switch (obj[\method] ?? { ~settings[\buffer][\defaultBufferMethod] },
 			\read, {
 				~buffers[key] = Buffer.read(~server, obj[\path], obj[\startFrame] ? 0, obj[\numFrames] ? -1);
 			},
 			\cueSoundFile, {
 				~buffers[key] = Buffer.cueSoundFile(
-					~server, obj[\path], obj[\startFrame] ? 0, channels,
+					~server, obj[\path], obj[\startFrame] ? 0, obj[\numChannels],
 					obj[\bufferSize] ?? { ~settings[\cueSize] ? 65536 };
 				);
 			}
 		);
+		~buffers.postln;
 	};
 
 	// Add buses according to template
@@ -495,9 +510,7 @@ Cell.addTemplate(\buffer, {
 		if (template.notNil) {
 			~buffers ?? { ~buffers = IdentityDictionary(know:true) };
 			template.keysValuesDo { |key, obj|
-				~settings[\numChannels] = 0;
 				~addBuffer.(key, obj);
-
 			};
 		};
 	};
