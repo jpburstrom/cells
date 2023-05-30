@@ -239,6 +239,13 @@ Cell.addTemplate(\settings, {
 
 Cell.addTemplate(\base, {
 
+	~validateArgs = { |args|
+		if (args.size.odd) {
+			Error("This cell template should have even number of arguments.").throw
+		};
+		args
+	};
+
 	~build = {
 		~addInstanceData.(\template, IdentityDictionary());
 	};
