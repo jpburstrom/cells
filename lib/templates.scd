@@ -292,14 +292,22 @@ Cell.addTemplate(\track, {
 
 	~build = {
 		~instanceData[\template][\track] = (
-			//FIXME ~settings[\defaultSendTarget]
+			mod: (  ),
+			main: (  ),
+			pre: (  ),
+			fx: (  ),
+			//TODO defaultSendTarget/thunk/template
 			post: ( out: 0 ),
 		);
 		~instanceData[\settings][\track] = (
 			fadeGroup: \post,
 			fadeSlot: \out,
 			fadeParam: \level,
-			numChannels: { ~settings.numChannels }
+			numChannels: { ~settings[\numChannels].value },
+			//Default send target
+			//Uses track syntax, anything that responds to
+			//asTrackSlotReceiver
+			defaultSendTarget: 0
 		)
 	};
 
@@ -313,7 +321,8 @@ Cell.addTemplate(\track, {
 		});
 	};
 
-	~beforeLoad = {
+	//This should be after buffers are ready
+	~afterLoad = {
 		~track = Track.newFromDict(~template[\track]);
 		~trackAuto = TrackAuto(~track, ~track[~settings[\track][\fadeGroup], ~settings[\track][\fadeSlot]], ~settings[\track][\fadeParam]);
 	};
@@ -323,9 +332,6 @@ Cell.addTemplate(\track, {
 	// So we create it as a part of ~addGroups
 	~beforePlay = {
 		~track.play;
-	};
-
-	~afterPlay = {
 	};
 
 	~afterStop = {
