@@ -2,6 +2,13 @@ Cell.addTemplate(\initData, {
 	~build = {
 		~instanceData = IdentityDictionary().know_(true); //Instance-level data
 	};
+
+	~beforeInit = { |cell|
+		~getCell = {
+			cell;
+		}
+	};
+
 	~addInstanceData = { |key, value|
 		~instanceData[key] = value;
 	}
