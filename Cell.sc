@@ -345,7 +345,7 @@ Cell : EnvironmentRedirect {
 		// but it seems that in the normal case,
 		// state == \free already
 		if (this.checkState.(\stopped, \free).not) {
-			this.freeAll;
+			this.stop;
 		}
 	}
 
