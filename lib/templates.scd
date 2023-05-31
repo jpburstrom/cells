@@ -326,8 +326,9 @@ Cell.addTemplate(\track, {
 	};
 
 	//This should be after buffers are ready
-	~afterLoad = {
+	~afterLoad = { |cell|
 		~track = Track.newFromDict(~template[\track]);
+		~track.addDependant(cell);
 		~trackAuto = TrackAuto(~track, ~track[~settings[\track][\fadeGroup], ~settings[\track][\fadeSlot]], ~settings[\track][\fadeParam]);
 	};
 
@@ -344,6 +345,20 @@ Cell.addTemplate(\track, {
 
 	~freeAll = {
 		~track.free;
+	};
+
+	~update = { |obj, what|
+		if (obj == ~track) {
+			switch(what,
+				\playing, {
+					~onTrackPlay.value;
+				},
+				\stopped, {
+					~onTrackStop.value;
+				}
+
+			)
+		}
 	};
 
 	~fadeIn = { |endLevel=1, dur=3, curve|
