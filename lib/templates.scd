@@ -599,9 +599,19 @@ Cell.addTemplate(\group, {
 
 Cell.addTemplate(\pattern, {
 
-	~beforeInit = {
+	~build = {
 		// We let pattern release itself
-		~settings[\releaseAfterStop] = false;
+		~instanceData[\settings][\releaseAfterStop] = false;
+	};
+
+	~validateArgs = nil -> { |args|
+		if (args[0].isKindOf(Pattern)) {
+			var ptn = args.removeAt(0);
+			args = ~dictMerge.value((
+				pattern: ptn
+			), args.asDict);
+		};
+		args.asPairs;
 	};
 
 	~beforeLoad = {
@@ -611,30 +621,21 @@ Cell.addTemplate(\pattern, {
 			~spawner = sp;
 			sp.seq(Pfindur(dur, Pchain(~pattern, Pbind(
 				\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1),
-				\out, Pfunc { ~bus !? (_.main) },
-				\group, Pfunc { ~groups !? (_.main) }
+				\out, Pfunc({ ~track.asBus }.inEnvir),
+				\group, Pfunc({ ~track.asGroup }.inEnvir)
 			))));
 
 			sp.wait(~settings.tailDuration * tempo);
 
-			case
-			{ ~synths.isNil } {
-				currentEnvironment.freeAll;
-			}
-			{~synths[\main].notNil and: { ~synths[\main].notEmpty }} {
-				~groups[\main].release;
-			}
-			{ ~synths[\fx].notNil and: { ~synths[\fx].notEmpty } } {
-				~groups[\fx].release;
-			}
-			{ currentEnvironment.freeAll };
-
+			~track.stop;
 		});
 
 		~player = ptn.asEventStreamPlayer;
 	};
 
 	~afterPlay = {
+		"afterPla".postln;
+		s.latency.wait; //XXX temporary
 		if (~player.isPlaying.not) {
 			var rest;
 			var clock = currentEnvironment.clock;
