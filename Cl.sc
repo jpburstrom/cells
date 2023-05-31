@@ -35,6 +35,13 @@ Cl : Cell {
 		^res
 	}
 
+	*doesNotUnderstand { |selector ... args|
+		if (templates[selector].notNil) {
+			^this.new(args[0], selector, *args[1..])
+		} {
+			^this.superPerformList(selector, args);
+		}
+	}
 	addToAll {|argkey|
 		key = argkey;
 		all.put(key, this)

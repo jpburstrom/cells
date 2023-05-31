@@ -62,6 +62,14 @@ Cell : EnvironmentRedirect {
 		^super.new.init(templateKey, pairs);
 	}
 
+	*doesNotUnderstand { |selector ... args|
+		if (templates[selector].notNil) {
+			^this.new(selector, *args.postln)
+		} {
+			^this.superPerformList(selector, args);
+		}
+	}
+
 	init { |templateKey, pairs|
 
 		cond = Condition(true);
