@@ -249,6 +249,10 @@ Cell : EnvironmentRedirect {
 		};
 	}
 
+	spawn { |ffwd, argQuant, argClock|
+		^this.copy.play(ffwd, argQuant, argClock);
+	}
+
 	stop { |now=false|
 		cond.test = false;
 		forkIfNeeded {
