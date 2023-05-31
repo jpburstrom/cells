@@ -629,16 +629,16 @@ Cell.addTemplate(\pattern, {
 		args.asPairs;
 	};
 
-	~beforeLoad = {
+	~beforeLoad = { |cell|
 		var ptn = Pspawner({ |sp|
-			var tempo = currentEnvironment.clock.tempo;
+			var tempo = cell.clock.tempo;
 			var dur = ~settings[\duration] * tempo;
 			~spawner = sp;
 			sp.seq(Pfindur(dur,
-				Penvir(currentEnvironment,
+				Penvir(cell,
 					Pchain(~pattern,
 						Pbind(
-							\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1),
+							\nilOnStop, Pif(Pfunc { cell.checkState(\stopping, \stopped) }, nil, 1),
 							\out, Pfunc({ ~track.asBus }),
 							\group, Pfunc({ ~track.asGroup }),
 							\progress, Plazy({ Ptime() / ~settings[\duration]})
@@ -646,16 +646,13 @@ Cell.addTemplate(\pattern, {
 					), independent: false)
 			));
 
-			sp.wait(~settings.tailDuration * tempo);
-
-			~track.stop;
+			fork { cell.stop };
 		});
 
 		~player = ptn.asEventStreamPlayer;
 	};
 
 	~onTrackPlay = {
-		"afterPla".postln;
 		if (~player.isPlaying.not) {
 			var rest;
 			var clock = currentEnvironment.clock;
@@ -682,7 +679,7 @@ Cell.addTemplate(\pattern, {
 		}
 	};
 
-	~beforeStop = {
+	~beforeStop = { |cell|
 		try {
 			while { ~player.notNil and: { ~player.clock.queue.size >= 2 } } {
 				0.1.wait;
@@ -693,7 +690,7 @@ Cell.addTemplate(\pattern, {
 
 		//Tail duration should equal max release time for synth
 		//TODO keep track of synth releases in some clever way
-		(~settings.tailDuration).wait;
+		(~settings.tailDuration * cell.clock.tempo).wait;
 	};
 
 
