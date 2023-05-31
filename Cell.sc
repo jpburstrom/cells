@@ -444,7 +444,7 @@ Cell : EnvironmentRedirect {
 	}
 
 	copy {
-		^this.class.new(playerType, *argPairs);
+		^Cell.new(playerType, *argPairs);
 	}
 
 	clone { |templateKey ... pairs|

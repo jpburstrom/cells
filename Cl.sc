@@ -45,6 +45,10 @@ Cl : Cell {
 		super.free;
 	}
 
+	copy {
+		^super.copy
+	}
+
 	storeOn { | stream |
 		this.printOn(stream);
 	}
