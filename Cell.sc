@@ -457,4 +457,10 @@ Cell : EnvironmentRedirect {
 	}
 
 	printOn { arg stream; stream << this.class.name << "(" <<< name <<")" }
+
+	update { |obj, what ...args|
+		^envir.use({
+			~update.value(obj, what, *args)
+		})
+	}
 }
