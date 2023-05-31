@@ -92,14 +92,14 @@ Cell : EnvironmentRedirect {
 			envir.proto[key] = data.deepCopy;
 		};
 
-		pairs = envir.use { ~validateArgs.value(pairs) } ? pairs;
+		argPairs = envir.use { ~validateArgs.value(argPairs) } ? argPairs;
 
 		// The make function is run inside the proto of the environment
 		// that way, user data and temporary objects are kept separate from objects
 		// created during init
 		// parent ->
 		// EnvironmentRedirect.new have made the proto for us
-		pairs.pairsDo { |k, v|
+		argPairs.pairsDo { |k, v|
 			if (envir.proto[k].respondsTo(\keysValuesDo)) {
 				v = v.value;
 				if (v.isKindOf(IdentityDictionary)) {
