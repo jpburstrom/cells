@@ -648,9 +648,8 @@ Cell.addTemplate(\pattern, {
 		~player = ptn.asEventStreamPlayer;
 	};
 
-	~afterPlay = {
+	~onTrackPlay = {
 		"afterPla".postln;
-		s.latency.wait; //XXX temporary
 		if (~player.isPlaying.not) {
 			var rest;
 			var clock = currentEnvironment.clock;
@@ -677,22 +676,18 @@ Cell.addTemplate(\pattern, {
 		}
 	};
 
-	~afterStop = {
-		fork {
-			//Wait for releases to finish
-			try {
+	~beforeStop = {
+		try {
 			while { ~player.notNil and: { ~player.clock.queue.size >= 2 } } {
 				0.1.wait;
 			};
-			} {
-				Error("Error in player % afterStop".format(currentEnvironment.name)).throw;
-			};
+		} {
+			Error("Error in player % afterStop".format(currentEnvironment.name)).throw;
+		};
 
-			//Tail duration should equal max release time for synth
-			//TODO keep track of synth releases in some clever way
-			(~settings.tailDuration + ~server.latency).wait;
-			currentEnvironment.freeAll;
-		}
+		//Tail duration should equal max release time for synth
+		//TODO keep track of synth releases in some clever way
+		(~settings.tailDuration).wait;
 	};
 
 
