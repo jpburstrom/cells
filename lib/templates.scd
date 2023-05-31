@@ -567,10 +567,13 @@ Cell.addTemplate(\disk, {
 }, [\buffer]);
 
 
-Cell.addTemplate(\cells, {
+Cell.addTemplate(\group, {
+
+	~build = {
+		~instanceData[\cells] = IdentityDictionary(know: true);
+	};
 
 	~beforeInit = {
-		~cells ?? { ~cells = IdentityDictionary(know:true) };
 		~template[\cells] !? { |x| x.keysValuesDo { |key, cell|
 			~cells[key] = cell;
 			//currentEnvironment.addChildren(key, cell);
@@ -592,7 +595,7 @@ Cell.addTemplate(\cells, {
 	};
 
 	//Needs base for template
-}, [\synth]);
+}, [\base]);
 
 Cell.addTemplate(\pattern, {
 
