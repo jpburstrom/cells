@@ -634,11 +634,17 @@ Cell.addTemplate(\pattern, {
 			var tempo = currentEnvironment.clock.tempo;
 			var dur = ~settings[\duration] * tempo;
 			~spawner = sp;
-			sp.seq(Pfindur(dur, Pchain(~pattern, Pbind(
-				\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1),
-				\out, Pfunc({ ~track.asBus }.inEnvir),
-				\group, Pfunc({ ~track.asGroup }.inEnvir)
-			))));
+			sp.seq(Pfindur(dur,
+				Penvir(currentEnvironment,
+					Pchain(~pattern,
+						Pbind(
+							\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1),
+							\out, Pfunc({ ~track.asBus }),
+							\group, Pfunc({ ~track.asGroup }),
+							\progress, Plazy({ Ptime() / ~settings[\duration]})
+						)
+					), independent: false)
+			));
 
 			sp.wait(~settings.tailDuration * tempo);
 
