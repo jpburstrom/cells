@@ -298,13 +298,12 @@ Cell.addTemplate(\track, {
 		~instanceData[\template][\track] = (
 			mod: (  ),
 			main: (  ),
-			pre: (  ),
 			fx: (  ),
 			//TODO defaultSendTarget/thunk/template
-			post: ( out: 0 ),
+			send: ( out: TrackSend(0, args: (slotType: \trimSend))),
 		);
 		~instanceData[\settings][\track] = (
-			fadeGroup: \post,
+			fadeGroup: \send,
 			fadeSlot: \out,
 			fadeParam: \level,
 			numChannels: { ~settings[\numChannels].value },
