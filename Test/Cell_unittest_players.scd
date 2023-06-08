@@ -8,12 +8,12 @@ if (thisThread.isKindOf(Routine).not) {
 
 	var cell, server;
 
-	test.assert(Cell.players[\server][\beforeInit].isNil, "Server has no beforeInit");
-	test.assert(Cell.players[\bus][\beforeInit].isFunction, "Bus has beforeInit");
-	test.assert(Cell.players[\group][\beforeInit].isFunction, "Group has beforeInit");
-	test.assert(Cell.players[\synth][\beforeInit].isKindOf(CellFunctionList), "Synth beforeInit is functionList");
-	test.assert(Cell.players[\synth][\beforeInit].array.size == 3, "Synth has three beforeInit functions");
-	test.assert(Cell.players[\synth][\beforeInit].keys.includes(\group), "Synth has group beforeInit");
+	test.assert(Cell.players[\server][\templateInit].isNil, "Server has no templateInit");
+	test.assert(Cell.players[\bus][\templateInit].isFunction, "Bus has templateInit");
+	test.assert(Cell.players[\group][\templateInit].isFunction, "Group has templateInit");
+	test.assert(Cell.players[\synth][\templateInit].isKindOf(CellFunctionList), "Synth templateInit is functionList");
+	test.assert(Cell.players[\synth][\templateInit].array.size == 3, "Synth has three templateInit functions");
+	test.assert(Cell.players[\synth][\templateInit].keys.includes(\group), "Synth has group templateInit");
 
 
 	#[server, bus, group, ctl, synth, buffer, disk].do { |key, i|

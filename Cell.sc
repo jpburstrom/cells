@@ -122,7 +122,7 @@ Cell : EnvironmentRedirect {
 
 
 		this.use {
-			envir[\beforeInit].value(this);
+			envir[\templateInit].value(this);
 			envir[\init].value(this);
 			envir[\afterInit].value(this);
 		};
@@ -189,7 +189,7 @@ Cell : EnvironmentRedirect {
 		forkIfNeeded {
 			if (this.checkState(\stopped, \error, \free)) {
 				this.prChangeState(\loading);
-				this.trigAndWait(\beforeLoad, \load, \afterLoad);
+				this.trigAndWait(\templateLoad, \load, \templatePostLoad);
 
 				if (envir[\fastForward].isNegative) {
 					//TODO: This is a fallback,
@@ -234,7 +234,7 @@ Cell : EnvironmentRedirect {
 					//Set beats to sync 0 with syncClock's next beat according to syncQuant.
 					//timeToNextBeat is in seconds, so multiply with this clock's tempo.
 
-					this.trigAndWait(\beforePlay);
+					this.trigAndWait(\templatePlay);
 
 					clock.beats = (envir[\fastForward] -
 						((syncClock.timeToNextBeat(syncQuant ? 0) ? 0) /
@@ -270,7 +270,7 @@ Cell : EnvironmentRedirect {
 			if (this.checkState(\stopped, \stopping, \free).not) {
 				this.prChangeState(\stopping);
 				playerCond.wait; //If currently loading, wait until done before cleaning up
-				this.trigAndWait(\beforeStop, \stop, \afterStop);
+				this.trigAndWait(\templateStop, \stop, \templatePostStop);
 				this.afterStop;
 				if (now) {
 					this.freeAll;
@@ -299,7 +299,7 @@ Cell : EnvironmentRedirect {
 	freeAll {
 		if (this.checkState(\free).not) {
 			this.use(envir[\freeAll]);
-			this.use(envir[\afterFree]);
+			this.use(envir[\templateFree]);
 			clock = nil;
 			this.prChangeState(\free);
 		};

@@ -3,7 +3,7 @@ Cell.addTemplate(\initData, {
 		~instanceData = IdentityDictionary().know_(true); //Instance-level data
 	};
 
-	~beforeInit = { |cell|
+	~templateInit = { |cell|
 		~getCell = {
 			cell;
 		}
@@ -215,7 +215,7 @@ Cell.addTemplate(\settings, {
 			fadeOut: 0,
 			// Curve
 			fadeOutCurve: -8,
-			// If true, release main synths in .afterStop
+			// If true, release main synths in .templatePostStop
 			releaseAfterStop: true,
 			// Default arguments for new synths
 			defaultSynthArgs:  IdentityDictionary[
@@ -264,13 +264,13 @@ Cell.addTemplate(\server, {
 	//FIXME we should not hardcode server here
 	//Use settings!
 
-	~beforeInit = {
+	~templateInit = {
 		~server = ~settings[\server].value;
 		~server.debug("server");
 	};
 
-	~beforeLoad = { ~server.bootSync };
-	~afterLoad = { ~server.sync };
+	~templateLoad = { ~server.bootSync };
+	~templatePostLoad = { ~server.sync };
 
 	// --- Server boot / quit ---
 
@@ -285,7 +285,7 @@ Cell.addTemplate(\server, {
 		ServerQuit.add(currentEnvironment, ~server);
 	};
 
-	~freeAll = {
+	~templateFree = {
 		ServerBoot.remove(currentEnvironment, ~server);
 		ServerQuit.remove(currentEnvironment, ~server);
 	};
@@ -315,7 +315,7 @@ Cell.addTemplate(\track, {
 	};
 
 
-	~beforeInit = {
+	~templateInit = {
 		//For now, just copy ~settings[\numChannels] to track.
 		//TODO make it possible to pass in user settings that's not part of the
 		//track settings template
@@ -324,7 +324,7 @@ Cell.addTemplate(\track, {
 		});
 	};
 
-	~beforeLoad = { |cell|
+	~templateLoad = { |cell|
 		~track = Track.newFromDict(~template[\track]);
 		~track.addDependant(cell);
 		~trackAuto = TrackAuto(~track, ~track[~settings[\track][\fadeGroup], ~settings[\track][\fadeSlot]], ~settings[\track][\fadeParam]);
@@ -333,15 +333,25 @@ Cell.addTemplate(\track, {
 	// All groups end up in the groups envir
 	// The envir should not be placed in the parent envir
 	// So we create it as a part of ~addGroups
-	~beforePlay = {
-		~track.play;
+	~templatePlay = {
+		var cond = CondVar();
+		var cb = { |obj, what|
+			if (what == \playing) {
+				cond.signalOne;
+				obj.removeDependant(cb);
+			}
+		};
+		~track.addDependant(cb).play;
+		if (cond.waitFor(1).not) {
+			Error("Track could not start").throw;
+		};
 	};
 
-	~afterStop = {
+	~templatePostStop = {
 		~track.stop;
 	};
 
-	~freeAll = {
+	~templateFree = {
 		~track.free;
 	};
 
@@ -409,6 +419,10 @@ Cell.addTemplate(\synth, {
 		args.asPairs;
 	};
 
+	~templatePlay = {
+		~track[\main].default = \default;
+	}
+
 }, [\track]);
 
 
@@ -453,7 +467,7 @@ Cell.addTemplate(\buffer, {
 		args.asPairs;
 	};
 
-	~beforeInit = {
+	~templateInit = {
 		var mainTemplate = ~template[\track][\main];
 		if (mainTemplate.isEmpty) {
 			~template[\buffer] !? { |x|
@@ -518,7 +532,7 @@ Cell.addTemplate(\buffer, {
 	};
 
 	// Add buses according to template
-	~beforeLoad = {
+	~templateLoad = {
 		var template = ~template[\buffer];
 		if (template.notNil) {
 			~buffers ?? { ~buffers = IdentityDictionary(know:true) };
@@ -528,7 +542,7 @@ Cell.addTemplate(\buffer, {
 		};
 	};
 
-	~freeAll = {
+	~templateFree = {
 		~buffers.do(_.free);
 		~buffers.clear;
 		~buffers = nil;
@@ -586,7 +600,7 @@ Cell.addTemplate(\group, {
 		~instanceData[\cells] = IdentityDictionary(know: true);
 	};
 
-	~beforeInit = {
+	~templateInit = {
 		~template[\cells] !? { |x| x.keysValuesDo { |key, cell|
 			~cells[key] = cell;
 			//currentEnvironment.addChildren(key, cell);
@@ -594,7 +608,7 @@ Cell.addTemplate(\group, {
 	};
 
 	//Cell methods needs to be forwarded
-	#[load, play, stop, pause, resume, freeAll, free].do { |action|
+	#[load, play, stop, pause, resume, templateFree, free].do { |action|
 		currentEnvironment[action] = {
 			~cells.do(_.perform(action));
 		};
@@ -627,7 +641,7 @@ Cell.addTemplate(\pattern, {
 		args.asPairs;
 	};
 
-	~beforeLoad = { |cell|
+	~templateLoad = { |cell|
 		var ptn = Pspawner({ |sp|
 			var tempo = cell.clock.tempo;
 			var dur = ~settings[\duration] * tempo;
@@ -677,13 +691,13 @@ Cell.addTemplate(\pattern, {
 		}
 	};
 
-	~beforeStop = { |cell|
+	~templateStop = { |cell|
 		try {
 			while { ~player.notNil and: { ~player.clock.queue.size >= 2 } } {
 				0.1.wait;
 			};
 		} {
-			Error("Error in player % afterStop".format(currentEnvironment.name)).throw;
+			Error("Error in player % templatePostStop".format(currentEnvironment.name)).throw;
 		};
 
 		//Tail duration should equal max release time for synth
@@ -696,7 +710,7 @@ Cell.addTemplate(\pattern, {
 }, [\synth]);
 
 Cell.addTemplate(\bufferPattern, {
-	~beforeInit = {
+	~templateInit = {
 		~template[\main] = nil;
 	};
 }, [\pattern, \buffer]);

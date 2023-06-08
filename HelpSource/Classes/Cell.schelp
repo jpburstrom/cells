@@ -74,7 +74,7 @@ A link::Classes/Condition:: which is set to wait whenever player is waiting to c
 METHOD:: wait
 Wait for link::#-cond::.
 
-PRIVATE:: prChangeState, doOnServerTree, playAfterLoad, checkState, doFunctionPerform, trigAndWait, init, initPlayer, freeAll, afterStop
+PRIVATE:: prChangeState, doOnServerTree, playAfterLoad, checkState, doFunctionPerform, trigAndWait, init, initPlayer, freeAll, templatePostStop
 
 
 EXAMPLES::
