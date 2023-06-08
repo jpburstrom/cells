@@ -324,8 +324,7 @@ Cell.addTemplate(\track, {
 		});
 	};
 
-	//This should be after buffers are ready
-	~afterLoad = { |cell|
+	~beforeLoad = { |cell|
 		~track = Track.newFromDict(~template[\track]);
 		~track.addDependant(cell);
 		~trackAuto = TrackAuto(~track, ~track[~settings[\track][\fadeGroup], ~settings[\track][\fadeSlot]], ~settings[\track][\fadeParam]);
