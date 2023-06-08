@@ -333,7 +333,7 @@ Cell.addTemplate(\track, {
 	// All groups end up in the groups envir
 	// The envir should not be placed in the parent envir
 	// So we create it as a part of ~addGroups
-	~templatePlay = {
+	~templatePreparePlay = {
 		var cond = CondVar();
 		var cb = { |obj, what|
 			if (what == \playing) {

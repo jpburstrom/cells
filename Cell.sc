@@ -234,7 +234,7 @@ Cell : EnvironmentRedirect {
 					//Set beats to sync 0 with syncClock's next beat according to syncQuant.
 					//timeToNextBeat is in seconds, so multiply with this clock's tempo.
 
-					this.trigAndWait(\templatePlay);
+					this.trigAndWait(\templatePreparePlay);
 
 					clock.beats = (envir[\fastForward] -
 						((syncClock.timeToNextBeat(syncQuant ? 0) ? 0) /
@@ -244,7 +244,7 @@ Cell : EnvironmentRedirect {
 
 					clock.schedAbs(0, {
 						fork {
-							this.trigAndWait(\play, \afterPlay);
+							this.trigAndWait(\templatePlay, \play);
 							if (this.checkState(\stopping).not) {
 								this.prChangeState(\playing);
 							};
