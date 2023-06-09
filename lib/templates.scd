@@ -630,7 +630,7 @@ Cell.addTemplate(\group, {
 	};
 
 	//Cell methods needs to be forwarded
-	#[load, play, stop, pause, resume, templateFree, free].do { |action|
+	#[load, play, stop, pause, resume, free].do { |action|
 		currentEnvironment[action] = {
 			~cells.do(_.perform(action));
 		};
