@@ -282,7 +282,6 @@ Cell.addTemplate(\server, {
 
 	~templateInit = {
 		~server = ~settings[\server].value;
-		~server.debug("server");
 	};
 
 	~templateLoad = { ~server.bootSync };
@@ -477,7 +476,7 @@ Cell.addTemplate(\buffer, {
 	*/
 	~build = {
 		~instanceData[\settings][\buffer] = (
-			defaultSynth: { ~numChannelsFormat.("cellBufPlayer_%") },
+			defaultSynthDef: { ~numChannelsFormat.("cellBufPlayer_%") },
 			defaultBufferMethod: \read,
 			cueSize: 65536
 		)
@@ -499,18 +498,15 @@ Cell.addTemplate(\buffer, {
 	};
 
 	~templateInit = {
-		var mainTemplate = ~template[\track][\main];
+		var mainTemplate = ~template[\synth][\main];
 		if (mainTemplate.isEmpty) {
 			~template[\buffer] !? { |x|
 				~settings[\numChannels] = 0; //let buffers set numChannels
-				x.keysValuesChange { |key, obj|
+				x.keysValuesDo { |key, obj|
 					obj = ~checkFile.(key, obj);
-					mainTemplate[key] = TrackSynth(
-						~settings[\buffer][\defaultSynth].value,
-						//TODO need to dereference this before it becomes a TrackSlotParam
-						(bufnum: Thunk({ ~buffers[key] }.inEnvir))
-					);
-					obj
+					obj[\synthDef] = obj[\synthDef] ?? ~settings[\buffer][\defaultSynthDef];
+					obj[\bufnum] = { ~buffers[key] }.inEnvir;
+					mainTemplate[key] = obj; //
 				}
 			};
 		};
@@ -524,7 +520,6 @@ Cell.addTemplate(\buffer, {
 		if (obj.isKindOf(String)) {
 			obj = IdentityDictionary[\path->obj];
 		};
-
 
 		SoundFile.use(obj[\path], { |sf|
 			obj[\duration] !? { |dur|
@@ -568,6 +563,7 @@ Cell.addTemplate(\buffer, {
 		if (template.notNil) {
 			~buffers ?? { ~buffers = IdentityDictionary(know:true) };
 			template.keysValuesDo { |key, obj|
+				obj = ~checkFile.(key, obj);
 				~addBuffer.(key, obj);
 			};
 		};
@@ -587,8 +583,8 @@ Cell.addTemplate(\disk, {
 		~instanceData[\settings][\buffer] = (
 			setDurationFromFile: true,
 			setMarkersFromFile: true,
-			//~settings[\defaultSynthArgs][\duration] = { ~settings[\duration] };
-			defaultSynth: {
+			//~settings[\defaultSynthDefArgs][\duration] = { ~settings[\duration] };
+			defaultSynthDef: {
 				~numChannelsFormat.("cellDiskPlayer_%");
 			},
 			defaultBufferMethod: \cueSoundFile,
