@@ -254,6 +254,22 @@ Cell.addTemplate(\base, {
 		~addInstanceData.(\template, IdentityDictionary());
 	};
 
+	~templatePlay = {
+		if (~settings[\duration].notNil and: { ~settings[\duration] < inf }) {
+			~durationCond = CondVar();
+			{
+				var isTimeout = false == ~durationCond.waitFor(~settings[\duration], { currentEnvironment.state == \stopping });
+				if (isTimeout) {
+					currentEnvironment.stop;
+				};
+			}.inEnvir.fork;
+		}
+	};
+
+	~templateStop = {
+		~durationCond !? (_.signalAll);
+	};
+
 	~updateTemplate = { |obj|
 		~dictMerge.(~template, obj);
 	};
