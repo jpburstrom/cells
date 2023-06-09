@@ -263,28 +263,17 @@ Cell : EnvironmentRedirect {
 		^this.copy.play(ffwd, argQuant, argClock);
 	}
 
-	stop { |now=false|
+	stop {
 		cond.test = false;
 		forkIfNeeded {
-
 			if (this.checkState(\stopped, \stopping, \free).not) {
 				this.prChangeState(\stopping);
 				playerCond.wait; //If currently loading, wait until done before cleaning up
 				this.trigAndWait(\templateStop, \stop, \templatePostStop);
-				this.afterStop;
-				if (now) {
-					this.freeAll;
-				};
-
+				this.prChangeState(\stopped);
 			};
 			cond.test = true;
 			cond.signal;
-		};
-	}
-
-	afterStop {
-		if (this.checkState(\stopped, \free).not) {
-			this.prChangeState(\stopped);
 		};
 	}
 
