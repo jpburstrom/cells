@@ -340,7 +340,7 @@ Cell.addTemplate(\track, {
 	};
 
 	~templateLoad = { |cell|
-		~track = Track.newFromDict(~template[\track]);
+		~track = Track.newFromDict(~template[\track].deepCopy);
 		~track.addDependant(cell);
 		~trackAuto = TrackAuto(~track, ~track[~settings[\track][\fadeGroup], ~settings[\track][\fadeSlot]], ~settings[\track][\fadeParam]);
 	};
