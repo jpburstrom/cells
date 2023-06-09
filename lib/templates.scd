@@ -419,13 +419,20 @@ Cell.addTemplate(\track, {
 // Synth related methods: FX, Ctl,
 Cell.addTemplate(\synth, {
 
+	~build = {
+		~instanceData[\template][\synth] = (
+			main: (  ),
+			fx: (  ),
+		);
+	};
+
 	~validateArgs = nil -> { |args|
 		if (args[0].isSymbol.not and: { args[0].respondsTo(\asTrackGroupItem) }) {
 			var synth = args.removeAt(0);
 			var key = "%_%".format((synth.tryPerform(\key) ? "synth"), synth.hash.asHexString).asSymbol;
 			args = ~dictMerge.value((
 				template: (
-					track: (
+					synth: (
 						main: ().put(key, synth)
 					)
 				)
@@ -435,8 +442,16 @@ Cell.addTemplate(\synth, {
 		args.asPairs;
 	};
 
+	//~template[\synth] has same structure as ~template[\track]
+	//The main difference is when it's being played
+	//~template[\track] is played on ~templateLoad
+	//~template[\synth] on ~templatePlay
 	~templatePlay = {
-		~track[\main].default = \default;
+		~template[\synth].keysValuesDo { |groupKey, dict|
+			dict.keysValuesDo { |key, slot|
+				~track[groupKey][key] = slot;
+			};
+		};
 	}
 
 }, [\track]);
