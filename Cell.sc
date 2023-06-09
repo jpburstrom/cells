@@ -285,23 +285,12 @@ Cell : EnvironmentRedirect {
 		this.notYetImplemented;
 	}
 
-	freeAll {
+	free {
 		if (this.checkState(\free).not) {
-			this.use(envir[\freeAll]);
 			this.use(envir[\templateFree]);
+			this.use(envir[\free]);
 			clock = nil;
 			this.prChangeState(\free);
-		};
-	}
-
-	free {
-		if (this.checkState(\stopping, \stopped, \free, \error).not) {
-			forkIfNeeded {
-				this.stop(true);
-				this.freeAll;
-			}
-		} {
-			this.freeAll;
 		};
 	}
 

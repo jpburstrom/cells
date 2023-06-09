@@ -361,10 +361,7 @@ Cell.addTemplate(\track, {
 	};
 
 	~templatePostStop = {
-		~track.stop;
-	};
-
-	~templateFree = {
+		//Will stop and free track
 		~track.free;
 	};
 
@@ -567,7 +564,7 @@ Cell.addTemplate(\buffer, {
 		};
 	};
 
-	~templateFree = {
+	~templatePostStop = {
 		~buffers.do(_.free);
 		~buffers.clear;
 		~buffers = nil;
