@@ -280,12 +280,6 @@ Cell.addTemplate(\server, {
 	//FIXME we should not hardcode server here
 	//Use settings!
 
-	~templateInit = {
-		~server = ~settings[\server].value;
-	};
-
-	~templateLoad = { ~server.bootSync };
-	~templatePostLoad = { ~server.sync };
 
 	// --- Server boot / quit ---
 
@@ -295,10 +289,14 @@ Cell.addTemplate(\server, {
 		currentEnvironment.freeAll;
 	};
 
-	~init = {
+	~templateInit = {
+		~server = ~settings[\server].value;
 		ServerBoot.add(currentEnvironment, ~server);
 		ServerQuit.add(currentEnvironment, ~server);
 	};
+
+	~templateLoad = { ~server.bootSync };
+	~templatePostLoad = { ~server.sync };
 
 	~templateFree = {
 		ServerBoot.remove(currentEnvironment, ~server);
