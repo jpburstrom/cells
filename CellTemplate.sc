@@ -56,7 +56,12 @@ CellTemplate {
 				// by key
 				out = CellFunctionList();
 				deps.do { |depKey|
-					out[depKey] = makeEnvir[depKey].getMethodFunc(key, depKey);
+					var func = makeEnvir[depKey].getMethodFunc(key, depKey);
+					//A function might appear twice if defined in dependencies' dependencies.
+					//Only add if not already there
+					if (out.includes(func).not) {
+						out[depKey] = func
+					}
 					// Assume we have an association, and add extracted function
 				};
 				// Assign the main function to an arbitrary key
