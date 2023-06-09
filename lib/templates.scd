@@ -680,7 +680,7 @@ Cell.addTemplate(\pattern, {
 		~player = ptn.asEventStreamPlayer;
 	};
 
-	~onTrackPlay = {
+	~templatePlay = {
 		if (~player.isPlaying.not) {
 			var rest;
 			var clock = currentEnvironment.clock;
