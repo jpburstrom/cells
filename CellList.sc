@@ -47,6 +47,7 @@ CellList : List {
         array.removeAt(index);
         this.changed(\items);
     }
+	clear { super.clear; this.changed(\items) }
 	pop { array.pop; this.changed(\items) }
 	first { if (this.size > 0, { ^array.at(0) }, { ^nil }) }
 	last { if (this.size > 0, { ^array.at(this.size - 1) }, { ^nil }) }

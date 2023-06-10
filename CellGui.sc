@@ -120,7 +120,7 @@ CellGui : CellGuiBase {
             \dur -> this.prTimeLabel(model.duration)
         ];
 
-        view.layout = HLayout().spacing_(0).margins_(0);
+        view.layout = HLayout().spacing_(0).margins_(2, 0, 2, 0);
         view.layout.add(things[\number], 0);
         view.layout.add(things[\state], 0);
         view.layout.add(things[\name], 4);
@@ -164,13 +164,14 @@ CellGui : CellGuiBase {
 }
 
 CellListGui : CellGuiBase {
-    var canvas, current, <items, <>keyActions, <scroll;
+    var <canvas, current, <items, <>keyActions, <scroll;
 
     *new { |model, parent, bounds|
         ^super.new.init(model, parent, bounds);
     }
 
     populate {
+        canvas.layout = VLayout().margins_(0).spacing_(1);
         model.do { |item, i|
             var g = CellGui(i + 1, item);
             g.mouseDownAction = { arg ... args;
@@ -179,7 +180,8 @@ CellListGui : CellGuiBase {
             items.add(g);
             canvas.layout.add(g.view);
             g.setActive(model.current == i);
-        }
+        };
+        canvas.layout.add( nil );
     }
 
     init { | amodel, parent, bounds |
@@ -199,9 +201,7 @@ CellListGui : CellGuiBase {
 
         //Scroll
         canvas = View().maxWidth_(1200);
-        canvas.layout = VLayout().margins_(0).spacing_(1);
         this.populate;
-        canvas.layout.add( nil );
         scroll.canvas = canvas;
         this.setScroll;
         scroll.keyDownAction_({});
@@ -279,12 +279,20 @@ CellListGui : CellGuiBase {
             current = i;
             current !? { items[current].setActive(true) };
             this.setScroll
-
+        } {
+            if (signal == \items) {
+                canvas.removeAll;
+                items.clear;
+                this.populate;
+                this.setScroll;
+            }
         }
     }
 
     setScroll {
-        scroll.visibleOrigin = Point(0, items[current].bounds.top - (scroll.bounds.height / 2)) //SPACING
+        if (items.notEmpty) {
+            scroll.visibleOrigin = Point(0, items[current].bounds.top - (scroll.bounds.height / 2)) //SPACING
+        }
     }
 
 }
