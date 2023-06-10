@@ -26,6 +26,8 @@ CellTemplate {
 		// in envir
 		rawEnvir = rawEnvir.putAll(template);
 		rawEnvir.make {
+			~build = this.prPrepareValue(\build, ~build);
+			//~build.postcs;
 			~build.value;
 		};
 		envir = rawEnvir.copy;
@@ -34,42 +36,51 @@ CellTemplate {
 		// a FunctionList
 		template.keys.reject(_==\build).do { |key|
 			var val = rawEnvir[key];
-			if (this.prMightHaveDeps(val)) {
-				// If func is defined, use that. Otherwise fallback to val
-				var deps = this.findDepsFor(key);
-				if (val.isKindOf(Association)) {
-					val = val.value;
-				};
-				if (deps.notEmpty) {
-					var out;
-					// Make a function list with all dependencies in order
-					// CellFunctionList is like a FunctionList where funcs can be looked up
-					// by key
-					out = CellFunctionList();
-					deps.do { |depKey|
-						out[depKey] = makeEnvir[depKey].getMethodFunc(key);
-						// Assume we have an association, and add extracted function
-					};
-					// Assign the main function to an arbitrary key
-					// We will probably not use it
-					// Keys are good to be able to remove certain functions if needed
-					// (eg deps which are handled from elsewhere)
-					// TODO maybe need to access this from user template?
-					out[\_current] = val;
-
-					envir[key] = out;
-				} {
-					envir[key] = val;
-				};
-			} {
-				// If func is defined, we have unpacked an association,
-				// so we need to update the envir
-				if (val.isKindOf(Association)) {
-					envir[key] = val.value;
-				};
-			}
+			envir[key] = this.prPrepareValue(key, val);
 		};
 
+
+	}
+
+	prPrepareValue { |key, val|
+		var out = val;
+		if (this.prMightHaveDeps(val)) {
+			// If func is defined, use that. Otherwise fallback to val
+			var deps = this.findDepsFor(key);
+			if (val.isKindOf(Association)) {
+				val = val.value;
+			};
+			if (deps.notEmpty) {
+				// Make a function list with all dependencies in order
+				// CellFunctionList is like a FunctionList where funcs can be looked up
+				// by key
+				out = CellFunctionList();
+				deps.do { |depKey|
+					var func = makeEnvir[depKey].getMethodFunc(key, depKey);
+					//A function might appear twice if defined in dependencies' dependencies.
+					//Only add if not already there
+					if (out.includes(func).not) {
+						out[depKey] = func
+					}
+					// Assume we have an association, and add extracted function
+				};
+				// Assign the main function to an arbitrary key
+				// We will probably not use it
+				// Keys are good to be able to remove certain functions if needed
+				// (eg deps which are handled from elsewhere)
+				// TODO maybe need to access this from user template?
+				out[\_current] = val;
+			} {
+				out = val;
+			};
+		} {
+			// If func is defined, we have unpacked an association,
+			// so we need to update the envir
+			if (val.isKindOf(Association)) {
+				out = val.value;
+			};
+		};
+		^out
 	}
 
 	prGetMergedDependencies {
@@ -162,20 +173,27 @@ CellTemplate {
 		out = out ?? { [] };
 		deps.do { |dep|
 			out = makeEnvir[dep].findDepsFor(method, out);
-			if (out.includes(dep).not and: { makeEnvir[dep].getMethodFunc(method).notNil } ) {
+			if (out.includes(dep).not and: {
+				var template = makeEnvir[dep];
+				template.getMethodFunc(method, dep).notNil
+			} ) {
 				out = out.add(dep);
 			};
 		};
 		^out
 	}
 
-	getMethodFunc { |method|
+	getMethodFunc { |method, key|
 		var func = rawEnvir[method];
 		if (func.respondsTo(\key)) {
 			func = func.value;
 		};
-		if (func.isFunction.not) {
+		if (func.isKindOf(AbstractFunction).not) {
 			func = nil;
+		} {
+			if (func.isKindOf(CellFunctionList)) {
+				func = func[\_current] ?? { func[key] };
+			}
 		};
 		^func;
 	}

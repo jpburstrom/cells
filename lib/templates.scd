@@ -2,76 +2,17 @@ Cell.addTemplate(\initData, {
 	~build = {
 		~instanceData = IdentityDictionary().know_(true); //Instance-level data
 	};
+
+	~templateInit = { |cell|
+		~getCell = {
+			cell;
+		}
+	};
+
 	~addInstanceData = { |key, value|
 		~instanceData[key] = value;
 	}
 });
-
-Cell.addTemplate(\nodeMap, {
-
-	~build = {
-		~addInstanceData.(\nodemap, MultiLevelIdentityDictionary());
-	};
-
-	~addNodeMap = { |...path|
-		var map = ~nodemap.atPath(path);
-		if (map.isNil) {
-			map = NodeMap();
-			~nodemap.putAtPath(path, map);
-		};
-		map
-	};
-
-	// Get values from running synths
-	~get = { |first ...rest|
-		var out, path;
-		if (first.isKindOf(String)) {
-			first = first.split($.).collect(_.asSymbol);
-		} {
-			first = first.asArray;
-		};
-		path = first ++ rest;
-		out = ~nodemap.at(*path);
-	};
-
-	~set = { |first ...rest|
-		var key, val, out, path, node;
-		if (first.isKindOf(String)) {
-			first = first.split($.).collect(_.asSymbol);
-		} {
-			first = first.asArray;
-		};
-		path = first ++ rest;
-		val = path.pop;
-		key = path.pop;
-		out = ~nodemap.at(*path);
-		if (out.isKindOf(NodeMap)) {
-			out.set(key, val);
-			if (currentEnvironment.isPlaying) {
-				var node = ~prGetNodeFromPath.(*path);
-				//FIXME: Weird check. Groups are created immediately and currently
-				//not registered, so they will never be playing.
-				//Like this, group messages will never be sent with latency,
-				//which means they will not work immediately after play
-				var latency = if(node.isKindOf(Synth) && node.isPlaying.not, ~server.latency);
-				out.sendToNode(node, latency);
-			};
-		};
-		out
-	};
-
-	~prGetNodeFromPath = { |type, key|
-		//Get playing node from map path
-		if (type == \group) {
-			~groups[key]
-		} {
-			~synths[type] !? { |typeDict|
-				typeDict[key];
-			}
-		}
-	};
-
-}, \initData);
 
 Cell.addTemplate(\markers, {
 
@@ -218,28 +159,33 @@ Cell.addTemplate(\settings, {
 
 	// Merge in place
 	~dictMerge = { |template, obj|
-		obj.keysValuesDo { |k, v|
-			if (template[k].isNil) {
-				template[k] = v;
-			} {
-				if (template[k].isKindOf(Dictionary) and: { v.isKindOf(Dictionary) } ) {
-					~dictMerge.(template[k], v)
-				} {
-					// Overwrite single values
+		var keys = (template.keys ++ obj.keys).asArray;
+		keys.postln;
+		keys.do { |k|
+			var v = obj[k];
+			if (v.notNil) {
+				if (template[k].isNil) {
 					template[k] = v;
-				}
-			};
+				} {
+					if (template[k].isKindOf(Dictionary) and: { v.isKindOf(Dictionary) } ) {
+						~dictMerge.(template[k], v)
+					} {
+						// Overwrite single values
+						template[k] = v;
+					}
+				};
+			}
 		};
+		template;
 
 	};
 
 	~build = {
 		//This is later referred to as ~settings
 		~addInstanceData.(\settings, (
+			server: { Server.default },
 			//Number of out channels
 			numChannels: 2,
-
-
 			// --- DURATIONS ---
 			// Total cell duration
 			duration: inf,
@@ -249,18 +195,15 @@ Cell.addTemplate(\settings, {
 			// In case of patterns, wait for tailDuration after pattern has stopped.
 			// This means you have to add pattern note release time to tailDuration
 			tailDuration: 3,
-
 			// --- SYNC ---
 			// By default, TempoClock.default is used.
 			// Tempo is set on quantized play start.
 			// quant.timingOffset can be used to start playback earlier,
 			// for example if a sample starts on an upbeat.
 			tempo: 60,
-
 			// Quant == grid.
 			// Set timingOffset here, if needed
 			quant: 0,
-
 			// --- FADES ---
 			// Fades are post-fx, and overrides tail settings.
 			// This means it should be safe to free everything when a fadeOut has completed.
@@ -272,16 +215,17 @@ Cell.addTemplate(\settings, {
 			fadeOut: 0,
 			// Curve
 			fadeOutCurve: -8,
-
-			// If true, release main synths in .afterStop
+			// If true, release main synths in .templatePostStop
 			releaseAfterStop: true,
-
-
 			// Default arguments for new synths
 			defaultSynthArgs:  IdentityDictionary[
 				\out -> {~bus.main}
 			]
 		));
+	};
+
+	~numChannelsFormat = { |string|
+		string.format(~settings[\numChannels].value)
 	};
 
 	~getDuration = {
@@ -299,7 +243,33 @@ Cell.addTemplate(\settings, {
 
 Cell.addTemplate(\base, {
 
-	~template = IdentityDictionary();
+	~validateArgs = { |args|
+		if (args.size.odd) {
+			Error("This cell template should have even number of arguments.").throw
+		};
+		args
+	};
+
+	~build = {
+		~addInstanceData.(\template, IdentityDictionary());
+	};
+
+	~templatePlay = {
+		if (~settings[\duration].notNil and: { ~settings[\duration] < inf }) {
+			~durationCond = CondVar();
+			{
+				var isTimeout = false == ~durationCond.waitFor(~settings[\duration], { currentEnvironment.state == \stopping });
+				if (isTimeout) {
+					currentEnvironment.stop;
+				};
+			}.inEnvir.fork;
+		}
+	};
+
+	~templateStop = {
+		~durationCond !? (_.signalAll);
+	};
+
 	~updateTemplate = { |obj|
 		~dictMerge.(~template, obj);
 	};
@@ -308,23 +278,8 @@ Cell.addTemplate(\base, {
 
 Cell.addTemplate(\server, {
 	//FIXME we should not hardcode server here
-	//Use function ?
-	~server = Server.default;
+	//Use settings!
 
-	//Default group for synths etc
-	~defaultGroup = nil;
-
-	// Group to put everything else
-	// If nil, default group (1)
-	// Set this before load
-	~parentGroup = {
-		// If cell has mother, set parentGroup to its main group
-		// Override for other behaviour
-		//currentEnvironment.mother !? (_.defaultGroup);
-	};
-
-	~beforeLoad = { ~server.bootSync };
-	~afterLoad = { ~server.sync };
 
 	// --- Server boot / quit ---
 
@@ -334,408 +289,166 @@ Cell.addTemplate(\server, {
 		currentEnvironment.freeAll;
 	};
 
-	~init = {
+	~templateInit = {
+		~server = ~settings[\server].value;
 		ServerBoot.add(currentEnvironment, ~server);
 		ServerQuit.add(currentEnvironment, ~server);
 	};
 
-	~freeAll = {
+	~templateLoad = { ~server.bootSync };
+	~templatePostLoad = { ~server.sync };
+
+	~templateFree = {
 		ServerBoot.remove(currentEnvironment, ~server);
 		ServerQuit.remove(currentEnvironment, ~server);
 	};
 
-}, [\base, \nodeMap]);
+}, \base);
 
-Cell.addTemplate(\group, {
-	// Default group order
-	// TODO: nested groups, if needed
+Cell.addTemplate(\track, {
 
-	~beforeInit = {
-		~updateTemplate.((
-			group: #[ctl, main, fx, level, send],
-			defaultGroup: \main
-		));
+	~build = {
+		~instanceData[\template][\track] = (
+			mod: (  ),
+			main: (  ),
+			fx: (  ),
+			//TODO defaultSendTarget/thunk/template
+			send: ( out: TrackSend(0, args: (slotType: \trimSend))),
+		);
+		~instanceData[\settings][\track] = (
+			fadeGroup: \send,
+			fadeSlot: \out,
+			fadeParam: \level,
+			numChannels: { ~settings[\numChannels].value },
+			//Default send target
+			//Uses track syntax, anything that responds to
+			//asTrackSlotReceiver
+			defaultSendTarget: 0
+		)
 	};
 
-	~addGroup = { |key, parent|
-		var group, msg;
-		~groups[key] !? (_.free);
-		//If parent is set, use that
-		// Otherwise, use parentGroup. If nil,
-		// it defaults to Group(1) (nil.asTarget)
-		parent = parent ?? ~parentGroup; // calls .value on ~parentGroup
-		group = Group.basicNew(~server);
-		msg = group.addToTailMsg(parent);
-		~groups[key] = group;
-		//No need to have latency here, do it as fast as possible
-		~server.sendBundle(nil, msg);
-		group
+
+	~templateInit = {
+		//For now, just copy ~settings[\numChannels] to track.
+		//TODO make it possible to pass in user settings that's not part of the
+		//track settings template
+		~template[\track][\settings] = ~settings[\track].collect({ |v|
+			v.value;
+		});
+	};
+
+	~templateLoad = { |cell|
+		~track = Track.newFromDict(~template[\track].deepCopy);
+		~track.addDependant(cell);
+		~trackAuto = TrackAuto(~track, ~track[~settings[\track][\fadeGroup], ~settings[\track][\fadeSlot]], ~settings[\track][\fadeParam]);
 	};
 
 	// All groups end up in the groups envir
 	// The envir should not be placed in the parent envir
 	// So we create it as a part of ~addGroups
-	~beforePlay = {
-		~groups ?? { ~groups = IdentityDictionary(know:true) };
-		~template[\group].do { |key|
-			~addGroup.value(key);
-		};
-		~defaultGroup = ~groups[~template[\defaultGroup]];
-	};
-
-	~afterInit = {
-		// add node map
-		~template[\group].do { |key|
-			~addNodeMap.(\group, key);
-		};
-	};
-
-	~afterPlay = {
-		//Sync node map
-		~groups.keysValuesDo { |key, node|
-			var map = ~nodemap[\group][key];
-			if (map.notEmpty) {
-				map.sendToNode(node, ~server.latency);
+	~templatePreparePlay = {
+		var cond = CondVar();
+		var cb = { |obj, what|
+			if (what == \playing) {
+				cond.signalOne;
+				obj.removeDependant(cb);
 			}
 		};
+		~track.addDependant(cb).play;
+		if (cond.waitFor(1).not) {
+			Error("Track could not start").throw;
+		};
 	};
 
-	~freeAll = {
-		~groups.do(_.free);
-		~groups.clear;
-		~groups = nil;
-	}
+	~templatePostStop = {
+		//Will stop and free track
+		~track.free;
+	};
 
-}, \server);
-
-
-Cell.addTemplate(\bus, {
-
-	// Buses, following the group scheme above
-	// Buses are private by default, but
-	// you can provide an index for global buses
-	// TODO: a way to inject buses from outside
-	~beforeInit = {
-		~updateTemplate.((
-			bus: (
-				//Type, channels, index (for global buses)
-				main: [\audio, { ~settings[\numChannels] }],
-				out: {
-					try { currentEnvironment.mother[\bus].main } {
-						[\audio, 2, 0]
-					};
+	~update = { |obj, what|
+		if (obj == ~track) {
+			switch(what,
+				\playing, {
+					~onTrackPlay.value;
+				},
+				\stopped, {
+					~onTrackStop.value;
 				}
+
 			)
-		));
+		}
 	};
 
-	//Add a single bus, identified by key
-	~addBus = { |key, rate, numChannels, index, grp|
-		var bus;
-		grp = grp ? \_default;
-		~bus[grp][key].free; // Also if nil
-		if (rate.isKindOf(CellBus)) {
-			bus = rate;
-		} {
-			if (index.notNil) {
-				bus = CellBus(rate, index, numChannels.value, ~server);
-			} {
-				bus = CellBus.alloc(rate, ~server, numChannels.value ? 2)
-			};
-		};
-		bus.owner ?? {
-			bus.owner_(currentEnvironment);
-		};
-		~bus[grp][key] = bus;
-		bus;
-
+	~fadeIn = { |endLevel=1, dur=3, curve|
+		//In case we're not ready to play. This will also boot server if needed
+		currentEnvironment.load.then {
+			~trackAuto.fadeIn(endLevel, dur, curve)
+		}
 	};
 
-	// Add buses according to template
-	~beforeLoad = {
-		~bus ?? { ~bus = (
-			_default: (),
-			_ctl: (),
-			// We use a strange feature of events:
-			// when calling ~bus.foo, the event is forwarding the
-			// message to this function, which tries to find it
-			// and otherwise forwards it the _default event
-			// so we still can use ~bus.foo for accessing buses
-			forward: { |self, key|
-				if (self[key].notNil) {
-					self[key].value;
+	~fadeOut = { |dur=3, curve, stopCell=false|
+		if (stopCell) {
+			var stopFunc = { |obj, what|
+				if (obj == ~trackAuto and: { what == \finish }) {
+					~getCell.value.stop;
 				} {
-					self[\_default][key]
-				}
-			}
-		)};
-
-		~template[\bus] !? { |x| x.keysValuesDo { |key, args|
-			args = args.value.asArray;
-			~addBus.(key, *args);
-		}};
-
-	};
-
-	~freeAll = {
-		~bus.reject(_.isFunction).do { |ev|
-			ev.do { |bus|
-				bus.releaseBus(currentEnvironment);
-			}
+					//Assuming slot object
+					if (what == \stopped) {
+						//We need to reset to previous value,
+						//and it needs to be done after slot has finished playing
+						//Then we're ready for replaying cell
+						~trackAuto.reset(false);
+					}
+				};
+				obj.removeDependant(stopFunc)
+			};
+			~trackAuto.slot.addDependant(stopFunc.inEnvir);
+			~trackAuto.addDependant(stopFunc.inEnvir);
 		};
-		~bus.clear;
-		~bus = nil;
-	};
+		~trackAuto.fadeOut(dur, curve)
+	}
 
 }, \server);
 
 // Synth related methods: FX, Ctl,
 Cell.addTemplate(\synth, {
 
-	~numChannelsFormat = { |string|
-		string.format(~settings[\numChannels]).asSymbol;
-	};
-
-	~beforeInit = {
-		~settings[\defaultSynth] = \default;
-		~updateTemplate.((
-			main: IdentityDictionary(),
-			level: IdentityDictionary[
-				\main -> { [~numChannelsFormat.("cellMixer_%"),
-					(
-						fadetime: { ~settings[\fadeIn] },
-						out: { ~bus.out },
-						in: { ~bus.main }
-					)
-				] };
-			];
-		))
-	};
-
-	~addSynthsFromTemplate = {
-		var action;
-		~synths ?? { ~synths = IdentityDictionary(know:true) };
-		~template[\group] !? { |x| x.do { |groupKey|
-			if (groupKey == \ctl) {
-				~prSynthTemplateLoop.(\ctl, ~prPlayCtl);
-			} {
-				~prSynthTemplateLoop.(groupKey, ~prPlaySynth);
-			}
-		}};
-		~syncSynthNodeMap.value;
-	};
-
-	~addSynthNodeMap = {
-		~template[\group].do { |groupKey|
-			~prSynthTemplateLoop.(groupKey, { |group, key, synth, args|
-				var map;
-				map = ~addNodeMap.(group, key);
-			});
-		};
-
-	};
-
-	~prSynthTemplateLoop = { |group, callback|
-		~template[group] !? { |x| x.keysValuesDo({ |key, args|
-			var synth;
-			// Unpack functions from template
-			if (args.isFunction) {
-				args = args.value;
-			};
-			args = args.asArray;
-			synth = args[0].value;
-
-			if (synth.isFunction) {
-				synth = synth.asSynthDef(fadeTime:0, name: (key ++ this.identityHash.abs).asSymbol).add.name;
-			};
-			args = args[1..];
-			if (args.size == 1) {
-				args = args[0];
-			};
-			callback.(group, key, synth, args);
-		})};
-	};
-
-	// Callback for synth.onFree
-	// Removes synth from ~synths set
-	~onSynthFree = { |group, key|
-		~synths !? {
-			~synths[group][key] = nil;
-
-			//Things to do when no synths are playing inside group
-			if (~synths[group].isEmpty) {
-				switch(group,
-
-					// We're checking if any main or fx synths are still playing
-					// If no main synths are left:
-					//   If fx are playing, release the fx synths
-					//   Otherwise free the cell
-
-					// If no fx synths are left:
-					//    If no main synths are playing, free the cell
-
-					// Ctl and volume synths are just abruptly free'd.
-					\main, {
-						if (~synths[\fx].notNil) {
-							if (~synths[\fx].notEmpty) {
-								~groups[\fx].release;
-							} {
-								//If we're last synth playing, free after release
-								currentEnvironment.freeAll;
-							}
-						} {
-							currentEnvironment.freeAll;
-						}
-
-					},
-					\fx, {
-						// Free cell when fx and main are not playing anymore
-						if (~synths[\main].isNil or: { ~synths[\main].isEmpty }) {
-							currentEnvironment.freeAll;
-						}
-					},
-					//If level synth is gone, free everything
-					\level, {
-						currentEnvironment.stop;
-					}
-				);
-
-			}
-		}
-
-	};
-
-	// Add synth
-	~addSynth = { |key, synth, args|
-
-		~prPlaySynth.(\main, key, synth, args)
-	};
-
-	// Add effect synth
-	~addFx = { |key, synth, args|
-		~prPlaySynth.(\fx, key, synth, args);
-	};
-
-
-	// Helper method for adding synths
-	~prPlaySynth = { |group, key, synth, args|
-		var out;
-		args = ~settings[\defaultSynthArgs].copy.putAll(args);
-		args = args.collect(_.value);
-		~nodemap.at(group, key).putAll(args);
-		// Send using default latency, to sync with patterns et al
-		s.bind({
-			out = Synth(synth, args.asPairs, ~groups[group]);
-		});
-		~synths[group] ?? { ~synths[group] = IdentityDictionary() };
-		~synths[group][key] = out;
-		out.onFree({ |syn|
-			~onSynthFree.(group, key);
-		}.inEnvir);
-		out;
-	};
-
-	~syncSynthNodeMap = {
-		~synths.keysValuesDo { |type, dict|
-			dict.keysValuesDo { |key, node|
-				~nodemap[type][key] !? { |map|
-					// Use default latency, to sync with s.bind in ~prPlaySynth
-					map.updateArgs;
-					map.sendToNode(node, ~server.latency);
-				}
-			}
-		};
-
-	};
-
-	~afterInit = ~addSynthNodeMap;
-	~beforePlay = ~addSynthsFromTemplate;
-
-	// Default stop: Call release on synths
-	// and let them free the cell when done playing
-	~afterStop = {
-		if (~settings.releaseAfterStop) {
-			~defaultGroup.release;
-		}
-	};
-
-	~afterFree = {
-		~synths.clear;
-		~synths = nil;
-	};
-
-	~fadeIn = { |time, curve=4|
-		~set.(\level, \main, \freeWhenDone, 0);
-		~set.(\level, \main, \curve, curve);
-		currentEnvironment.load.then {
-			if (currentEnvironment.state == \ready) {
-				var oldFade;
-				if (time.notNil) {
-					oldFade = ~settings[\fadeIn];
-					~settings[\fadeIn] = time;
-				};
-				currentEnvironment.play.then {
-					oldFade !? { ~settings[\fadeIn] = oldFade };
-				};
-			}
-		};
-	};
-
-	~fadeOut = { |time, curve=(-4), freeWhenDone=true|
-		//~set.(\level, \main, \fadetime, time ?? { ~settings[\fadeOut] });
-		//Access this directly, so nodeMap is not affected
-		~synths[\level][\main].set(
-			\amp, 0,
-			\curve, curve,
-			\freeWhenDone, freeWhenDone.asInteger,
-			\fadetime, time
+	~build = {
+		~instanceData[\template][\synth] = (
+			main: (  ),
+			fx: (  ),
 		);
-		currentEnvironment
 	};
 
-	// Get bus from ctl key
-	~ctlBus = { |key|
-		~bus[\_ctl][key];
+	~validateArgs = nil -> { |args|
+		if (args[0].isSymbol.not and: { args[0].respondsTo(\asTrackGroupItem) }) {
+			var synth = args.removeAt(0);
+			var key = "%_%".format((synth.tryPerform(\key) ? "synth"), synth.hash.asHexString).asSymbol;
+			args = ~dictMerge.value((
+				template: (
+					synth: (
+						main: ().put(key, synth)
+					)
+				)
+			), args.asDict);
+			args.postln;
+		};
+		args.asPairs;
 	};
 
-	// Get a kr player from ctl key
-	~ctlKr = { |key|
-		var bus = ~bus[\_ctl][key];
-		In.kr(bus, bus.numChannels);
-	};
+	//~template[\synth] has same structure as ~template[\track]
+	//The main difference is when it's being played
+	//~template[\track] is played on ~templateLoad
+	//~template[\synth] on ~templatePlay
+	~templatePlay = {
+		~template[\synth].keysValuesDo { |groupKey, dict|
+			dict.keysValuesDo { |key, slot|
+				~track[groupKey][key] = slot;
+			};
+		};
+	}
 
-	// Get a pattern from ctl key
-	// Stolen from Pkr (BenoitLib)
-	~ctlPattern = { |key|
-		var last = 0, check;
-		var busEnvir = ~bus[\_ctl];
-		check = { ~server.hasShmInterface }.try;
-
-		check.if ({
-			^Pfunc({ busEnvir[key].getSynchronous });
-		}, {
-			"No shared memory interface detected".warn;
-			busEnvir[key].get({|v| last = v;});
-			^Pfunc({ busEnvir[key].get({ |v| last = v; }); last });
-		});
-	};
-
-	// Add control synth (LFO etc)
-	~addCtl = { |key, synth, args, numChannels|
-		var bus;
-		numChannels = numChannels ? 1;
-		bus = ~addBus.(key, \control, numChannels, nil, \_ctl);
-		args = (args ?? IdentityDictionary()).asDict;
-		args[\out] = bus;
-		~prPlaySynth.(\ctl, key, synth, args);
-	};
-
-	~prPlayCtl = { |grp, key, synth, args|
-		var numChannels = nil;
-		~addCtl.(key, synth, args, numChannels);
-	};
-
-}, [\group, \bus]);
+}, [\track]);
 
 
 
@@ -756,25 +469,45 @@ Cell.addTemplate(\buffer, {
 		)
 	);
 	*/
+	~build = {
+		~instanceData[\settings][\buffer] = (
+			defaultSynthDef: { ~numChannelsFormat.("cellBufPlayer_%") },
+			defaultBufferMethod: \read,
+			cueSize: 65536
+		)
+	};
 
-	~beforeInit = {
-		~settings[\defaultSynth] = { ~numChannelsFormat.("cellBufPlayer_%") };
-		~settings[\defaultBufferMethod] = \read;
-		~settings[\cueSize] = 65536;
-		~settings[\numChannels] = 2;
-		if (~template[\main].notNil and: { ~template[\main].isEmpty }) {
+	//No dependencies here, please
+	~validateArgs = nil -> { |args|
+		if (args[0].isString) {
+			var path = args.removeAt(0);
+			var key = path.basename.splitext[0].asSymbol;
+			args = args.asDict;
+			args = ~dictMerge.value((
+				template: (
+					buffer: ().put(key, path)
+				)
+			), args.asDict);
+		};
+		args.asPairs;
+	};
+
+	~templateInit = {
+		var mainTemplate = ~template[\synth][\main];
+		if (mainTemplate.isEmpty) {
 			~template[\buffer] !? { |x|
-				x.keys.do { |key|
-					~template[\main][key] = {
-						[~settings[\defaultSynth],
-							\bufnum, {~buffers[key]}]
-					};
+				~settings[\numChannels] = 0; //let buffers set numChannels
+				x.keysValuesDo { |key, obj|
+					obj = ~checkFile.(key, obj);
+					obj[\synthDef] = obj[\synthDef] ?? ~settings[\buffer][\defaultSynthDef];
+					obj[\bufnum] = { ~buffers[key] }.inEnvir;
+					mainTemplate[key] = obj; //
 				}
 			};
 		};
 	};
 
-	~addBuffer = { |key, obj|
+	~checkFile = { |key, obj|
 		var method, channels;
 
 		obj = obj.value;
@@ -783,9 +516,6 @@ Cell.addTemplate(\buffer, {
 			obj = IdentityDictionary[\path->obj];
 		};
 
-		// Free previous buffer if needed
-		~buffers[key].free;
-
 		SoundFile.use(obj[\path], { |sf|
 			obj[\duration] !? { |dur|
 				obj[\numFrames] = (dur.value(sf) * sf.sampleRate).floor;
@@ -793,40 +523,48 @@ Cell.addTemplate(\buffer, {
 			obj[\startTime] !? { |start|
 				obj[\startFrame] = (start.value(sf) * sf.sampleRate).floor;
 			};
-			channels = sf.numChannels;
+			obj[\numChannels] = sf.numChannels;
 			~eachSoundFile.(sf, obj);
 		}.inEnvir);
 
-		~settings[\numChannels] = ~settings[\numChannels].max(channels);
-		~numChannelsFormat.("cellBufPlayer_%");
+		~settings[\numChannels] = ~settings[\numChannels].max(obj[\numChannels]);
 
-		switch (obj[\method] ?? { ~settings[\defaultBufferMethod] },
+		obj;
+
+	};
+
+	~addBuffer = { |key, obj|
+
+		// Free previous buffer if needed
+		~buffers[key].free;
+
+		switch (obj[\method] ?? { ~settings[\buffer][\defaultBufferMethod] },
 			\read, {
 				~buffers[key] = Buffer.read(~server, obj[\path], obj[\startFrame] ? 0, obj[\numFrames] ? -1);
 			},
 			\cueSoundFile, {
 				~buffers[key] = Buffer.cueSoundFile(
-					~server, obj[\path], obj[\startFrame] ? 0, channels,
+					~server, obj[\path], obj[\startFrame] ? 0, obj[\numChannels],
 					obj[\bufferSize] ?? { ~settings[\cueSize] ? 65536 };
 				);
 			}
 		);
+		~buffers.postln;
 	};
 
 	// Add buses according to template
-	~beforeLoad = {
+	~templateLoad = {
 		var template = ~template[\buffer];
 		if (template.notNil) {
 			~buffers ?? { ~buffers = IdentityDictionary(know:true) };
 			template.keysValuesDo { |key, obj|
-				~settings[\numChannels] = 0;
+				obj = ~checkFile.(key, obj);
 				~addBuffer.(key, obj);
-
 			};
 		};
 	};
 
-	~freeAll = {
+	~templatePostStop = {
 		~buffers.do(_.free);
 		~buffers.clear;
 		~buffers = nil;
@@ -835,20 +573,23 @@ Cell.addTemplate(\buffer, {
 }, [\synth]);
 
 Cell.addTemplate(\disk, {
-	~beforeInit = {
-		~settings[\setDurationFromFile] = true;
-		~settings[\setMarkersFromFile] = true;
-		~settings[\defaultSynthArgs][\duration] = { ~settings[\duration] };
-		~settings[\defaultSynth] = {
-			~numChannelsFormat.("cellDiskPlayer_%");
-		};
-		~settings[\defaultBufferMethod] = \cueSoundFile;
+
+	~build = {
+		~instanceData[\settings][\buffer] = (
+			setDurationFromFile: true,
+			setMarkersFromFile: true,
+			//~settings[\defaultSynthDefArgs][\duration] = { ~settings[\duration] };
+			defaultSynthDef: {
+				~numChannelsFormat.("cellDiskPlayer_%");
+			},
+			defaultBufferMethod: \cueSoundFile,
+		)
 	};
 
 	~eachSoundFile = { |sf, obj|
 		var ffwd = currentEnvironment[\fastForward] ? 0;
 
-		if (~settings[\setDurationFromFile]) {
+		if (~settings[\buffer][\setDurationFromFile]) {
 			if (~settings[\duration] == inf) {
 				~settings[\duration] = 0;
 			};
@@ -861,7 +602,7 @@ Cell.addTemplate(\disk, {
 		};
 
 
-		if (~settings[\setMarkersFromFile]) {
+		if (~settings[\buffer][\setMarkersFromFile]) {
 			~getMarkersFromSoundFile.(sf, obj[\startFrame]);
 		};
 
@@ -875,10 +616,13 @@ Cell.addTemplate(\disk, {
 }, [\buffer]);
 
 
-Cell.addTemplate(\cells, {
+Cell.addTemplate(\group, {
 
-	~beforeInit = {
-		~cells ?? { ~cells = IdentityDictionary(know:true) };
+	~build = {
+		~instanceData[\cells] = IdentityDictionary(know: true);
+	};
+
+	~templateInit = {
 		~template[\cells] !? { |x| x.keysValuesDo { |key, cell|
 			~cells[key] = cell;
 			//currentEnvironment.addChildren(key, cell);
@@ -886,7 +630,7 @@ Cell.addTemplate(\cells, {
 	};
 
 	//Cell methods needs to be forwarded
-	#[load, play, stop, pause, resume, freeAll, free].do { |action|
+	#[load, play, stop, pause, resume, free].do { |action|
 		currentEnvironment[action] = {
 			~cells.do(_.perform(action));
 		};
@@ -900,46 +644,49 @@ Cell.addTemplate(\cells, {
 	};
 
 	//Needs base for template
-}, [\synth]);
+}, [\base]);
 
 Cell.addTemplate(\pattern, {
 
-	~beforeInit = {
+	~build = {
 		// We let pattern release itself
-		~settings[\releaseAfterStop] = false;
+		~instanceData[\settings][\releaseAfterStop] = false;
 	};
 
-	~beforeLoad = {
+	~validateArgs = nil -> { |args|
+		if (args[0].isKindOf(Pattern)) {
+			var ptn = args.removeAt(0);
+			args = ~dictMerge.value((
+				pattern: ptn
+			), args.asDict);
+		};
+		args.asPairs;
+	};
+
+	~templateLoad = { |cell|
 		var ptn = Pspawner({ |sp|
-			var tempo = currentEnvironment.clock.tempo;
+			var tempo = cell.clock.tempo;
 			var dur = ~settings[\duration] * tempo;
 			~spawner = sp;
-			sp.seq(Pfindur(dur, Pchain(~pattern, Pbind(
-				\nilOnStop, Pif(Pfunc { currentEnvironment.checkState(\stopping, \stopped) }, nil, 1),
-				\out, Pfunc { ~bus !? (_.main) },
-				\group, Pfunc { ~groups !? (_.main) }
-			))));
+			sp.seq(Pfindur(dur,
+				Penvir(cell,
+					Pchain(~pattern,
+						Pbind(
+							\nilOnStop, Pif(Pfunc { cell.checkState(\stopping, \stopped) }, nil, 1),
+							\out, Pfunc({ ~track.asBus }),
+							\group, Pfunc({ ~track.asGroup }),
+							\progress, Plazy({ Ptime() / ~settings[\duration]})
+						)
+					), independent: false)
+			));
 
-			sp.wait(~settings.tailDuration * tempo);
-
-			case
-			{ ~synths.isNil } {
-				currentEnvironment.freeAll;
-			}
-			{~synths[\main].notNil and: { ~synths[\main].notEmpty }} {
-				~groups[\main].release;
-			}
-			{ ~synths[\fx].notNil and: { ~synths[\fx].notEmpty } } {
-				~groups[\fx].release;
-			}
-			{ currentEnvironment.freeAll };
-
+			fork { cell.stop };
 		});
 
 		~player = ptn.asEventStreamPlayer;
 	};
 
-	~afterPlay = {
+	~templatePlay = {
 		if (~player.isPlaying.not) {
 			var rest;
 			var clock = currentEnvironment.clock;
@@ -966,21 +713,19 @@ Cell.addTemplate(\pattern, {
 		}
 	};
 
-	~afterStop = {
-		fork {
-			//Wait for releases to finish
+	~templateStop = { |cell|
+		if (~player.clock.isRunning) {
 			try {
-			while { ~player.notNil and: { ~player.clock.queue.size >= 2 } } {
-				0.1.wait;
-			};
+				while { ~player.notNil and: { ~player.clock.queue.size >= 2 } } {
+					0.1.wait;
+				};
 			} {
-				Error("Error in player % afterStop".format(currentEnvironment.name)).throw;
+				Error("Error in player % templateStop".format(currentEnvironment.name)).throw;
 			};
 
 			//Tail duration should equal max release time for synth
 			//TODO keep track of synth releases in some clever way
-			(~settings.tailDuration + ~server.latency).wait;
-			currentEnvironment.freeAll;
+			(~settings.tailDuration * cell.clock.tempo).wait;
 		}
 	};
 
@@ -989,7 +734,7 @@ Cell.addTemplate(\pattern, {
 }, [\synth]);
 
 Cell.addTemplate(\bufferPattern, {
-	~beforeInit = {
+	~templateInit = {
 		~template[\main] = nil;
 	};
 }, [\pattern, \buffer]);

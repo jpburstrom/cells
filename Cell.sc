@@ -62,6 +62,14 @@ Cell : EnvironmentRedirect {
 		^super.new.init(templateKey, pairs);
 	}
 
+	*doesNotUnderstand { |selector ... args|
+		if (templates[selector].notNil) {
+			^this.new(selector, *args.postln)
+		} {
+			^this.superPerformList(selector, args);
+		}
+	}
+
 	init { |templateKey, pairs|
 
 		cond = Condition(true);
@@ -92,23 +100,52 @@ Cell : EnvironmentRedirect {
 			envir.proto[key] = data.deepCopy;
 		};
 
+		argPairs = envir.use { ~validateArgs.value(argPairs) } ? argPairs;
+
 		// The make function is run inside the proto of the environment
 		// that way, user data and temporary objects are kept separate from objects
 		// created during init
 		// parent ->
 		// EnvironmentRedirect.new have made the proto for us
-		pairs.pairsDo { |k, v|
-			envir.proto[k] = v.tryPerform(\merge, envir.proto[k], { |new, default| new }) ? v;
+		argPairs.pairsDo { |k, v|
+			if (envir.proto[k].respondsTo(\keysValuesDo)) {
+				v = v.value;
+				if (v.isKindOf(IdentityDictionary)) {
+					envir.proto[k] = this.mergeDict(envir.proto[k], v)
+				} {
+					Error("%: Wrong type. Needs to return an IdentityDictionary on .value. Was %.".format(k, v.class)).throw;
+				}
+			} {
+				envir.proto[k] = v;
+			}
 		};
 
 
 		this.use {
-			envir[\beforeInit].value(this);
+			envir[\templateInit].value(this);
 			envir[\init].value(this);
 			envir[\afterInit].value(this);
 		};
 
 	}
+
+	mergeDict { |template, obj|
+		obj.keysValuesDo { |k, v|
+			v.postln;
+			if (template[k].isNil) {
+				template[k] = v;
+			} {
+				if (template[k].isKindOf(Dictionary) and: { v.isKindOf(Dictionary) } ) {
+					this.mergeDict(template[k], v)
+				} {
+					// Overwrite single values
+					template[k] = v;
+				}
+			};
+		};
+		^template
+	}
+
 
 	//Run specific trigger(s) in envir, eg play, stop etc.
 	//Should be run within a routine
@@ -147,12 +184,12 @@ Cell : EnvironmentRedirect {
 
 	load { |ffwd|
 		CmdPeriod.doOnce(this);
-		cond.test = false;
-		envir[\fastForward] = ffwd ? envir[\fastForward] ? 0;
-		forkIfNeeded {
-			if (this.checkState(\stopped, \error, \free)) {
-				this.prChangeState(\loading);
-				this.trigAndWait(\beforeLoad, \load, \afterLoad);
+		if (this.checkState(\stopped, \error, \free)) {
+			cond.test = false;
+			envir[\fastForward] = ffwd ? envir[\fastForward] ? 0;
+			this.prChangeState(\loading);
+			forkIfNeeded {
+				this.trigAndWait(\templateLoad, \load, \templatePostLoad);
 
 				if (envir[\fastForward].isNegative) {
 					//TODO: This is a fallback,
@@ -165,7 +202,8 @@ Cell : EnvironmentRedirect {
 					envir[\fastForward] = ffwd;
 				};
 				// Play time in seconds (absolute)
-				clock = TempoClock(envir[\settings][\tempo] / 60);
+				// LATER: make sure we have an envir with settings ready so we don't need the nil check
+				clock = TempoClock((envir[\settings][\tempo] ? 60) / 60);
 				if (this.checkState(\stopping, \error).not) {
 					this.prChangeState(\ready);
 					if (playAfterLoad) {
@@ -187,60 +225,63 @@ Cell : EnvironmentRedirect {
 			this.free;
 			this.play(ffwd);
 		};
-		forkIfNeeded {
-			switch(stateNum,
-				states[\stopped], { playAfterLoad = true;  this.load(ffwd) },
-				states[\free], { playAfterLoad = true; this.load(ffwd) },
-				states[\loading], { playAfterLoad = true },
-				states[\ready], {
-					//Set beats to sync 0 with syncClock's next beat according to syncQuant.
-					//timeToNextBeat is in seconds, so multiply with this clock's tempo.
-
-					clock.beats = (envir[\fastForward] -
-						((syncClock.timeToNextBeat(syncQuant ? 0) ? 0) /
-						syncClock.tempo)) * clock.tempo;
+		switch(stateNum,
+			states[\stopped], { playAfterLoad = true;  this.load(ffwd) },
+			states[\free], { playAfterLoad = true; this.load(ffwd) },
+			states[\loading], { playAfterLoad = true },
+			states[\paused], { this.resume; cond.test = true; cond.signal },
+			states[\ready], {
+				//Set beats to sync 0 with syncClock's next beat according to syncQuant.
+				//timeToNextBeat is in seconds, so multiply with this clock's tempo.
+				forkIfNeeded {
 
 					this.prChangeState(\waitForPlay);
 
-					clock.schedAbs(0, {
-						fork {
-							this.trigAndWait(\beforePlay, \play, \afterPlay);
-							if (this.checkState(\stopping).not) {
-								this.prChangeState(\playing);
-							};
-							cond.test = true;
-							cond.signal;
-						}
-					});
-				},
-				states[\paused], { this.resume; cond.test = true; cond.signal }
-			);
+					this.trigAndWait(\templatePreparePlay);
 
-		};
+					clock.beats = (envir[\fastForward] -
+						((syncClock.timeToNextBeat(syncQuant ? 0) ? 0) /
+							syncClock.tempo)) * clock.tempo;
+
+
+					this.trigAndWait(\templatePlay, \play);
+					this.prChangeState(\playing);
+					cond.test = true;
+					cond.signal;
+				}
+			}
+		);
+	}
+
+	spawn { |ffwd, argQuant, argClock|
+		^this.copy.play(ffwd, argQuant, argClock);
 	}
 
 	stop { |now=false|
 		cond.test = false;
-		forkIfNeeded {
-
-			if (this.checkState(\stopped, \stopping, \free).not) {
-				this.prChangeState(\stopping);
-				playerCond.wait; //If currently loading, wait until done before cleaning up
-				this.trigAndWait(\beforeStop, \stop, \afterStop);
-				this.afterStop;
-				if (now) {
-					this.freeAll;
+		if ((this.checkState(\stopping) && now) || this.checkState(\stopped, \free).not) {
+			this.prChangeState(\stopping, true);
+			playAfterLoad = false;
+			forkIfNeeded {
+				//Loading is done in several steps, so we need a while here
+				while { this.checkState(\loading, \waitForPlay) } {
+					playerCond.wait; //If currently loading, wait until done before cleaning up
 				};
-
+				this.prChangeState(\stopping);
+				if (now) {
+					clock.clear;
+					this.use {
+						#[templateStop, stop, templatePostStop].do { |key|
+							fork { envir[key].value(this) };
+						}
+					};
+				} {
+					this.trigAndWait(\templateStop, \stop, \templatePostStop);
+				};
+				this.prChangeState(\stopped);
+				cond.test = true;
+				cond.signal;
 			};
-			cond.test = true;
-			cond.signal;
-		};
-	}
-
-	afterStop {
-		if (this.checkState(\stopped, \free).not) {
-			this.prChangeState(\stopped);
 		};
 	}
 
@@ -252,23 +293,11 @@ Cell : EnvironmentRedirect {
 		this.notYetImplemented;
 	}
 
-	freeAll {
-		if (this.checkState(\free).not) {
-			this.use(envir[\freeAll]);
-			this.use(envir[\afterFree]);
-			clock = nil;
-			this.prChangeState(\free);
-		};
-	}
-
 	free {
-		if (this.checkState(\stopping, \stopped, \free, \error).not) {
-			forkIfNeeded {
-				this.stop(true);
-				this.freeAll;
-			}
-		} {
-			this.freeAll;
+		if (this.checkState(\free).not) {
+			this.use(envir[\templateFree]);
+			this.use(envir[\free]);
+			this.prChangeState(\free);
 		};
 	}
 
@@ -297,15 +326,21 @@ Cell : EnvironmentRedirect {
 	isPlaying { ^this.checkState(\playing) }
 	isPaused { ^this.checkState(\paused) }
 
-	prChangeState { |state|
-		stateNum = states[state];
+	prChangeState { |state, or=false|
+		if (or) {
+			stateNum = stateNum | states[state];
+		} {
+			stateNum = states[state];
+		};
 		this.changed(\state, state);
 		this.changed(state);
 	}
 
 	//Check if state equals one of the supplied symbols
 	checkState { |... sts|
-		^(sts.collect(states[_]).reject(_.isNil).sum & stateNum) == stateNum;
+		^sts.any( { |sym|
+			(states[sym] & stateNum) == states[sym]
+		});
 	}
 
 	cmdPeriod {
@@ -315,7 +350,7 @@ Cell : EnvironmentRedirect {
 		// but it seems that in the normal case,
 		// state == \free already
 		if (this.checkState.(\stopped, \free).not) {
-			this.freeAll;
+			this.stop;
 		}
 	}
 
@@ -410,7 +445,7 @@ Cell : EnvironmentRedirect {
 	}
 
 	copy {
-		^this.class.new(playerType, *argPairs);
+		^Cell.new(playerType, *argPairs);
 	}
 
 	clone { |templateKey ... pairs|
@@ -427,4 +462,10 @@ Cell : EnvironmentRedirect {
 	}
 
 	printOn { arg stream; stream << this.class.name << "(" <<< name <<")" }
+
+	update { |obj, what ...args|
+		^envir.use({
+			~update.value(obj, what, *args)
+		})
+	}
 }

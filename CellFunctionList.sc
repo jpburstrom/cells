@@ -66,7 +66,11 @@ CellFunctionList : FunctionList {
 	}
 
 	includes { |item|
-		^array.includes(item);
+		^if (array.notNil) {
+			array.includes(item);
+		} {
+			false
+		};
 	}
 
 	copy {
