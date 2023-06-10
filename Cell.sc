@@ -186,9 +186,9 @@ Cell : EnvironmentRedirect {
 		CmdPeriod.doOnce(this);
 		cond.test = false;
 		envir[\fastForward] = ffwd ? envir[\fastForward] ? 0;
-		forkIfNeeded {
-			if (this.checkState(\stopped, \error, \free)) {
-				this.prChangeState(\loading);
+		if (this.checkState(\stopped, \error, \free)) {
+			this.prChangeState(\loading);
+			forkIfNeeded {
 				this.trigAndWait(\templateLoad, \load, \templatePostLoad);
 
 				if (envir[\fastForward].isNegative) {
@@ -225,38 +225,32 @@ Cell : EnvironmentRedirect {
 			this.free;
 			this.play(ffwd);
 		};
-		forkIfNeeded {
-			switch(stateNum,
-				states[\stopped], { playAfterLoad = true;  this.load(ffwd) },
-				states[\free], { playAfterLoad = true; this.load(ffwd) },
-				states[\loading], { playAfterLoad = true },
-				states[\ready], {
-					//Set beats to sync 0 with syncClock's next beat according to syncQuant.
-					//timeToNextBeat is in seconds, so multiply with this clock's tempo.
+		switch(stateNum,
+			states[\stopped], { playAfterLoad = true;  this.load(ffwd) },
+			states[\free], { playAfterLoad = true; this.load(ffwd) },
+			states[\loading], { playAfterLoad = true },
+			states[\paused], { this.resume; cond.test = true; cond.signal },
+			states[\ready], {
+				//Set beats to sync 0 with syncClock's next beat according to syncQuant.
+				//timeToNextBeat is in seconds, so multiply with this clock's tempo.
+				forkIfNeeded {
+
+					this.prChangeState(\waitForPlay);
 
 					this.trigAndWait(\templatePreparePlay);
 
 					clock.beats = (envir[\fastForward] -
 						((syncClock.timeToNextBeat(syncQuant ? 0) ? 0) /
-						syncClock.tempo)) * clock.tempo;
+							syncClock.tempo)) * clock.tempo;
 
-					this.prChangeState(\waitForPlay);
 
-					clock.schedAbs(0, {
-						fork {
-							this.trigAndWait(\templatePlay, \play);
-							if (this.checkState(\stopping).not) {
-								this.prChangeState(\playing);
-							};
-							cond.test = true;
-							cond.signal;
-						}
-					});
-				},
-				states[\paused], { this.resume; cond.test = true; cond.signal }
-			);
-
-		};
+					this.trigAndWait(\templatePlay, \play);
+					this.prChangeState(\playing);
+					cond.test = true;
+					cond.signal;
+				}
+			}
+		);
 	}
 
 	spawn { |ffwd, argQuant, argClock|
@@ -265,15 +259,19 @@ Cell : EnvironmentRedirect {
 
 	stop {
 		cond.test = false;
-		forkIfNeeded {
-			if (this.checkState(\stopped, \stopping, \free).not) {
+		if (this.checkState(\stopped, \stopping, \free).not) {
+			playAfterLoad = false;
+			forkIfNeeded {
+				//Loading is done in several steps, so we need a while here
+				while { (this.state == \loading)  || (this.state == \waitForPlay) } {
+					playerCond.wait; //If currently loading, wait until done before cleaning up
+				};
 				this.prChangeState(\stopping);
-				playerCond.wait; //If currently loading, wait until done before cleaning up
 				this.trigAndWait(\templateStop, \stop, \templatePostStop);
 				this.prChangeState(\stopped);
+				cond.test = true;
+				cond.signal;
 			};
-			cond.test = true;
-			cond.signal;
 		};
 	}
 
