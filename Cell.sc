@@ -184,9 +184,9 @@ Cell : EnvironmentRedirect {
 
 	load { |ffwd|
 		CmdPeriod.doOnce(this);
-		cond.test = false;
-		envir[\fastForward] = ffwd ? envir[\fastForward] ? 0;
 		if (this.checkState(\stopped, \error, \free)) {
+			cond.test = false;
+			envir[\fastForward] = ffwd ? envir[\fastForward] ? 0;
 			this.prChangeState(\loading);
 			forkIfNeeded {
 				this.trigAndWait(\templateLoad, \load, \templatePostLoad);
