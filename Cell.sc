@@ -259,8 +259,7 @@ Cell : EnvironmentRedirect {
 
 	stop { |now=false|
 		cond.test = false;
-		if (now || this.checkState(\stopped, \stopping, \free).not) {
-			"stopping".postln;
+		if ((this.checkState(\stopping) && now) || this.checkState(\stopped, \free).not) {
 			this.prChangeState(\stopping, true);
 			playAfterLoad = false;
 			forkIfNeeded {
