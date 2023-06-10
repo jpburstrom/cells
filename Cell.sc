@@ -297,7 +297,6 @@ Cell : EnvironmentRedirect {
 		if (this.checkState(\free).not) {
 			this.use(envir[\templateFree]);
 			this.use(envir[\free]);
-			clock = nil;
 			this.prChangeState(\free);
 		};
 	}
