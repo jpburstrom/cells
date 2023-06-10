@@ -257,17 +257,28 @@ Cell : EnvironmentRedirect {
 		^this.copy.play(ffwd, argQuant, argClock);
 	}
 
-	stop {
+	stop { |now=false|
 		cond.test = false;
-		if (this.checkState(\stopped, \stopping, \free).not) {
+		if (now || this.checkState(\stopped, \stopping, \free).not) {
+			"stopping".postln;
+			this.prChangeState(\stopping, true);
 			playAfterLoad = false;
 			forkIfNeeded {
 				//Loading is done in several steps, so we need a while here
-				while { (this.state == \loading)  || (this.state == \waitForPlay) } {
+				while { this.checkState(\loading, \waitForPlay) } {
 					playerCond.wait; //If currently loading, wait until done before cleaning up
 				};
 				this.prChangeState(\stopping);
-				this.trigAndWait(\templateStop, \stop, \templatePostStop);
+				if (now) {
+					clock.clear;
+					this.use {
+						#[templateStop, stop, templatePostStop].do { |key|
+							fork { envir[key].value(this) };
+						}
+					};
+				} {
+					this.trigAndWait(\templateStop, \stop, \templatePostStop);
+				};
 				this.prChangeState(\stopped);
 				cond.test = true;
 				cond.signal;
