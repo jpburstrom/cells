@@ -317,15 +317,21 @@ Cell : EnvironmentRedirect {
 	isPlaying { ^this.checkState(\playing) }
 	isPaused { ^this.checkState(\paused) }
 
-	prChangeState { |state|
-		stateNum = states[state];
+	prChangeState { |state, or=false|
+		if (or) {
+			stateNum = stateNum | states[state];
+		} {
+			stateNum = states[state];
+		};
 		this.changed(\state, state);
 		this.changed(state);
 	}
 
 	//Check if state equals one of the supplied symbols
 	checkState { |... sts|
-		^(sts.collect(states[_]).reject(_.isNil).sum & stateNum) == stateNum;
+		^sts.any( { |sym|
+			(states[sym] & stateNum) == states[sym]
+		});
 	}
 
 	cmdPeriod {
