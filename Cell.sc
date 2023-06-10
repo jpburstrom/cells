@@ -259,7 +259,7 @@ Cell : EnvironmentRedirect {
 
 	stop { |now=false|
 		cond.test = false;
-		if ((this.checkState(\stopping) && now) || this.checkState(\stopped, \free).not) {
+		if ((this.checkState(\stopping) && (now == true)) || this.checkState(\stopped, \free).not) {
 			this.prChangeState(\stopping, true);
 			playAfterLoad = false;
 			forkIfNeeded {
@@ -268,7 +268,7 @@ Cell : EnvironmentRedirect {
 					playerCond.wait; //If currently loading, wait until done before cleaning up
 				};
 				this.prChangeState(\stopping);
-				if (now) {
+				if (now == true) {
 					clock.clear;
 					this.use {
 						#[templateStop, stop, templatePostStop].do { |key|
