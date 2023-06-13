@@ -209,11 +209,12 @@ Cell : EnvironmentRedirect {
 					if (playAfterLoad) {
 						playAfterLoad = false;
 						this.play;
-					};
+					} {
+						cond.test = true;
+						cond.signal;
+					}
 				}
 			};
-			cond.test = true;
-			cond.signal;
 		};
 	}
 
