@@ -341,6 +341,10 @@ Cell.addTemplate(\track, {
 		~track = Track.newFromDict(~template[\track].deepCopy);
 		~track.addDependant(cell);
 		~trackAuto = TrackAuto(~track, ~track[~settings[\track][\fadeGroup], ~settings[\track][\fadeSlot]], ~settings[\track][\fadeParam]);
+		if (~settings[\fadeIn] != 0 and: { ~trackAutoCustomFade != true }) {
+			var endLevel = 1; //Fixme get this from param. trackAuto feature?
+			~trackAuto.fadeIn(endLevel, ~settings[\fadeIn], ~settings[\fadeInCurve]);
+		}
 	};
 
 	// All groups end up in the groups envir
@@ -359,6 +363,23 @@ Cell.addTemplate(\track, {
 			Error("Track could not start").throw;
 		};
 	};
+
+	~templateStop = {
+		var cond = CondVar();
+		var fadeDur = ~settings[\fadeOut];
+		if (fadeDur > 0) {
+			{
+				var func = {
+					cond.signalAll;
+				};
+				~trackAuto.addDependant(func);
+				~fadeOut.(fadeDur, ~settings[\fadeOutCurve], false);
+			}.inEnvir.fork;
+		};
+		cond.waitFor(fadeDur + 1);
+	};
+
+
 
 	~templatePostStop = {
 		//Will stop and free track
@@ -381,16 +402,24 @@ Cell.addTemplate(\track, {
 
 	~fadeIn = { |endLevel=1, dur=3, curve|
 		//In case we're not ready to play. This will also boot server if needed
-		currentEnvironment.load.then {
-			~trackAuto.fadeIn(endLevel, dur, curve)
-		}
+		~trackAutoCustomFade = true;
+		currentEnvironment.load.then({
+			~trackAuto.fadeIn(endLevel, dur, curve);
+			currentEnvironment.play;
+		}.inEnvir);
 	};
 
 	~fadeOut = { |dur=3, curve, stopCell=false|
-		if (stopCell) {
+		if (stopCell || currentEnvironment.checkState(\stopping)) {
 			var stopFunc = { |obj, what|
 				if (obj == ~trackAuto and: { what == \finish }) {
-					~getCell.value.stop;
+					//fadeOut can be called either by user or as part of a stop routine
+					//If called by user, we're not yet stopping so we need to do that here
+					//Otherwise just continue the stop routine
+					if (currentEnvironment.checkState(\stopping).not) {
+						~getCell.value.stop;
+					};
+					~isFadingOut = false;
 				} {
 					//Assuming slot object
 					if (what == \stopped) {
@@ -405,7 +434,8 @@ Cell.addTemplate(\track, {
 			~trackAuto.slot.addDependant(stopFunc.inEnvir);
 			~trackAuto.addDependant(stopFunc.inEnvir);
 		};
-		~trackAuto.fadeOut(dur, curve)
+		~trackAuto.fadeOut(dur, curve);
+		~isFadingOut = true;
 	}
 
 }, \server);
@@ -431,7 +461,6 @@ Cell.addTemplate(\synth, {
 					)
 				)
 			), args.asDict);
-			args.postln;
 		};
 		args.asPairs;
 	};
@@ -672,7 +701,9 @@ Cell.addTemplate(\pattern, {
 				Penvir(cell,
 					Pchain(~pattern,
 						Pbind(
-							\nilOnStop, Pif(Pfunc { cell.checkState(\stopping, \stopped) }, nil, 1),
+							\nilOnStop, Pif(Pfunc({
+								cell.checkState(\stopping, \stopped) && (~isFadingOut != true)
+							}), nil, 1),
 							\out, Pfunc({ ~track.asBus }),
 							\group, Pfunc({ ~track.asGroup }),
 							\progress, Plazy({ Ptime() / ~settings[\duration]})
@@ -680,7 +711,7 @@ Cell.addTemplate(\pattern, {
 					), independent: false)
 			));
 
-			fork { cell.stop };
+			if (cell.checkState(\stopping).not) { fork { cell.stop } };
 		});
 
 		~player = ptn.asEventStreamPlayer;
