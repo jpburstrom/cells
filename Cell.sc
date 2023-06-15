@@ -57,6 +57,17 @@ Cell : EnvironmentRedirect {
 		templates[key] = nil;
 	}
 
+	*help { |...keys|
+		if (keys.isEmpty) {
+			keys = templates.keys.asArray.sort;
+		};
+		keys.do { |k|
+			var v = templates[k];
+			"% (%)".format(k, templateEnvironment[k].dependencies.asArray.join(", ")).underlined.postln;
+			v[\description].postln;
+			"".postln;
+		}
+	}
 
 	*new { |templateKey ... pairs|
 		^super.new.init(templateKey, pairs);
@@ -91,7 +102,8 @@ Cell : EnvironmentRedirect {
 			if (templateKey.notNil) {
 				"Cell player % not found".format(templateKey).warn;
 			};
-			envir.parent = templates[\base];
+			playerType = \base;
+			envir.parent = templates[playerType];
 		};
 
 		// Copy some keys (eg settings, templates) to proto, to not overwrite the
@@ -127,6 +139,10 @@ Cell : EnvironmentRedirect {
 			envir[\afterInit].value(this);
 		};
 
+	}
+
+	help {
+		this.class.help(playerType)
 	}
 
 	mergeDict { |template, obj|

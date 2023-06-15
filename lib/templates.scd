@@ -1,4 +1,6 @@
 Cell.addTemplate(\initData, {
+	~description = "A partial template initializing instance data. Probably not very useful on its own.";
+
 	~build = {
 		~instanceData = IdentityDictionary().know_(true); //Instance-level data
 	};
@@ -15,6 +17,7 @@ Cell.addTemplate(\initData, {
 });
 
 Cell.addTemplate(\markers, {
+	~description = "A partial template to read markers from audio files.";
 
 	~build = {
 		//This is created in ~cell, but we refer to it as ~markers since
@@ -156,6 +159,7 @@ Cell.addTemplate(\markers, {
 }, \initData);
 
 Cell.addTemplate(\settings, {
+	~description = "A partial template to add default settings";
 
 	// Merge in place
 	~dictMerge = { |template, obj|
@@ -241,6 +245,7 @@ Cell.addTemplate(\settings, {
 }, \initData);
 
 Cell.addTemplate(\base, {
+	~description = "A base template for other cells, or a bare template for custom behaviour.";
 
 	~validateArgs = { |args|
 		if (args.size.odd) {
@@ -309,6 +314,7 @@ Cell.addTemplate(\base, {
 }, [\settings, \markers]);
 
 Cell.addTemplate(\server, {
+	~description = "A base template for all cell types dealing with the server.";
 	//FIXME we should not hardcode server here
 	//Use settings!
 
@@ -338,6 +344,7 @@ Cell.addTemplate(\server, {
 }, \base);
 
 Cell.addTemplate(\track, {
+	~description = "A template creating a track from a track template (sic). ";
 
 	~build = {
 		~instanceData[\template][\track] = (
@@ -474,6 +481,7 @@ Cell.addTemplate(\track, {
 
 // Synth related methods: FX, Ctl,
 Cell.addTemplate(\synth, {
+	~description = "A player extending the track player to play synths quantized and in sync with other players.";
 
 	~build = {
 		~instanceData[\template][\synth] = (
@@ -514,22 +522,20 @@ Cell.addTemplate(\synth, {
 
 
 Cell.addTemplate(\buffer, {
-
-	// Buffer template template
-	// Multiple files
-	/*
-	~template.buffer = (
-		key0: "/path", // Only expressed as path
+	~description = "A buffer player, cueing file(s) from a buffer template.\n
+	//Template format
+	(
+		key0: \"/path\", // Only expressed as path
 		key1: ( //As dict
-			path: "/path",
-			method: \read,
+			path: \"/path\",
+			method: 'read',
 			startTime: 1.2, // like startFrames, but in seconds
 			startFrames: 1000,
 			duration: 2.5, // like numFrames
 			numFrames: 480000
 		)
 	);
-	*/
+";
 	~build = {
 		~instanceData[\settings][\buffer] = (
 			defaultSynthDef: { ~numChannelsFormat.("cellBufPlayer_%") },
@@ -633,6 +639,7 @@ Cell.addTemplate(\buffer, {
 }, [\synth]);
 
 Cell.addTemplate(\disk, {
+	~description = "A disk player, cueing file(s) from a buffer template.";
 
 	~build = {
 		~instanceData[\settings][\buffer] = (
@@ -677,6 +684,7 @@ Cell.addTemplate(\disk, {
 
 
 Cell.addTemplate(\group, {
+	~description = "A cell holding a group of cells, forwarding methods to all cells.";
 
 	~build = {
 		~instanceData[\cells] = IdentityDictionary(know: true);
@@ -707,6 +715,8 @@ Cell.addTemplate(\group, {
 }, [\base]);
 
 Cell.addTemplate(\basicPattern, {
+
+	~description = "A basic pattern player useful for midi or data patterns, or for custom routing.";
 
 	~build = {
 		// We let pattern release itself
@@ -790,6 +800,8 @@ Cell.addTemplate(\basicPattern, {
 
 Cell.addTemplate(\pattern, {
 
+	~description = "A pattern player creating and playing within a local track instance.";
+
 	~chainPattern = { |cell|
 		Pbind(
 			\nilOnStop, Pif(Pfunc({
@@ -806,12 +818,15 @@ Cell.addTemplate(\pattern, {
 }, [\basicPattern, \synth]);
 
 Cell.addTemplate(\bufferPattern, {
+	~description = "A pattern player with support for loading buffers from a buffer template.";
+
 	~templateInit = {
 		~template[\main] = nil;
 	};
 }, [\pattern, \buffer]);
 
 Cell.addTemplate(\task, {
+	~description = "A simple task player useful for oneshots or looping tasks.";
 
 	~validateArgs = nil -> { |args|
 		var task;
