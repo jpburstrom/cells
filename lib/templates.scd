@@ -743,7 +743,7 @@ Cell.addTemplate(\pattern, {
 				ffwd = ffwd * clock.tempo;
 
 				rest = ~player.originalStream.fastForward(ffwd);
-				(rest * clock.tempo / thisThread.clock.tempo).wait;
+				(rest * thisThread.clock.tempo / clock.tempo).wait;
 			};
 			~player.play(clock);
 		}
