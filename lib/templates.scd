@@ -714,6 +714,10 @@ Cell.addTemplate(\pattern, {
 			if (cell.checkState(\stopping).not) { fork { cell.stop } };
 		});
 
+		~settings[\randSeed] !? { |seed|
+			ptn = Pseed(seed, ptn);
+		};
+
 		~player = ptn.asEventStreamPlayer;
 	};
 
