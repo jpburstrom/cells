@@ -286,6 +286,7 @@ Cell : EnvironmentRedirect {
 					this.trigAndWait(\templateStop, \stop, \templatePostStop);
 				};
 				this.prChangeState(\stopped);
+				envir[\fastForward] = 0; //TEMP reset, later clear the entire envir
 				cond.test = true;
 				cond.signal;
 			};
