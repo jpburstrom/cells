@@ -221,7 +221,7 @@ Cell : EnvironmentRedirect {
 	play { |ffwd, argQuant, argClock|
 		argQuant = argQuant ?? syncQuant;
 		argClock = argClock ?? syncClock;
-		if (this.isReady and: { ffwd != envir[\fastForward] }) {
+		if (this.isReady and: { ffwd.notNil } and: { ffwd != envir[\fastForward] }) {
 			this.stop(true).then {
 				this.play(ffwd, argQuant, argClock);
 			}
