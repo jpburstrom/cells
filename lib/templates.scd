@@ -788,3 +788,38 @@ Cell.addTemplate(\bufferPattern, {
 		~template[\main] = nil;
 	};
 }, [\pattern, \buffer]);
+
+Cell.addTemplate(\task, {
+
+	~validateArgs = nil -> { |args|
+		var task;
+		if (args[0].isFunction) {
+			task = Task(args.removeAt(0).inEnvir)
+		};
+		args = args.asDict;
+		args[\task] = task;
+		args.asPairs;
+	};
+	~templateLoad = {
+		~task = ~template[\task];
+	};
+	~templatePlay = {
+		var userStopped = false;
+		var update = { |obj, what|
+			if (what == \userStopped) {
+				userStopped = true;
+			};
+			if (what == \stopped) {
+				if (userStopped.not) {
+					currentEnvironment.stop;
+				}
+			}
+		}.inEnvir;
+		~task.addDependant(update);
+		~task.play(currentEnvironment.clock, true);
+	};
+
+	~templateStop = {
+		~task.stop.reset;
+	}
+}, [\base]);
