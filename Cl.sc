@@ -43,7 +43,7 @@ Cl : Cell {
 		if (templates[selector].notNil) {
 			^this.new(args[0], selector, *args[1..])
 		} {
-			^this.superPerformList(selector, args);
+			^this.superPerformList(\doesNotUnderstand, selector, args);
 		}
 	}
 	addToAll {|argkey|

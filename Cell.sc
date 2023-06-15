@@ -64,9 +64,9 @@ Cell : EnvironmentRedirect {
 
 	*doesNotUnderstand { |selector ... args|
 		if (templates[selector].notNil) {
-			^this.new(selector, *args.postln)
+			^this.new(selector, *args)
 		} {
-			^this.superPerformList(selector, args);
+			^this.superPerformList(\doesNotUnderstand, selector, args);
 		}
 	}
 
