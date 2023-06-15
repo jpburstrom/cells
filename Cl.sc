@@ -28,9 +28,13 @@ Cl : Cell {
 		};
 		res = all.at(key);
 		if(res.isNil or: {  templateKey.notNil || pairs.notEmpty }) {
+			var isPlaying = res.isPlaying;
 			res.free;
 			res = super.new(templateKey, *pairs).addToAll(key);
 			res.name_(key);
+			if (isPlaying) {
+				res.play;
+			}
 		};
 		^res
 	}
