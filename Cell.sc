@@ -248,7 +248,7 @@ Cell : EnvironmentRedirect {
 							argClock.tempo)) * clock.tempo;
 
 					//Schedule play starting at clock time 0
-					clock.schedAbs(envir[\fastForward], {
+					clock.schedAbs(envir[\fastForward] * clock.tempo, {
 						fork {
 							this.trigAndWait(\templatePlay, \play);
 							cond.test = true;
