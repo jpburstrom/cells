@@ -375,8 +375,8 @@ Cell.addTemplate(\track, {
 				~trackAuto.addDependant(func);
 				~fadeOut.(fadeDur, ~settings[\fadeOutCurve], false);
 			}.inEnvir.fork;
+			cond.waitFor(fadeDur + 1);
 		};
-		cond.waitFor(fadeDur + 1);
 	};
 
 
