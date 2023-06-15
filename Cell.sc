@@ -100,7 +100,7 @@ Cell : EnvironmentRedirect {
 			envir.proto[key] = data.deepCopy;
 		};
 
-		argPairs = envir.use { ~validateArgs.value(argPairs) } ? argPairs;
+		argPairs = this.use { ~validateArgs.value(argPairs) } ? argPairs;
 
 		// The make function is run inside the proto of the environment
 		// that way, user data and temporary objects are kept separate from objects
