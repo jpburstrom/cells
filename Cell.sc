@@ -219,11 +219,10 @@ Cell : EnvironmentRedirect {
 	}
 
 	play { |ffwd, argQuant, argClock|
-		cond.test = false;
 		argQuant !? { syncQuant = argQuant };
 		argClock !? { syncClock = argClock };
 		if (this.isReady and: { ffwd.notNil }) {
-			this.free;
+			this.stop;
 			this.play(ffwd);
 		};
 		switch(stateNum,
@@ -232,6 +231,7 @@ Cell : EnvironmentRedirect {
 			states[\loading], { playAfterLoad = true },
 			states[\paused], { this.resume; cond.test = true; cond.signal },
 			states[\ready], {
+				cond.test = false;
 				//Set beats to sync 0 with syncClock's next beat according to syncQuant.
 				//timeToNextBeat is in seconds, so multiply with this clock's tempo.
 				forkIfNeeded {
@@ -259,8 +259,8 @@ Cell : EnvironmentRedirect {
 	}
 
 	stop { |now=false|
-		cond.test = false;
 		if ((this.checkState(\stopping) && (now == true)) || this.checkState(\stopped, \free).not) {
+			cond.test = false;
 			this.prChangeState(\stopping, true);
 			playAfterLoad = false;
 			forkIfNeeded {
