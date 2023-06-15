@@ -274,6 +274,18 @@ Cell.addTemplate(\base, {
 		~dictMerge.(~template, obj);
 	};
 
+	~beats = {
+		currentEnvironment.clock !? { |clock| clock.beats };
+	};
+
+	~seconds = {
+		currentEnvironment.clock !? { |clock| clock.beats / clock.tempo };
+	};
+
+	~progress = {
+		~settings[\duration] !? { |dur| currentEnvironment.clock !? { |clock| (clock.beats / clock.tempo) / dur } };
+	};
+
 }, [\settings, \markers]);
 
 Cell.addTemplate(\server, {
@@ -712,7 +724,9 @@ Cell.addTemplate(\pattern, {
 							}), nil, 1),
 							\out, Pfunc({ ~track.asBus }),
 							\group, Pfunc({ ~track.asGroup }),
-							\progress, Plazy({ Ptime() / ~settings[\duration]})
+							\progress, Pfunc({ ~progress.value ? 0 }),
+							\seconds, Pfunc({ ~seconds.value ? 0 }),
+							//Beats can use Ptime()
 						)
 					), independent: false)
 			));
