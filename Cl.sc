@@ -28,12 +28,15 @@ Cl : Cell {
 		};
 		res = all.at(key);
 		if(res.isNil or: {  templateKey.notNil || pairs.notEmpty }) {
-			var isPlaying = res.isPlaying;
+			var pos;
+			if (res.isPlaying) {
+				pos = res.clock.beats / res.clock.tempo;
+			};
 			res.free;
 			res = super.new(templateKey, *pairs).addToAll(key);
 			res.name_(key);
-			if (isPlaying) {
-				res.play;
+			if (pos.notNil) {
+				res.play(pos);
 			}
 		};
 		^res
