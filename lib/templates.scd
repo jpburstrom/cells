@@ -693,13 +693,19 @@ Cell.addTemplate(\pattern, {
 	};
 
 	~templateLoad = { |cell|
-		var ptn = Pspawner({ |sp|
+		var spawner, ptn = ~pattern;
+
+		~settings[\randSeed] !? { |seed|
+			ptn = Pseed(seed, ptn);
+		};
+
+		spawner = Pspawner({ |sp|
 			var tempo = cell.clock.tempo;
 			var dur = ~settings[\duration] * tempo;
 			~spawner = sp;
 			sp.seq(Pfindur(dur,
 				Penvir(cell,
-					Pchain(~pattern,
+					Pchain(ptn,
 						Pbind(
 							\nilOnStop, Pif(Pfunc({
 								cell.checkState(\stopping, \stopped) && (~isFadingOut != true)
@@ -714,11 +720,8 @@ Cell.addTemplate(\pattern, {
 			if (cell.checkState(\stopping).not) { fork { cell.stop } };
 		});
 
-		~settings[\randSeed] !? { |seed|
-			ptn = Pseed(seed, ptn);
-		};
 
-		~player = ptn.asEventStreamPlayer;
+		~player = spawner.asEventStreamPlayer;
 	};
 
 	~templatePlay = {
