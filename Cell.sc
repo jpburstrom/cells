@@ -239,16 +239,21 @@ Cell : EnvironmentRedirect {
 					this.prChangeState(\waitForPlay);
 
 					this.trigAndWait(\templatePreparePlay);
-
-					clock.beats = (envir[\fastForward] -
-						((syncClock.timeToNextBeat(syncQuant ? 0) ? 0) /
-							syncClock.tempo)) * clock.tempo;
-
-
-					this.trigAndWait(\templatePlay, \play);
 					this.prChangeState(\playing);
-					cond.test = true;
-					cond.signal;
+
+					//Here we set the beats to a possibly negative value adjusted for quant
+					clock.beats = (envir[\fastForward] -
+						(argClock.timeToNextBeat(argQuant) /
+							argClock.tempo)) * clock.tempo;
+
+					//Schedule play starting at clock time 0
+					clock.schedAbs(envir[\fastForward], {
+						fork {
+							this.trigAndWait(\templatePlay, \play);
+							cond.test = true;
+							cond.signal;
+						}
+					})
 				}
 			}
 		);
