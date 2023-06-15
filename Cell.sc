@@ -182,7 +182,7 @@ Cell : EnvironmentRedirect {
 
 	}
 
-	load { |ffwd|
+	load { |ffwd, argQuant, argClock|
 		CmdPeriod.doOnce(this);
 		if (this.checkState(\stopped, \error, \free)) {
 			cond.test = false;
@@ -208,7 +208,7 @@ Cell : EnvironmentRedirect {
 					this.prChangeState(\ready);
 					if (playAfterLoad) {
 						playAfterLoad = false;
-						this.play;
+						this.play(ffwd, argQuant, argClock);
 					} {
 						cond.test = true;
 						cond.signal;
@@ -219,15 +219,16 @@ Cell : EnvironmentRedirect {
 	}
 
 	play { |ffwd, argQuant, argClock|
-		argQuant !? { syncQuant = argQuant };
-		argClock !? { syncClock = argClock };
-		if (this.isReady and: { ffwd.notNil }) {
-			this.stop;
-			this.play(ffwd);
+		argQuant = argQuant ?? syncQuant;
+		argClock = argClock ?? syncClock;
+		if (this.isReady and: { ffwd != envir[\fastForward] }) {
+			this.stop(true).then {
+				this.play(ffwd, argQuant, argClock);
+			}
 		};
 		switch(stateNum,
-			states[\stopped], { playAfterLoad = true;  this.load(ffwd) },
-			states[\free], { playAfterLoad = true; this.load(ffwd) },
+			states[\stopped], { playAfterLoad = true;  this.load(ffwd, argQuant, argClock) },
+			states[\free], { playAfterLoad = true; this.load(ffwd, argQuant, argClock) },
 			states[\loading], { playAfterLoad = true },
 			states[\paused], { this.resume; cond.test = true; cond.signal },
 			states[\ready], {
