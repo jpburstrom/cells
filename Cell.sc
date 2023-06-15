@@ -131,7 +131,6 @@ Cell : EnvironmentRedirect {
 
 	mergeDict { |template, obj|
 		obj.keysValuesDo { |k, v|
-			v.postln;
 			if (template[k].isNil) {
 				template[k] = v;
 			} {

@@ -160,7 +160,6 @@ Cell.addTemplate(\settings, {
 	// Merge in place
 	~dictMerge = { |template, obj|
 		var keys = (template.keys ++ obj.keys).asArray;
-		keys.postln;
 		keys.do { |k|
 			var v = obj[k];
 			if (v.notNil) {
@@ -611,7 +610,6 @@ Cell.addTemplate(\buffer, {
 				);
 			}
 		);
-		~buffers.postln;
 	};
 
 	// Add buses according to template
