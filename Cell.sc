@@ -296,9 +296,11 @@ Cell : EnvironmentRedirect {
 
 	free {
 		if (this.checkState(\free).not) {
-			this.use(envir[\templateFree]);
-			this.use(envir[\free]);
-			this.prChangeState(\free);
+			this.stop(true).then {
+				this.use(envir[\templateFree]);
+				this.use(envir[\free]);
+				this.prChangeState(\free);
+			}
 		};
 	}
 
