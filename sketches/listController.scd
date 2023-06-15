@@ -107,7 +107,7 @@ var proto = Require("playController") <> {
 	};
 
 	//Stop action. if you want to
-	~beforeStop = { |player|
+	~templateStop = { |player|
 		~loader.stop;
 		routs.stop;
 		//~children.copy.postln.do { |xh| xh.stop }; //This should be automatic, no?
