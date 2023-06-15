@@ -250,6 +250,27 @@ Cell.addTemplate(\base, {
 		args
 	};
 
+	~streamFastForward = { |stream|
+		var rest;
+		var clock = currentEnvironment.clock;
+		~fastForward !? { |ffwd|
+			if (ffwd.isNegative) {
+				if (~settings[\duration] != inf) {
+					ffwd = ~settings[\duration] + ffwd;
+				} {
+					ffwd = 0;
+				};
+				~fastForward = ffwd;
+			};
+
+
+			//Adjust from seconds to beats
+			ffwd = ffwd * clock.tempo;
+			rest = stream.fastForward(ffwd);
+			rest * thisThread.clock.tempo / clock.tempo;
+		} ?? 0;
+	};
+
 	~build = {
 		~addInstanceData.(\template, IdentityDictionary());
 	};
@@ -687,7 +708,7 @@ Cell.addTemplate(\group, {
 	//Needs base for template
 }, [\base]);
 
-Cell.addTemplate(\pattern, {
+Cell.addTemplate(\basicPattern, {
 
 	~build = {
 		// We let pattern release itself
@@ -705,61 +726,47 @@ Cell.addTemplate(\pattern, {
 	};
 
 	~templateLoad = { |cell|
-		var spawner, ptn = ~pattern;
+		var ptn = ~pattern;
 
+		~player = ~wrapperPattern.(cell, ptn).asEventStreamPlayer;
+		~player.postln;
+	};
+
+	~wrapperPattern = { |cell, ptn|
 		~settings[\randSeed] !? { |seed|
 			ptn = Pseed(seed, ptn);
 		};
 
-		spawner = Pspawner({ |sp|
+		Pspawner({ |sp|
 			var tempo = cell.clock.tempo;
 			var dur = ~settings[\duration] * tempo;
 			~spawner = sp;
 			sp.seq(Pfindur(dur,
 				Penvir(cell,
 					Pchain(ptn,
-						Pbind(
-							\nilOnStop, Pif(Pfunc({
-								cell.checkState(\stopping, \stopped) && (~isFadingOut != true)
-							}), nil, 1),
-							\out, Pfunc({ ~track.asBus }),
-							\group, Pfunc({ ~track.asGroup }),
-							\progress, Pfunc({ ~progress.value ? 0 }),
-							\seconds, Pfunc({ ~seconds.value ? 0 }),
-							//Beats can use Ptime()
-						)
+						~chainPattern.value(cell);
 					), independent: false)
 			));
 
 			if (cell.checkState(\stopping).not) { fork { cell.stop } };
 		});
+	};
 
-
-		~player = spawner.asEventStreamPlayer;
+	~chainPattern = { |cell|
+		Pbind(
+			\nilOnStop, Pif(Pfunc({
+				cell.checkState(\stopping, \stopped) && (~isFadingOut != true)
+			}), nil, 1),
+			\progress, Pfunc({ ~progress.value ? 0 }),
+			\seconds, Pfunc({ ~seconds.value ? 0 }),
+			//Beats can use Ptime()
+		)
 	};
 
 	~templatePlay = {
 		if (~player.isPlaying.not) {
-			var rest;
-			var clock = currentEnvironment.clock;
-			~fastForward !? { |ffwd|
-				if (ffwd.isNegative) {
-					if (~settings[\duration] != inf) {
-						ffwd = ~settings[\duration] + ffwd;
-					} {
-						ffwd = 0;
-					};
-					~fastForward = ffwd;
-				};
-
-
-				//Adjust from seconds to beats
-				ffwd = ffwd * clock.tempo;
-
-				rest = ~player.originalStream.fastForward(ffwd);
-				(rest * thisThread.clock.tempo / clock.tempo).wait;
-			};
-			~player.play(clock);
+			~streamFastForward.(~player.originalStream).wait;
+			~player.play(currentEnvironment.clock);
 		}
 	};
 
@@ -781,7 +788,24 @@ Cell.addTemplate(\pattern, {
 
 
 
-}, [\synth]);
+}, [\base]);
+
+Cell.addTemplate(\pattern, {
+
+	~chainPattern = { |cell|
+		Pbind(
+			\nilOnStop, Pif(Pfunc({
+				cell.checkState(\stopping, \stopped) && (~isFadingOut != true)
+			}), nil, 1),
+			\out, Pfunc({ ~track.asBus }),
+			\group, Pfunc({ ~track.asGroup }),
+			\progress, Pfunc({ ~progress.value ? 0 }),
+			\seconds, Pfunc({ ~seconds.value ? 0 }),
+			//Beats can use Ptime()
+		)
+	};
+
+}, [\basicPattern, \synth]);
 
 Cell.addTemplate(\bufferPattern, {
 	~templateInit = {
