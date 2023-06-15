@@ -74,7 +74,7 @@ Cell : EnvironmentRedirect {
 
 		cond = Condition(true);
 		playerCond = Condition(true);
-		syncQuant = 0;
+		syncQuant = { this.getQuant ? 0 };
 		syncClock = TempoClock.default;
 		playAfterLoad = false;
 		stateNum = states[\free];
