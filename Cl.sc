@@ -9,7 +9,7 @@ description = '''
 */
 Cl {
 	classvar <all;
-	var <key, <cell;
+	var <key, <cell, >rebuilding=false;
 
 	*initClass { all = IdentityDictionary() }
 
@@ -34,12 +34,13 @@ Cl {
 				var pos;
 				if (res.cell.isPlaying) {
 					pos = res.clock.beats / res.clock.tempo;
+					res.rebuilding = true;
 				};
 				res.cell.free;
 				res.cell = Cell.new(templateKey, *pairs);
 				res.cell.name_(key);
 				if (pos.notNil) {
-					res.cell.play(pos);
+					res.cell.play(pos).then { res.rebuilding = false };
 				}
 			};
 		};
@@ -78,6 +79,18 @@ Cl {
 		cell.addDependant(this);
 	}
 
+	asStream {
+		^Routine({ |inval|
+			var val = cell.envir;
+			loop {
+				if (rebuilding.not) {
+					val = cell.envir;
+				};
+				inval = val.yield
+			}
+		}.inEnvir)
+	}
+
 	update { |obj, what ... args|
 		this.changed(obj, what, *args)
 	}
@@ -107,7 +120,6 @@ Cl {
 	isPlaying {  ^cell.isPlaying }
 	isPaused {  ^cell.isPaused }
 	copy {  ^cell.copy }
-	asStream { ^cell.asStream }
 	clone { |templateKey ... pairs| ^cell.clone(templateKey, *pairs) }
 	doFunctionPerform { |selector, args| cell.doFunctionPerform(selector, args) }
 	//Fallback
