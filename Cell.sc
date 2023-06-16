@@ -500,4 +500,12 @@ Cell : EnvironmentRedirect {
 			~update.value(obj, what, *args)
 		})
 	}
+
+	asStream {
+		^Routine({ |inval|
+			loop {
+				inval = envir.yield
+			}
+		}.inEnvir)
+	}
 }

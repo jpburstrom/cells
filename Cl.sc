@@ -102,6 +102,7 @@ Cl {
 	isPlaying {  ^cell.isPlaying }
 	isPaused {  ^cell.isPaused }
 	copy {  ^cell.copy }
+	asStream { ^cell.asStream }
 	clone { |templateKey ... pairs| ^cell.clone(templateKey, *pairs) }
 	doFunctionPerform { |selector, args| cell.doFunctionPerform(selector, args) }
 	update { |obj, what ... args|
