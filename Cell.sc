@@ -90,7 +90,6 @@ Cell : EnvironmentRedirect {
 		playAfterLoad = false;
 		stateNum = states[\free];
 
-		argPairs = pairs;
 		playerType = templateKey;
 
 		name = "";
@@ -112,7 +111,13 @@ Cell : EnvironmentRedirect {
 			envir.proto[key] = data.deepCopy;
 		};
 
-		argPairs = this.use { ~validateArgs.value(argPairs) } ? argPairs;
+		pairs = pairs.asList;
+		this.use { ~validateArgs.value(pairs) };
+
+		if (pairs.size.odd) {
+			Error("The cell doesn't have even number of arguments after template validation.").throw
+		};
+		argPairs = pairs.asArray;
 
 		// The make function is run inside the proto of the environment
 		// that way, user data and temporary objects are kept separate from objects

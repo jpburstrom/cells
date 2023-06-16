@@ -251,7 +251,6 @@ Cell.addTemplate(\base, {
 		if (args.size.odd) {
 			Error("This cell template should have even number of arguments.").throw
 		};
-		args
 	};
 
 	~streamFastForward = { |stream|
@@ -494,15 +493,22 @@ Cell.addTemplate(\synth, {
 		if (args[0].isSymbol.not and: { args[0].respondsTo(\asTrackGroupItem) }) {
 			var synth = args.removeAt(0);
 			var key = "%_%".format((synth.tryPerform(\key) ? "synth"), synth.hash.asHexString).asSymbol;
-			args = ~dictMerge.value((
-				template: (
+			if (args.includes(\template)) {
+				args.pairsDo { |k, v|
+					if (k == \template) {
+						v[\synth] = ~dictMerge.value((
+							main: ().put(key, synth)
+						), v[\synth]);
+					}
+				}
+			} {
+				args.addAll([\template, (
 					synth: (
 						main: ().put(key, synth)
 					)
-				)
-			), args.asDict);
-		};
-		args.asPairs;
+				)]);
+			};
+		}
 	};
 
 	//~template[\synth] has same structure as ~template[\track]
@@ -549,14 +555,20 @@ Cell.addTemplate(\buffer, {
 		if (args[0].isString) {
 			var path = args.removeAt(0);
 			var key = path.basename.splitext[0].asSymbol;
-			args = args.asDict;
-			args = ~dictMerge.value((
-				template: (
+			if (args.includes(\template)) {
+				args.pairsDo { |k, v|
+					if (k == \template) {
+						v[\buffer] = ~dictMerge.value((
+							main: ().put(key, path)
+						), v[\buffer]);
+					}
+				}
+			} {
+				args.addAll([\template, (
 					buffer: ().put(key, path)
-				)
-			), args.asDict);
+				)]);
+			};
 		};
-		args.asPairs;
 	};
 
 	~templateInit = {
@@ -726,11 +738,8 @@ Cell.addTemplate(\basicPattern, {
 	~validateArgs = nil -> { |args|
 		if (args[0].isKindOf(Pattern)) {
 			var ptn = args.removeAt(0);
-			args = ~dictMerge.value((
-				pattern: ptn
-			), args.asDict);
+			args.addAll([\pattern, ptn])
 		};
-		args.asPairs;
 	};
 
 	~templateLoad = { |cell|
@@ -799,10 +808,9 @@ Cell.addTemplate(\basicPattern, {
 }, [\base]);
 
 Cell.addTemplate(\pattern, {
-
 	~description = "A pattern player creating and playing within a local track instance.";
 
-	~chainPattern = { |cell|
+	~chainPattern = nil -> { |cell|
 		Pbind(
 			\nilOnStop, Pif(Pfunc({
 				cell.checkState(\stopping, \stopped) && (~isFadingOut != true)
@@ -833,9 +841,7 @@ Cell.addTemplate(\task, {
 		if (args[0].isFunction) {
 			task = Task(args.removeAt(0).inEnvir)
 		};
-		args = args.asDict;
-		args[\task] = task;
-		args.asPairs;
+		args.addAll([\task, task])
 	};
 	~templateLoad = {
 		~task = ~template[\task];
