@@ -7,9 +7,9 @@ related = "Classes/Cell"
 description = '''
 '''
 */
-Cl : Cell {
+Cl {
 	classvar <all;
-	var <key;
+	var <key, <cell;
 
 	*initClass { all = IdentityDictionary() }
 
@@ -27,28 +27,33 @@ Cl : Cell {
 			Error("Missing key").throw;
 		};
 		res = all.at(key);
-		if(res.isNil or: {  templateKey.notNil || pairs.notEmpty }) {
-			var pos;
-			if (res.isPlaying) {
-				pos = res.clock.beats / res.clock.tempo;
+		if(res.isNil) {
+			res = super.new.cell_(Cell(templateKey, *pairs)).addToAll(key);
+		} {
+			if (templateKey.notNil || pairs.notEmpty ) {
+				var pos;
+				if (res.cell.isPlaying) {
+					pos = res.clock.beats / res.clock.tempo;
+				};
+				res.cell.free;
+				res.cell = Cell.new(templateKey, *pairs);
+				res.cell.name_(key);
+				if (pos.notNil) {
+					res.cell.play(pos);
+				}
 			};
-			res.free;
-			res = super.new(templateKey, *pairs).addToAll(key);
-			res.name_(key);
-			if (pos.notNil) {
-				res.play(pos);
-			}
 		};
 		^res
 	}
 
 	*doesNotUnderstand { |selector ... args|
-		if (templates[selector].notNil) {
+		if (Cell.templates[selector].notNil) {
 			^this.new(args[0], selector, *args[1..])
 		} {
 			^this.superPerformList(\doesNotUnderstand, selector, args);
 		}
 	}
+
 	addToAll {|argkey|
 		key = argkey;
 		all.put(key, this)
@@ -56,11 +61,7 @@ Cl : Cell {
 
 	free {
 		all[key] = nil;
-		super.free;
-	}
-
-	copy {
-		^super.copy
+		cell.free;
 	}
 
 	storeOn { | stream |
@@ -69,6 +70,47 @@ Cl : Cell {
 
 	printOn { | stream |
 		stream << this.class.name << "(" <<< key << ")"
+	}	name {  cell.name() }
+
+	cell_ { |c|
+		cell.free;
+		cell = c;
+		cell.addDependant(this);
+	}
+
+	name_ { |name| cell.name_(name) }
+	argPairs {  ^cell.argPairs }
+	cond {  ^cell.cond }
+	clock {  ^cell.clock }
+	syncClock {  ^cell.syncClock }
+	syncClock_ { |clock| cell.syncClock_(clock) }
+	syncQuant {  ^cell.syncQuant }
+	syncQuant_ { |quant| cell.syncQuant_(quant) }
+	help {  cell.help }
+	load { |ffwd, argQuant, argClock| cell.load(ffwd, argQuant, argClock) }
+	play { |ffwd, argQuant, argClock| cell.play(ffwd, argQuant, argClock) }
+	spawn { |ffwd, argQuant, argClock| ^cell.spawn(ffwd, argQuant, argClock) }
+	stop { |now = false| cell.stop(now) }
+	pause {  cell.pause }
+	resume {  cell.resume }
+	then { |func| cell.then(func) }
+	wait {  cell.wait }
+	state {  ^cell.state }
+	isStopped {  ^cell.isStopped }
+	isLoading {  ^cell.isLoading }
+	isReady {  ^cell.isReady }
+	isPlaying {  ^cell.isPlaying }
+	isPaused {  ^cell.isPaused }
+	copy {  ^cell.copy }
+	clone { |templateKey ... pairs| ^cell.clone(templateKey, *pairs) }
+	doFunctionPerform { |selector, args| cell.doFunctionPerform(selector, args) }
+	update { |obj, what ... args|
+		this.changed(obj, what, *args)
+	}
+
+	//Fallback
+	doesNotUnderstand { |selector ... args|
+		^cell.performList(selector, args);
 	}
 
 }
