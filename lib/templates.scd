@@ -788,9 +788,9 @@ Cell.addTemplate(\basicPattern, {
 	};
 
 	~templateStop = { |cell|
-		if (~player.clock.isRunning) {
+		if (cell.clock.isRunning) {
 			try {
-				while { ~player.notNil and: { ~player.clock.queue.size >= 2 } } {
+				while { cell.clock.queue.size >= 2 } {
 					0.1.wait;
 				};
 			} {
