@@ -224,8 +224,10 @@ Cell : EnvironmentRedirect {
 				// Play time in seconds (absolute)
 				// LATER: make sure we have an envir with settings ready so we don't need the nil check
 				clock = TempoClock((envir[\settings][\tempo] ? 60) / 60);
-				if (this.checkState(\stopping, \error).not) {
+				if (this.checkState(\error).not) {
 					this.prChangeState(\ready);
+				};
+				if (this.checkState(\stopping).not) {
 					if (playAfterLoad) {
 						playAfterLoad = false;
 						this.play(ffwd, argQuant, argClock);
