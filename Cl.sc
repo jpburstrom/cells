@@ -78,6 +78,11 @@ Cl {
 		cell.addDependant(this);
 	}
 
+	update { |obj, what ... args|
+		this.changed(obj, what, *args)
+	}
+
+
 	name_ { |name| cell.name_(name) }
 	argPairs {  ^cell.argPairs }
 	cond {  ^cell.cond }
@@ -105,10 +110,6 @@ Cl {
 	asStream { ^cell.asStream }
 	clone { |templateKey ... pairs| ^cell.clone(templateKey, *pairs) }
 	doFunctionPerform { |selector, args| cell.doFunctionPerform(selector, args) }
-	update { |obj, what ... args|
-		this.changed(obj, what, *args)
-	}
-
 	//Fallback
 	doesNotUnderstand { |selector ... args|
 		^cell.performList(selector, args);
