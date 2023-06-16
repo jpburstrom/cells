@@ -825,6 +825,78 @@ Cell.addTemplate(\pattern, {
 
 }, [\basicPattern, \synth]);
 
+
+Cell.addTemplate(\trigPattern, {
+	~description = "A pattern player where events are triggered on demand.";
+
+	~build = {
+		~instanceData[\settings][\trigOnPlay] = false;
+	};
+
+	~wrapperPattern = nil -> { |cell, ptn|
+		~settings[\randSeed] !? { |seed|
+			ptn = Pseed(seed, ptn);
+		};
+		Penvir(cell,
+			Pchain(ptn,
+				~chainPattern.value(cell);
+			), independent: false)
+	};
+
+
+	~templateLoad = \synth -> { |cell|
+		var ptn = ~pattern;
+		~stream = ~wrapperPattern.(cell, ptn).asStream;
+
+	};
+
+	~templatePlay = \synth -> {
+		~triggerDepFunc = { |...args|
+			//Triggers are a list of [obj, what, args] that are matched with incoming messages
+			//It can also be list -> func
+			//Where func is filtering the incoming message, returning a dictionary or nil
+			//to be used as inval to the triggered event
+			~triggers.do { |trigger|
+				var t_args, func;
+				if (trigger.respondsTo(\key)) {
+					t_args = trigger.key;
+					func = trigger.value;
+				} {
+					t_args = trigger;
+					func = { |...args|
+						if (args[t_args.size].isKindOf(IdentityDictionary)) {
+							args[t_args.size]
+						}
+					}
+				};
+				if (t_args == args.keep(t_args.size)) {
+					var inval = func.valueArray(args) ? ();
+					inval.postln;
+					~trig.value(inval)
+				}
+			}
+		}.inEnvir;
+		~triggers.do { |args|
+			(args.tryPerform(\key) ?? args)[0].addDependant(~triggerDepFunc);
+		};
+		if (~settings[\trigOnPlay]) {
+			~trig.value;
+		}
+	};
+
+	~templateStop = { |cell|
+		~triggers.do { |args|
+			(args.tryPerform(\key) ?? args)[0].removeDependant(~triggerDepFunc);
+		}
+	};
+
+	~trig = { |inval|
+		inval = inval ?? { () };
+		{ ~stream.next(inval).play }.fork(currentEnvironment.clock);
+	}
+
+}, [\pattern]);
+
 Cell.addTemplate(\bufferPattern, {
 	~description = "A pattern player with support for loading buffers from a buffer template.";
 
