@@ -36,7 +36,7 @@ Cl {
 					pos = res.clock.beats / res.clock.tempo;
 					res.rebuilding = true;
 				};
-				res.cell.free;
+				//Will free old cell
 				res.cell = Cell.new(templateKey, *pairs);
 				res.cell.name_(key);
 				if (pos.notNil) {
