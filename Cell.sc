@@ -371,7 +371,7 @@ Cell : EnvironmentRedirect {
 	//Check if state equals one of the supplied symbols
 	checkState { |... sts|
 		^sts.any( { |sym|
-			(states[sym] & stateNum) == states[sym]
+			((states[sym] ? 0) & stateNum) == states[sym]
 		});
 	}
 
