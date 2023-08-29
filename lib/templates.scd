@@ -239,9 +239,6 @@ Cell.addTemplate(\settings, {
 		~settings[\quant].asQuant;
 	};
 
-	~updateSettings = { |obj|
-		~dictMerge.(~settings, obj);
-	};
 }, \initData);
 
 Cell.addTemplate(\base, {
@@ -292,10 +289,6 @@ Cell.addTemplate(\base, {
 
 	~templateStop = {
 		~durationCond !? (_.signalAll);
-	};
-
-	~updateTemplate = { |obj|
-		~dictMerge.(~template, obj);
 	};
 
 	~beats = {
