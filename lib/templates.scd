@@ -273,6 +273,7 @@ Cell.addTemplate(\base, {
 
 	~build = {
 		~addInstanceData.(\template, IdentityDictionary());
+		~addInstanceData.(\snapshot, IdentityDictionary());
 	};
 
 	~templatePlay = {
@@ -467,6 +468,15 @@ Cell.addTemplate(\track, {
 		};
 		~trackAuto.fadeOut(dur, curve);
 		~isFadingOut = true;
+	};
+
+	~getSnapshot = {
+		~snapshot[\track] = ~track.getSnapshot;
+		~snapshot;
+	};
+
+	~setSnapshot = { |snapshot|
+		~track.setSnapshot(snapshot[\track]);
 	}
 
 }, \server);
