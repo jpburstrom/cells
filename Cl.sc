@@ -95,6 +95,9 @@ Cl {
 		this.changed(obj, what, *args)
 	}
 
+	snapshotKey {
+		^[\Cl, key]
+	}
 
 	name_ { |name| cell.name_(name) }
 	argPairs {  ^cell.argPairs }
