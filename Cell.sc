@@ -298,7 +298,7 @@ Cell : EnvironmentRedirect {
 				};
 				this.prChangeState(\stopping);
 				if (now == true) {
-					clock.clear;
+					clock.stop;
 					this.use {
 						#[templateStop, stop, templatePostStop].do { |key|
 							fork { envir[key].value(this) };
