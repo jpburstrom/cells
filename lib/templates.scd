@@ -792,7 +792,7 @@ Cell.addTemplate(\basicPattern, {
 
 			//Tail duration should equal max release time for synth
 			//TODO keep track of synth releases in some clever way
-			(~settings.tailDuration * cell.clock.tempo).wait;
+			(~settings.tailDuration * thisThread.clock.tempo).wait;
 		}
 	};
 
