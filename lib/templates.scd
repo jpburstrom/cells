@@ -739,9 +739,7 @@ Cell.addTemplate(\basicPattern, {
 
 	~templateLoad = { |cell|
 		var ptn = ~pattern;
-
 		~player = ~wrapperPattern.(cell, ptn).asEventStreamPlayer;
-		~player.postln;
 	};
 
 	~wrapperPattern = { |cell, ptn|
@@ -881,6 +879,7 @@ Cell.addTemplate(\trigPattern, {
 
 	~templateStop = { |cell|
 		~triggers.do { |args|
+			args.postln;
 			(args.tryPerform(\key) ?? args)[0].removeDependant(~triggerDepFunc);
 		}
 	};
