@@ -9,7 +9,7 @@ description = '''
 */
 Cl {
 	classvar <all;
-	var <key, <cell, >rebuilding=false;
+	var <key, <cell, rebuilding=false;
 
 	*initClass { all = IdentityDictionary() }
 
@@ -31,17 +31,8 @@ Cl {
 			res = super.new.cell_(Cell(templateKey, *pairs)).addToAll(key);
 		} {
 			if (templateKey.notNil || pairs.notEmpty ) {
-				var pos;
-				if (res.cell.isPlaying) {
-					pos = res.clock.beats / res.clock.tempo;
-					res.rebuilding = true;
-				};
 				//Will free old cell
 				res.cell = Cell.new(templateKey, *pairs);
-				res.cell.name_(key);
-				if (pos.notNil) {
-					res.cell.play(pos).then { res.rebuilding = false };
-				}
 			};
 		};
 		^res
@@ -74,9 +65,18 @@ Cl {
 	}	name {  cell.name() }
 
 	cell_ { |c|
+		var pos;
+		if (cell.isPlaying) {
+			pos = cell.clock.beats / cell.clock.tempo;
+			rebuilding = true;
+		};
 		cell.free;
 		cell = c;
 		cell.addDependant(this);
+		cell.name_(key);
+		if (pos.notNil) {
+			cell.play(pos).then { rebuilding = false };
+		}
 	}
 
 	asStream {
