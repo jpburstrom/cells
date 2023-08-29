@@ -865,7 +865,7 @@ Cell.addTemplate(\trigPattern, {
 				if (t_args == args.keep(t_args.size)) {
 					var inval = func.valueArray(args) ? ();
 					inval.postln;
-					~trig.value(inval)
+					{ ~trig.value(inval) }.fork(currentEnvironment.clock, ~settings[\trigQuant]);
 				}
 			}
 		}.inEnvir;
