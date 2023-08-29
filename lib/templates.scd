@@ -483,7 +483,7 @@ Cell.addTemplate(\synth, {
 	};
 
 	~validateArgs = nil -> { |args|
-		if (args[0].isSymbol.not and: { args[0].respondsTo(\asTrackGroupItem) }) {
+		if (args[0].isKindOf(Symbol).not and: { args[0].respondsTo(\asTrackGroupItem) }) {
 			var synth = args.removeAt(0);
 			var key = "%_%".format((synth.tryPerform(\key) ? "synth"), synth.hash.asHexString).asSymbol;
 			if (args.includes(\template)) {
