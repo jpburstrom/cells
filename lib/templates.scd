@@ -647,15 +647,17 @@ Cell.addTemplate(\disk, {
 	~description = "A disk player, cueing file(s) from a buffer template.";
 
 	~build = {
-		~instanceData[\settings][\buffer] = (
-			setDurationFromFile: true,
-			setMarkersFromFile: true,
-			//~settings[\defaultSynthDefArgs][\duration] = { ~settings[\duration] };
-			defaultSynthDef: {
-				~numChannelsFormat.("cellDiskPlayer_%");
-			},
-			defaultBufferMethod: \cueSoundFile,
-		)
+		~dictMerge.(~instanceData[\settings], (
+			buffer: (
+				setDurationFromFile: true,
+				setMarkersFromFile: true,
+				//~settings[\defaultSynthDefArgs][\duration] = { ~settings[\duration] };
+				defaultSynthDef: {
+					~numChannelsFormat.("cellDiskPlayer_%");
+				},
+				defaultBufferMethod: \cueSoundFile,
+			)
+		))
 	};
 
 	~eachSoundFile = { |sf, obj|
