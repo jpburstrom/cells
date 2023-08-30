@@ -887,7 +887,6 @@ Cell.addTemplate(\trigPattern, {
 				};
 				if (t_args == args.keep(t_args.size)) {
 					var inval = func.valueArray(args) ? ();
-					inval.postln;
 					{ ~trig.value(inval) }.fork(currentEnvironment.clock, ~settings[\trigQuant]);
 				}
 			}
@@ -902,7 +901,6 @@ Cell.addTemplate(\trigPattern, {
 
 	~templateStop = { |cell|
 		~triggers.do { |args|
-			args.postln;
 			(args.tryPerform(\key) ?? args)[0].removeDependant(~triggerDepFunc);
 		}
 	};
