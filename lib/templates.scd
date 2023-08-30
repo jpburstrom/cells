@@ -372,10 +372,10 @@ Cell.addTemplate(\track, {
 	~templateLoad = { |cell|
 		~track = Track.newFromDict(~template[\track].deepCopy);
 		~track.addDependant(cell);
-		~trackAuto = TrackAuto(~track, ~track[~settings[\track][\fadeGroup], ~settings[\track][\fadeSlot]], ~settings[\track][\fadeParam]);
-		if (~settings[\fadeIn] != 0 and: { ~trackAutoCustomFade != true }) {
-			var endLevel = 1; //Fixme get this from param. trackAuto feature?
-			~trackAuto.fadeIn(endLevel, ~settings[\fadeIn], ~settings[\fadeInCurve]);
+		~trackFader = TrackAuto(~track, ~track[~settings[\track][\fadeGroup], ~settings[\track][\fadeSlot]], ~settings[\track][\fadeParam]);
+		if (~settings[\fadeIn] != 0) {
+			var endLevel = ~settings[\fadeInEndLevel] ? 1; //Fixme get this from param. trackFader feature?
+			~trackFader.fadeIn(endLevel, ~settings[\fadeIn], ~settings[\fadeInCurve]);
 		}
 	};
 
@@ -404,7 +404,7 @@ Cell.addTemplate(\track, {
 				var func = {
 					cond.signalAll;
 				};
-				~trackAuto.addDependant(func);
+				~trackFader.addDependant(func);
 				~fadeOut.(fadeDur, ~settings[\fadeOutCurve], false);
 			}.inEnvir.fork;
 			cond.waitFor(fadeDur + 1);
@@ -433,18 +433,25 @@ Cell.addTemplate(\track, {
 	};
 
 	~fadeIn = { |endLevel=1, dur=3, curve|
+		var tmp = ~settings.copy;
+		//Temporarily set fade settings. this could be improved
+		endLevel !? { ~settings[\fadeInEndLevel] = endLevel };
+		dur !? { ~settings[\fadeIn] = dur };
+		curve !? { ~settings[\fadeInCurve] = curve };
 		//In case we're not ready to play. This will also boot server if needed
-		~trackAutoCustomFade = true;
-		currentEnvironment.load.then({
-			~trackAuto.fadeIn(endLevel, dur, curve);
-			currentEnvironment.play;
-		}.inEnvir);
+		currentEnvironment.stop(true).then({
+			currentEnvironment.play.then({
+				#[fadeInEndLevel, fadeIn, fadeInCurve].do { |k|
+					~settings[k] = tmp[k];
+				};
+			}.inEnvir);
+		})
 	};
 
 	~fadeOut = { |dur=3, curve, stopCell=false|
 		if (stopCell || currentEnvironment.checkState(\stopping)) {
 			var stopFunc = { |obj, what|
-				if (obj == ~trackAuto and: { what == \finish }) {
+				if (obj == ~trackFader and: { what == \finish }) {
 					//fadeOut can be called either by user or as part of a stop routine
 					//If called by user, we're not yet stopping so we need to do that here
 					//Otherwise just continue the stop routine
@@ -458,15 +465,15 @@ Cell.addTemplate(\track, {
 						//We need to reset to previous value,
 						//and it needs to be done after slot has finished playing
 						//Then we're ready for replaying cell
-						~trackAuto.reset(false);
+						~trackFader.reset(false);
 					}
 				};
 				obj.removeDependant(stopFunc)
 			};
-			~trackAuto.slot.addDependant(stopFunc.inEnvir);
-			~trackAuto.addDependant(stopFunc.inEnvir);
+			~trackFader.slot.addDependant(stopFunc.inEnvir);
+			~trackFader.addDependant(stopFunc.inEnvir);
 		};
-		~trackAuto.fadeOut(dur, curve);
+		~trackFader.fadeOut(dur, curve);
 		~isFadingOut = true;
 	};
 
