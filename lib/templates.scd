@@ -456,9 +456,10 @@ Cell.addTemplate(\track, {
 					//If called by user, we're not yet stopping so we need to do that here
 					//Otherwise just continue the stop routine
 					if (currentEnvironment.checkState(\stopping).not) {
-						~getCell.value.stop;
+						~getCell.value.stop.then({
+							~didFadeOutOnStop = false;
+						})
 					};
-					~isFadingOut = false;
 				} {
 					//Assuming slot object
 					if (what == \stopped) {
@@ -469,12 +470,12 @@ Cell.addTemplate(\track, {
 					}
 				};
 				obj.removeDependant(stopFunc)
-			};
-			~trackFader.slot.addDependant(stopFunc.inEnvir);
-			~trackFader.addDependant(stopFunc.inEnvir);
+			}.inEnvir;
+			~trackFader.slot.addDependant(stopFunc);
+			~trackFader.addDependant(stopFunc);
+			~didFadeOutOnStop = true;
 		};
 		~trackFader.fadeOut(dur, curve);
-		~isFadingOut = true;
 	};
 
 	~getSnapshot = {
@@ -782,7 +783,7 @@ Cell.addTemplate(\basicPattern, {
 	~chainPattern = { |cell|
 		Pbind(
 			\nilOnStop, Pif(Pfunc({
-				cell.checkState(\stopping, \stopped) && (~isFadingOut != true)
+				cell.checkState(\stopping, \stopped) && (~trackFader.isPlaying.not)
 			}), nil, 1),
 			\progress, Pfunc({ ~progress.value ? 0 }),
 			\seconds, Pfunc({ ~seconds.value ? 0 }),
@@ -799,6 +800,10 @@ Cell.addTemplate(\basicPattern, {
 
 	~templateStop = { |cell|
 		if (cell.clock.isRunning) {
+			var waitTime = ~settings[\tailDuration] * thisThread.clock.tempo;
+			if (~didFadeOutOnStop == true) {
+				waitTime = 0;
+			};
 			try {
 				while { cell.clock.queue.size >= 2 } {
 					0.1.wait;
@@ -809,7 +814,8 @@ Cell.addTemplate(\basicPattern, {
 
 			//Tail duration should equal max release time for synth
 			//TODO keep track of synth releases in some clever way
-			(~settings.tailDuration * thisThread.clock.tempo).wait;
+
+			waitTime.wait;
 		}
 	};
 
@@ -823,7 +829,7 @@ Cell.addTemplate(\pattern, {
 	~chainPattern = nil -> { |cell|
 		Pbind(
 			\nilOnStop, Pif(Pfunc({
-				cell.checkState(\stopping, \stopped) && (~isFadingOut != true)
+				cell.checkState(\stopping, \stopped) && (~trackFader.isPlaying.not)
 			}), nil, 1),
 			\out, Pfunc({ ~track.asBus }),
 			\group, Pfunc({ ~track.asGroup }),
