@@ -224,7 +224,8 @@ Cell.addTemplate(\settings, {
 			defaultSynthArgs:  IdentityDictionary[
 				\out -> {~bus.main}
 			]
-		));
+			//Here proto is used backwards -- as temporary storage for default values
+		).proto_(()));
 	};
 
 	~numChannelsFormat = { |string|
@@ -237,6 +238,22 @@ Cell.addTemplate(\settings, {
 
 	~getQuant = {
 		~settings[\quant].asQuant;
+	};
+
+	//Support for changing settings temporarily during a single playback
+	~setTempSettings = { |...pairs|
+		pairs.keysValuesDo { |k, v|
+			~settings.proto[k] = Ref(~settings[k]);
+			~settings[k] = v;
+		};
+		currentEnvironment
+	};
+
+	~templatePostStop = {
+		~settings.proto.keysValuesDo { |k, v|
+			~settings[k] = v.value;
+		};
+		~settings.proto.clear;
 	};
 
 }, \initData);
@@ -433,18 +450,14 @@ Cell.addTemplate(\track, {
 	};
 
 	~fadeIn = { |endLevel=1, dur=3, curve|
-		var tmp = ~settings.copy;
-		//Temporarily set fade settings. this could be improved
-		endLevel !? { ~settings[\fadeInEndLevel] = endLevel };
-		dur !? { ~settings[\fadeIn] = dur };
-		curve !? { ~settings[\fadeInCurve] = curve };
 		//In case we're not ready to play. This will also boot server if needed
 		currentEnvironment.stop(true).then({
-			currentEnvironment.play.then({
-				#[fadeInEndLevel, fadeIn, fadeInCurve].do { |k|
-					~settings[k] = tmp[k];
-				};
-			}.inEnvir);
+			~setTempSettings.(
+				\fadeInEndLevel, endLevel,
+				\fadeIn, dur,
+				\fadeInCurve, curve
+			);
+			currentEnvironment.play;
 		})
 	};
 
@@ -456,9 +469,7 @@ Cell.addTemplate(\track, {
 					//If called by user, we're not yet stopping so we need to do that here
 					//Otherwise just continue the stop routine
 					if (currentEnvironment.checkState(\stopping).not) {
-						~getCell.value.stop.then({
-							~didFadeOutOnStop = false;
-						})
+						~getCell.value.stop;
 					};
 				} {
 					//Assuming slot object
@@ -473,7 +484,8 @@ Cell.addTemplate(\track, {
 			}.inEnvir;
 			~trackFader.slot.addDependant(stopFunc);
 			~trackFader.addDependant(stopFunc);
-			~didFadeOutOnStop = true;
+			//Won't need tail since we're fading
+			~setTempSettings.(\tailDuration, 0);
 		};
 		~trackFader.fadeOut(dur, curve);
 	};
@@ -800,10 +812,6 @@ Cell.addTemplate(\basicPattern, {
 
 	~templateStop = { |cell|
 		if (cell.clock.isRunning) {
-			var waitTime = ~settings[\tailDuration] * thisThread.clock.tempo;
-			if (~didFadeOutOnStop == true) {
-				waitTime = 0;
-			};
 			try {
 				while { cell.clock.queue.size >= 2 } {
 					0.1.wait;
@@ -814,8 +822,7 @@ Cell.addTemplate(\basicPattern, {
 
 			//Tail duration should equal max release time for synth
 			//TODO keep track of synth releases in some clever way
-
-			waitTime.wait;
+			(~settings[\tailDuration] * thisThread.clock.tempo).wait;
 		}
 	};
 
