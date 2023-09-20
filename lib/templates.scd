@@ -6,9 +6,6 @@ Cell.addTemplate(\initData, {
 	};
 
 	~templateInit = { |cell|
-		~getCell = {
-			cell;
-		}
 	};
 
 });
@@ -468,7 +465,7 @@ Cell.addTemplate(\track, {
 					//If called by user, we're not yet stopping so we need to do that here
 					//Otherwise just continue the stop routine
 					if (currentEnvironment.checkState(\stopping).not) {
-						~getCell.value.stop;
+						currentEnvironment.stop;
 					};
 				} {
 					//Assuming slot object
