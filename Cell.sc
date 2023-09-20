@@ -107,12 +107,12 @@ Cell : EnvironmentRedirect {
 
 		// Copy some keys (eg settings, templates) to proto, to not overwrite the
 		// class-level dictionary
-		envir.parent[\instanceData].keysValuesDo { |key, data|
+		envir.parent[\templateInstanceData].keysValuesDo { |key, data|
 			envir.proto[key] = data.deepCopy;
 		};
 
 		pairs = pairs.asList;
-		this.use { ~validateArgs.value(pairs) };
+		this.use { ~templateValidateArgs.value(pairs) };
 
 		if (pairs.size.odd) {
 			Error("The cell doesn't have even number of arguments after template validation.").throw

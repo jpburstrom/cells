@@ -2,7 +2,7 @@ Cell.addTemplate(\initData, {
 	~templateDescription = "A partial template initializing instance data. Probably not very useful on its own.";
 
 	~templateBuild = {
-		~instanceData = IdentityDictionary().know_(true); //Instance-level data
+		~templateInstanceData = IdentityDictionary().know_(true); //Instance-level data
 	};
 
 	~templateInit = { |cell|
@@ -11,21 +11,20 @@ Cell.addTemplate(\initData, {
 		}
 	};
 
-	~addInstanceData = { |key, value|
-		~instanceData[key] = value;
-	}
 });
 
 Cell.addTemplate(\markers, {
+	var markerParser;
+
 	~templateDescription = "A partial template to read markers from audio files.";
 
 	~templateBuild = {
 		//This is created in ~cell, but we refer to it as ~markers since
 		//functions are running in instance
-		~addInstanceData.(\markers, IdentityDictionary());
+		~templateInstanceData.put(\markers, IdentityDictionary());
 	};
 
-	~markerParser = {
+	markerParser = {
 		(
 			state: \default,
 			out: (loops: ()),
@@ -131,7 +130,7 @@ Cell.addTemplate(\markers, {
 	};
 
 	~getMarkersFromSoundFile = { |sf, offset|
-		var parser = ~markerParser.value;
+		var parser = markerParser.value;
 		parser.parse(sf.readHeaderAsString);
 		parser.getMarkers(offset) !? (~markers.putAll(_));
 	};
@@ -162,7 +161,7 @@ Cell.addTemplate(\settings, {
 	~templateDescription = "A partial template to add default settings";
 
 	// Merge in place
-	~dictMerge = { |template, obj|
+	~templateDictMerge = { |template, obj|
 		var keys = (template.keys ++ obj.keys).asArray;
 		keys.do { |k|
 			var v = obj[k];
@@ -171,7 +170,7 @@ Cell.addTemplate(\settings, {
 					template[k] = v;
 				} {
 					if (template[k].isKindOf(Dictionary) and: { v.isKindOf(Dictionary) } ) {
-						~dictMerge.(template[k], v)
+						~templateDictMerge.(template[k], v)
 					} {
 						// Overwrite single values
 						template[k] = v;
@@ -185,7 +184,7 @@ Cell.addTemplate(\settings, {
 
 	~templateBuild = {
 		//This is later referred to as ~settings
-		~addInstanceData.(\settings, (
+		~templateInstanceData[\settings] = (
 			server: { Server.default },
 			//Number of out channels
 			numChannels: 2,
@@ -225,7 +224,7 @@ Cell.addTemplate(\settings, {
 				\out -> {~bus.main}
 			]
 			//Here proto is used backwards -- as temporary storage for default values
-		).proto_(()));
+		).proto_(());
 	};
 
 	~numChannelsFormat = { |string|
@@ -261,7 +260,7 @@ Cell.addTemplate(\settings, {
 Cell.addTemplate(\base, {
 	~templateDescription = "A base template for other cells, or a bare template for custom behaviour.";
 
-	~validateArgs = { |args|
+	~templateValidateArgs = { |args|
 		if (args.size.odd) {
 			Error("This cell template should have even number of arguments.").throw
 		};
@@ -289,8 +288,8 @@ Cell.addTemplate(\base, {
 	};
 
 	~templateBuild = {
-		~addInstanceData.(\template, IdentityDictionary());
-		~addInstanceData.(\snapshot, IdentityDictionary());
+		~templateInstanceData.put(\template, IdentityDictionary());
+		~templateInstanceData.put(\snapshot, IdentityDictionary());
 	};
 
 	~templatePlay = {
@@ -357,14 +356,14 @@ Cell.addTemplate(\track, {
 	~templateDescription = "A template creating a track from a track template (sic). ";
 
 	~templateBuild = {
-		~instanceData[\template][\track] = (
+		~templateInstanceData[\template][\track] = (
 			mod: (  ),
 			main: (  ),
 			fx: (  ),
 			//TODO defaultSendTarget/thunk/template
 			send: ( out: TrackSend(0, args: (slotType: \trimSend)) ),
 		);
-		~instanceData[\settings][\track] = (
+		~templateInstanceData[\settings][\track] = (
 			fadeGroup: \send,
 			fadeSlot: \out,
 			fadeParam: \level,
@@ -506,20 +505,20 @@ Cell.addTemplate(\synth, {
 	~templateDescription = "A player extending the track player to play synths quantized and in sync with other players.";
 
 	~templateBuild = {
-		~instanceData[\template][\synth] = (
+		~templateInstanceData[\template][\synth] = (
 			main: (  ),
 			fx: (  ),
 		);
 	};
 
-	~validateArgs = nil -> { |args|
+	~templateValidateArgs = nil -> { |args|
 		if (args[0].isKindOf(Symbol).not and: { args[0].respondsTo(\asTrackGroupItem) }) {
 			var synth = args.removeAt(0);
 			var key = "%_%".format((synth.tryPerform(\key) ? "synth"), synth.hash.asHexString).asSymbol;
 			if (args.includes(\template)) {
 				args.pairsDo { |k, v|
 					if (k == \template) {
-						v[\synth] = ~dictMerge.value((
+						v[\synth] = ~templateDictMerge.value((
 							main: ().put(key, synth)
 						), v[\synth]);
 					}
@@ -566,7 +565,7 @@ Cell.addTemplate(\buffer, {
 	);
 ";
 	~templateBuild = {
-		~instanceData[\settings][\buffer] = (
+		~templateInstanceData[\settings][\buffer] = (
 			defaultSynthDef: { ~numChannelsFormat.("cellBufPlayer_%") },
 			defaultBufferMethod: \read,
 			cueSize: 65536
@@ -574,14 +573,14 @@ Cell.addTemplate(\buffer, {
 	};
 
 	//No dependencies here, please
-	~validateArgs = nil -> { |args|
+	~templateValidateArgs = nil -> { |args|
 		if (args[0].isString) {
 			var path = args.removeAt(0);
 			var key = path.basename.splitext[0].asSymbol;
 			if (args.includes(\template)) {
 				args.pairsDo { |k, v|
 					if (k == \template) {
-						v[\buffer] = ~dictMerge.value((
+						v[\buffer] = ~templateDictMerge.value((
 							main: ().put(key, path)
 						), v[\buffer]);
 					}
@@ -677,7 +676,7 @@ Cell.addTemplate(\disk, {
 	~templateDescription = "A disk player, cueing file(s) from a buffer template.";
 
 	~templateBuild = {
-		~dictMerge.(~instanceData[\settings], (
+		~templateDictMerge.(~templateInstanceData[\settings], (
 			buffer: (
 				setDurationFromFile: true,
 				setMarkersFromFile: true,
@@ -724,7 +723,7 @@ Cell.addTemplate(\group, {
 	~templateDescription = "A cell holding a group of cells, forwarding methods to all cells.";
 
 	~templateBuild = {
-		~instanceData[\cells] = IdentityDictionary(know: true);
+		~templateInstanceData[\cells] = IdentityDictionary(know: true);
 	};
 
 	~templateInit = {
@@ -757,10 +756,10 @@ Cell.addTemplate(\basicPattern, {
 
 	~templateBuild = {
 		// We let pattern release itself
-		~instanceData[\settings][\releaseAfterStop] = false;
+		~templateInstanceData[\settings][\releaseAfterStop] = false;
 	};
 
-	~validateArgs = nil -> { |args|
+	~templateValidateArgs = nil -> { |args|
 		if (args[0].isKindOf(Pattern)) {
 			var ptn = args.removeAt(0);
 			args.addAll([\pattern, ptn])
@@ -853,7 +852,7 @@ Cell.addTemplate(\trigPattern, {
 	~templateDescription = "A pattern player where events are triggered on demand.";
 
 	~templateBuild = {
-		~instanceData[\settings][\trigOnPlay] = false;
+		~templateInstanceData[\settings][\trigOnPlay] = false;
 	};
 
 	~wrapperPattern = nil -> { |cell, ptn|
@@ -930,7 +929,7 @@ Cell.addTemplate(\bufferPattern, {
 Cell.addTemplate(\task, {
 	~templateDescription = "A simple task player useful for oneshots or looping tasks.";
 
-	~validateArgs = nil -> { |args|
+	~templateValidateArgs = nil -> { |args|
 		var task;
 		if (args[0].isFunction) {
 			task = Task(args.removeAt(0).inEnvir)
