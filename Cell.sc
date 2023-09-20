@@ -138,7 +138,7 @@ Cell : EnvironmentRedirect {
 		};
 
 
-		this.use {
+		this.proto.use {
 			envir[\templateInit].value(this);
 			envir[\init].value(this);
 			envir[\afterInit].value(this);
