@@ -9,7 +9,7 @@ if (thisThread.isKindOf(Routine).not) {
 	var env = ();
 
 	env[\server] = CellTemplate({
-		~build = {
+		~templateBuild = {
 			~serverVariable = 23;
 			~serverSpecificMethod = {};
 			~serverDict = (foo: ());
@@ -22,7 +22,7 @@ if (thisThread.isKindOf(Routine).not) {
 	}, nil, env);
 
 	env[\bus] = CellTemplate({
-		~build = {
+		~templateBuild = {
 			~overriddenMethod = 23;
 			~serverDict[\foo] = 11;
 			~serverAndBus = {};
@@ -34,7 +34,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 	env[\group] = CellTemplate({
 		//Key could also be an array
-		~build = {
+		~templateBuild = {
 			~anotherOverride = 0;
 		};
 		~load = [\server, \bus] -> {
@@ -44,7 +44,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 	env[\group] = CellTemplate({
 		//Key could also be an array
-		~build = {
+		~templateBuild = {
 			~anotherOverride = 0;
 		};
 		~load = [\server, \bus] -> {
@@ -55,7 +55,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 	template = CellTemplate({
 		//Key could also be an array
-		~build = {
+		~templateBuild = {
 			~anotherOverride = 23;
 		};
 		~load = [\bus, \group] -> {
@@ -76,7 +76,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 	template = CellTemplate({
 		//Key could also be an array
-		~build = {
+		~templateBuild = {
 			~anotherOverride = 23;
 		};
 		~load = {
@@ -92,7 +92,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 	template = CellTemplate({
 		//Key could also be an array
-		~build = {
+		~templateBuild = {
 			~anotherOverride = 23;
 		};
 		~testFunction = {
@@ -121,7 +121,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 
 	template = CellTemplate((
-		build: {
+		templateBuild: {
 			~foo = 23;
 			~overriddenMethod = true;
 			~serverDict[\foo][\foo] = 22;
@@ -139,17 +139,17 @@ if (thisThread.isKindOf(Routine).not) {
 
 	env.clear;
 	env[\base] = CellTemplate((
-		build: { ~list = List[1];  },
+		templateBuild: { ~list = List[1];  },
 		load: { "base load".postln }
 	), nil, env);
 
 	env[\grp] = CellTemplate((
-		build: {~list.add(2) },
+		templateBuild: {~list.add(2) },
 		load: { "group load".postln }
 	), \base, env);
 
 	env[\bus] = CellTemplate((
-		build: { ~list.add(3) },
+		templateBuild: { ~list.add(3) },
 		load: { "bus load".postln }
 	), \base, env);
 

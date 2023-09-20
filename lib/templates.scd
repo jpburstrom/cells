@@ -1,7 +1,7 @@
 Cell.addTemplate(\initData, {
 	~description = "A partial template initializing instance data. Probably not very useful on its own.";
 
-	~build = {
+	~templateBuild = {
 		~instanceData = IdentityDictionary().know_(true); //Instance-level data
 	};
 
@@ -19,7 +19,7 @@ Cell.addTemplate(\initData, {
 Cell.addTemplate(\markers, {
 	~description = "A partial template to read markers from audio files.";
 
-	~build = {
+	~templateBuild = {
 		//This is created in ~cell, but we refer to it as ~markers since
 		//functions are running in instance
 		~addInstanceData.(\markers, IdentityDictionary());
@@ -183,7 +183,7 @@ Cell.addTemplate(\settings, {
 
 	};
 
-	~build = {
+	~templateBuild = {
 		//This is later referred to as ~settings
 		~addInstanceData.(\settings, (
 			server: { Server.default },
@@ -288,7 +288,7 @@ Cell.addTemplate(\base, {
 		} ?? 0;
 	};
 
-	~build = {
+	~templateBuild = {
 		~addInstanceData.(\template, IdentityDictionary());
 		~addInstanceData.(\snapshot, IdentityDictionary());
 	};
@@ -356,13 +356,13 @@ Cell.addTemplate(\server, {
 Cell.addTemplate(\track, {
 	~description = "A template creating a track from a track template (sic). ";
 
-	~build = {
+	~templateBuild = {
 		~instanceData[\template][\track] = (
 			mod: (  ),
 			main: (  ),
 			fx: (  ),
 			//TODO defaultSendTarget/thunk/template
-			send: ( out: TrackSend(0, args: (slotType: \trimSend))),
+			send: ( out: TrackSend(0, args: (slotType: \trimSend)) ),
 		);
 		~instanceData[\settings][\track] = (
 			fadeGroup: \send,
@@ -505,7 +505,7 @@ Cell.addTemplate(\track, {
 Cell.addTemplate(\synth, {
 	~description = "A player extending the track player to play synths quantized and in sync with other players.";
 
-	~build = {
+	~templateBuild = {
 		~instanceData[\template][\synth] = (
 			main: (  ),
 			fx: (  ),
@@ -565,7 +565,7 @@ Cell.addTemplate(\buffer, {
 		)
 	);
 ";
-	~build = {
+	~templateBuild = {
 		~instanceData[\settings][\buffer] = (
 			defaultSynthDef: { ~numChannelsFormat.("cellBufPlayer_%") },
 			defaultBufferMethod: \read,
@@ -676,7 +676,7 @@ Cell.addTemplate(\buffer, {
 Cell.addTemplate(\disk, {
 	~description = "A disk player, cueing file(s) from a buffer template.";
 
-	~build = {
+	~templateBuild = {
 		~dictMerge.(~instanceData[\settings], (
 			buffer: (
 				setDurationFromFile: true,
@@ -723,7 +723,7 @@ Cell.addTemplate(\disk, {
 Cell.addTemplate(\group, {
 	~description = "A cell holding a group of cells, forwarding methods to all cells.";
 
-	~build = {
+	~templateBuild = {
 		~instanceData[\cells] = IdentityDictionary(know: true);
 	};
 
@@ -755,7 +755,7 @@ Cell.addTemplate(\basicPattern, {
 
 	~description = "A basic pattern player useful for midi or data patterns, or for custom routing.";
 
-	~build = {
+	~templateBuild = {
 		// We let pattern release itself
 		~instanceData[\settings][\releaseAfterStop] = false;
 	};
@@ -852,7 +852,7 @@ Cell.addTemplate(\pattern, {
 Cell.addTemplate(\trigPattern, {
 	~description = "A pattern player where events are triggered on demand.";
 
-	~build = {
+	~templateBuild = {
 		~instanceData[\settings][\trigOnPlay] = false;
 	};
 

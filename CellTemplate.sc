@@ -26,11 +26,12 @@ CellTemplate {
 		// in envir
 		rawEnvir = rawEnvir.putAll(template);
 		rawEnvir.make {
-			~build = this.prPrepareValue(\build, ~build);
-			//~build.postcs;
-			~build.value;
+			~templateBuild = this.prPrepareValue(\templateBuild, ~templateBuild);
+			//~templateBuild.postcs;
+			~templateBuild.value;
 		};
 		envir = rawEnvir.copy;
+
 
 		// Loop over makeFunc-defined keys, and see if any of them needs to turn into
 		// a FunctionList
