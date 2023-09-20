@@ -309,11 +309,11 @@ Cell.addTemplate(\base, {
 		~durationCond !? (_.signalAll);
 	};
 
-	~beats = {
+	~elapsedBeats = {
 		currentEnvironment.clock !? { |clock| clock.beats };
 	};
 
-	~seconds = {
+	~elapsedSeconds = {
 		currentEnvironment.clock !? { |clock| clock.beats / clock.tempo };
 	};
 
@@ -798,7 +798,7 @@ Cell.addTemplate(\basicPattern, {
 				cell.checkState(\stopping, \stopped) && (~trackFader.isPlaying.not)
 			}), nil, 1),
 			\progress, Pfunc({ ~progress.value ? 0 }),
-			\seconds, Pfunc({ ~seconds.value ? 0 }),
+			\elapsedSeconds, Pfunc({ ~elapsedSeconds.value ? 0 }),
 			//Beats can use Ptime()
 		)
 	};
@@ -841,7 +841,7 @@ Cell.addTemplate(\pattern, {
 			\out, Pfunc({ ~track.asBus }),
 			\group, Pfunc({ ~track.asGroup }),
 			\progress, Pfunc({ ~progress.value ? 0 }),
-			\seconds, Pfunc({ ~seconds.value ? 0 }),
+			\elapsedSeconds, Pfunc({ ~elapsedSeconds.value ? 0 }),
 			//Beats can use Ptime()
 		)
 	};
