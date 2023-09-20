@@ -133,19 +133,18 @@ if (thisThread.isKindOf(Routine).not) {
 	test.assert(template.value[\overriddenMethod] == true, "Build function overrides dep methods");
 	test.assert(template.value[\load].isKindOf(CellFunctionList), "Envir defined methods still makes lists if needed");
 	test.assert(env[\server].value[\serverDict].notNil, "serverDict is not nil");
-	test.assert(env[\server].value[\serverDict] !== template.value[\serverDict], "Dictionaries are copied from dependencies");
 	test.assert(env[\server].value[\serverDict][\foo] !== template.value[\serverDict][\foo], "Dictionaries are deep copied from dependencies");
 	test.assert(env[\server].value[\serverSpecificMethod] !== template.value[\serverSpecificMethod], "Non-overridden functions are not identical in deps");
 	test.assert(env[\server].value[\load] === template.value[\load].array[0], "Listed functions are identical in deps");
 
 	env.clear;
 	env[\base] = CellTemplate((
-		build: { "building".postln; ~list = List[1]; currentEnvironment.postln;  },
+		build: { ~list = List[1];  },
 		load: { "base load".postln }
 	), nil, env);
 
 	env[\grp] = CellTemplate((
-		build: { ~list.add(2) },
+		build: {~list.add(2) },
 		load: { "group load".postln }
 	), \base, env);
 
@@ -173,11 +172,13 @@ if (thisThread.isKindOf(Routine).not) {
 		load = env[\ctl].value[\load];
 		test.assert(load.isKindOf(CellFunctionList),
 			"Methods are picked up from multiple global deps if main has function");
-				test.assert(try { load.array.size == 4 } { false },
-			"FunctionList have correct length if main has func"
+		test.assertEquals(load.array.size,  4,
+			"CellFunctionList for method has correct length if CellTemplate has build func", false
 		);
-		multipleDeps.cs.postln;
-		test.assertEquals(multipleDeps[\list].size, 3, "multiple dependencies on build");
+		test.assertEquals(multipleDeps[\load].array.size,  3,
+			"CellFunctionList for method has correct length if CellTemplate doesn't have build func", false
+		);
+		test.assertEquals(multipleDeps[\list].size, 3, "Build func can reliably append to shared objects", false);
 	}
 
 
