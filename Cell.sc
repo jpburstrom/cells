@@ -126,7 +126,7 @@ Cell : EnvironmentRedirect {
 		// EnvironmentRedirect.new have made the proto for us
 		argPairs.pairsDo { |k, v|
 			if (envir.proto[k].respondsTo(\keysValuesDo)) {
-				v = v.value;
+				v = envir.use { v.value };
 				if (v.isKindOf(IdentityDictionary)) {
 					envir.proto[k] = this.mergeDict(envir.proto[k], v)
 				} {
