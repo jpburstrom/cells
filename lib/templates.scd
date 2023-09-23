@@ -332,7 +332,7 @@ Cell.addTemplate(\server, {
 		currentEnvironment.freeAll;
 	};
 
-	~templateInit = {
+	~templateInit = { |cell|
 		~server = ~settings[\server].value;
 		ServerBoot.add(currentEnvironment, ~server);
 		ServerQuit.add(currentEnvironment, ~server);
@@ -372,7 +372,7 @@ Cell.addTemplate(\track, {
 	};
 
 
-	~templateInit = {
+	~templateInit = { |cell|
 		//For now, just copy ~settings[\numChannels] to track.
 		//TODO make it possible to pass in user settings that's not part of the
 		//track settings template
@@ -583,13 +583,13 @@ Cell.addTemplate(\buffer, {
 		};
 	};
 
-	~templateInit = {
+	~templateInit = { |cell|
 		var mainTemplate = ~synthTemplate[\main];
 		if (mainTemplate.isEmpty) {
 			~bufferTemplate !? { |x|
 				~settings[\numChannels] = 0; //let buffers set numChannels
 				x.keysValuesDo { |key, obj|
-					obj = ~checkFile.(key, obj);
+					obj = cell.checkFile(key, obj);
 					obj[\synthDef] = obj[\synthDef] ?? ~settings[\buffer][\defaultSynthDef];
 					obj[\bufnum] = { ~buffers[key] }.inEnvir;
 					mainTemplate[key] = obj; //
