@@ -285,7 +285,6 @@ Cell.addTemplate(\base, {
 	};
 
 	~templateBuild = {
-		~templateInstanceData.put(\template, IdentityDictionary());
 		~templateInstanceData.put(\snapshot, IdentityDictionary());
 	};
 
@@ -353,7 +352,7 @@ Cell.addTemplate(\track, {
 	~templateDescription = "A template creating a track from a track template (sic). ";
 
 	~templateBuild = {
-		~templateInstanceData[\template][\track] = (
+		~templateInstanceData[\trackTemplate] = (
 			mod: (  ),
 			main: (  ),
 			fx: (  ),
@@ -377,13 +376,13 @@ Cell.addTemplate(\track, {
 		//For now, just copy ~settings[\numChannels] to track.
 		//TODO make it possible to pass in user settings that's not part of the
 		//track settings template
-		~template[\track][\settings] = ~settings[\track].collect({ |v|
+		~trackTemplate[\settings] = ~settings[\track].collect({ |v|
 			v.value;
 		});
 	};
 
 	~templateLoad = { |cell|
-		~track = Track.newFromDict(~template[\track].deepCopy);
+		~track = Track.newFromDict(~trackTemplate.deepCopy);
 		~track.addDependant(cell);
 		~trackFader = TrackAuto(~track, ~track[~settings[\track][\fadeGroup], ~settings[\track][\fadeSlot]], ~settings[\track][\fadeParam]);
 		if (~settings[\fadeIn] != 0) {
@@ -502,7 +501,7 @@ Cell.addTemplate(\synth, {
 	~templateDescription = "A player extending the track player to play synths quantized and in sync with other players.";
 
 	~templateBuild = {
-		~templateInstanceData[\template][\synth] = (
+		~templateInstanceData[\synthTemplate] = (
 			main: (  ),
 			fx: (  ),
 		);
@@ -512,30 +511,28 @@ Cell.addTemplate(\synth, {
 		if (args[0].isKindOf(Symbol).not and: { args[0].respondsTo(\asTrackGroupItem) }) {
 			var synth = args.removeAt(0);
 			var key = "%_%".format((synth.tryPerform(\key) ? "synth"), synth.hash.asHexString).asSymbol;
-			if (args.includes(\template)) {
+			if (args.includes(\synthTemplate)) {
 				args.pairsDo { |k, v|
-					if (k == \template) {
-						v[\synth] = ~templateDictMerge.value((
+					if (k == \synthTemplate) {
+						args[k] = ~templateDictMerge.value((
 							main: ().put(key, synth)
-						), v[\synth]);
+						), v);
 					}
 				}
 			} {
-				args.addAll([\template, (
-					synth: (
-						main: ().put(key, synth)
-					)
+				args.addAll([\synthTemplate, (
+					main: ().put(key, synth)
 				)]);
 			};
 		}
 	};
 
-	//~template[\synth] has same structure as ~template[\track]
+	//~synthTemplate has same structure as ~trackTemplate
 	//The main difference is when it's being played
-	//~template[\track] is played on ~templateLoad
-	//~template[\synth] on ~templatePlay
+	//~trackTemplate is played on ~templateLoad
+	//~synthTemplate on ~templatePlay
 	~templatePlay = {
-		~template[\synth].keysValuesDo { |groupKey, dict|
+		~synthTemplate.keysValuesDo { |groupKey, dict|
 			dict.keysValuesDo { |key, slot|
 				~track[groupKey][key] = slot;
 			};
@@ -574,26 +571,22 @@ Cell.addTemplate(\buffer, {
 		if (args[0].isString) {
 			var path = args.removeAt(0);
 			var key = path.basename.splitext[0].asSymbol;
-			if (args.includes(\template)) {
+			if (args.includes(\bufferTemplate)) {
 				args.pairsDo { |k, v|
-					if (k == \template) {
-						v[\buffer] = ~templateDictMerge.value((
-							main: ().put(key, path)
-						), v[\buffer]);
+					if (k == \bufferTemplate) {
+						args[k] = ~templateDictMerge.value(().put(key, path), v);
 					}
 				}
 			} {
-				args.addAll([\template, (
-					buffer: ().put(key, path)
-				)]);
+				args.addAll([\bufferTemplate, ().put(key, path)]);
 			};
 		};
 	};
 
 	~templateInit = {
-		var mainTemplate = ~template[\synth][\main];
+		var mainTemplate = ~synthTemplate[\main];
 		if (mainTemplate.isEmpty) {
-			~template[\buffer] !? { |x|
+			~bufferTemplate !? { |x|
 				~settings[\numChannels] = 0; //let buffers set numChannels
 				x.keysValuesDo { |key, obj|
 					obj = ~checkFile.(key, obj);
@@ -651,7 +644,7 @@ Cell.addTemplate(\buffer, {
 
 	// Add buses according to template
 	~templateLoad = {
-		var template = ~template[\buffer];
+		var template = ~bufferTemplate;
 		if (template.notNil) {
 			~buffers ?? { ~buffers = IdentityDictionary(know:true) };
 			template.keysValuesDo { |key, obj|
