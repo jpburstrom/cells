@@ -589,7 +589,7 @@ Cell.addTemplate(\buffer, {
 			~bufferTemplate !? { |x|
 				~settings[\numChannels] = 0; //let buffers set numChannels
 				x.keysValuesDo { |key, obj|
-					obj = cell.checkFile(key, obj);
+					obj = cell.getSoundFileData(key, obj);
 					obj[\synthDef] = obj[\synthDef] ?? ~settings[\buffer][\defaultSynthDef];
 					obj[\bufnum] = { ~buffers[key] }.inEnvir;
 					mainTemplate[key] = obj; //
@@ -598,7 +598,7 @@ Cell.addTemplate(\buffer, {
 		};
 	};
 
-	~checkFile = { |key, obj|
+	~getSoundFileData = { |key, obj|
 		var method, channels;
 
 		obj = obj.value;
@@ -648,7 +648,7 @@ Cell.addTemplate(\buffer, {
 		if (template.notNil) {
 			~buffers ?? { ~buffers = IdentityDictionary(know:true) };
 			template.keysValuesDo { |key, obj|
-				obj = ~checkFile.(key, obj);
+				obj = ~getSoundFileData.(key, obj);
 				~addBuffer.(key, obj);
 			};
 		};
