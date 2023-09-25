@@ -712,15 +712,15 @@ Cell.addTemplate(\disk, {
 Cell.addTemplate(\group, {
 	~templateDescription = "A cell holding a group of cells, forwarding methods to all cells.";
 
-	~templateBuild = {
-		~templateInstanceData[\cells] = IdentityDictionary(know: true);
-	};
+	~templateValidateArgs = nil -> { |args|
+		if (args[0].isKindOf(Collection)) {
+			var coll = args.removeAt(0);
+			args.addAll([\cells, coll]);
+		};
 
-	~templateInit = {
-		~template[\cells] !? { |x| x.keysValuesDo { |key, cell|
-			~cells[key] = cell;
-			//currentEnvironment.addChildren(key, cell);
-		}};
+		if (args.asDict.keys.includes(\cells).not) {
+			Error("Cell collection is missing in group cell").throw
+		}
 	};
 
 	//Cell methods needs to be forwarded
@@ -731,8 +731,14 @@ Cell.addTemplate(\group, {
 	};
 
 	//And all player-specific methods (set, get etc) is forwarded here
-	~forward = { |selector, args|
+	~forward = { |selector ...args|
 		~cells.collect { |cell|
+			//Add default arguments to functions
+			[selector, args].postln;
+			if (cell[selector].isFunction) {
+				var defaults = cell[selector].def.keyValuePairsFromArgs.clump(2).flop[1];
+				args = defaults.collect { |v, i| args[i] ? v };
+			};
 			cell.performList(selector, args);
 		};
 	};
