@@ -334,13 +334,14 @@ Cell.addTemplate(\server, {
 
 	~templateInit = { |cell|
 		~server = ~settings[\server].value;
-		ServerBoot.add(currentEnvironment, ~server);
-		ServerQuit.add(currentEnvironment, ~server);
+		ServerBoot.add(cell, ~server);
+		ServerQuit.add(cell, ~server);
 	};
 
 	~templateLoad = { ~server.bootSync };
 	~templatePostLoad = { ~server.sync };
 
+	//This is run inside cell environment, maybe it should be in proto w/ cell arg?
 	~templateFree = {
 		ServerBoot.remove(currentEnvironment, ~server);
 		ServerQuit.remove(currentEnvironment, ~server);
