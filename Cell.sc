@@ -64,7 +64,7 @@ Cell : EnvironmentRedirect {
 		keys.do { |k|
 			var v = templates[k];
 			"% (%)".format(k, templateEnvironment[k].dependencies.asArray.join(", ")).underlined.postln;
-			v[\description].postln;
+			v[\templateDescription].postln;
 			"".postln;
 		}
 	}
