@@ -203,7 +203,6 @@ Cell : EnvironmentRedirect {
 	}
 
 	load { |ffwd, argQuant, argClock|
-		CmdPeriod.doOnce(this);
 		if (this.checkState(\stopped, \error, \free)) {
 			cond.test = false;
 			envir[\fastForward] = ffwd ? envir[\fastForward] ? 0;
@@ -373,17 +372,6 @@ Cell : EnvironmentRedirect {
 		^sts.any( { |sym|
 			((states[sym] ? 0) & stateNum) == states[sym]
 		});
-	}
-
-	cmdPeriod {
-		// I'm leaving this here, as a safety thing
-		// If error occurs, we at least would like to reset the state
-		// There might be a possible race condition,
-		// but it seems that in the normal case,
-		// state == \free already
-		if (this.checkState.(\stopped, \free).not) {
-			this.stop;
-		}
 	}
 
 	// Round seconds to closest quantized beat
