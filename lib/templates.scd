@@ -182,9 +182,6 @@ Cell.addTemplate(\settings, {
 	~templateBuild = {
 		//This is later referred to as ~settings
 		~templateInstanceData[\settings] = (
-			server: { Server.default },
-			//Number of out channels
-			numChannels: 2,
 			// --- DURATIONS ---
 			// Total cell duration
 			duration: inf,
@@ -203,23 +200,6 @@ Cell.addTemplate(\settings, {
 			// Quant == grid.
 			// Set timingOffset here, if needed
 			quant: 0,
-			// --- FADES ---
-			// Fades are post-fx, and overrides tail settings.
-			// This means it should be safe to free everything when a fadeOut has completed.
-			// Fade in duration.
-			fadeIn: 0,
-			// Curve of fadeIn envelope - only float?
-			fadeInCurve: 8,
-			// Fade out duration. This overrides tailDuration.
-			fadeOut: 0,
-			// Curve
-			fadeOutCurve: -8,
-			// If true, release main synths in .templatePostStop
-			releaseAfterStop: true,
-			// Default arguments for new synths
-			defaultSynthArgs:  IdentityDictionary[
-				\out -> {~bus.main}
-			]
 			//Here proto is used backwards -- as temporary storage for default values
 		).proto_(());
 	};
@@ -328,8 +308,35 @@ Cell.addTemplate(\server, {
 
 	~doOnServerBoot = nil;
 
+
+
 	~doOnServerQuit = {
 		currentEnvironment.freeAll;
+	};
+
+	~templateBuild = {
+		~templateInstanceData[\settings].putAll((
+			server: { Server.default },
+			//Number of out channels
+			numChannels: 2,
+			// --- FADES ---
+			// Fades are post-fx, and overrides tail settings.
+			// This means it should be safe to free everything when a fadeOut has completed.
+			// Fade in duration.
+			fadeIn: 0,
+			// Curve of fadeIn envelope - only float?
+			fadeInCurve: 8,
+			// Fade out duration. This overrides tailDuration.
+			fadeOut: 0,
+			// Curve
+			fadeOutCurve: -8,
+			// If true, release main synths in .templatePostStop
+			releaseAfterStop: true,
+			// Default arguments for new synths
+			defaultSynthArgs:  IdentityDictionary[
+				\out -> {~bus.main}
+			]
+		))
 	};
 
 	~templateInit = { |cell|
