@@ -345,13 +345,33 @@ Cell.addTemplate(\server, {
 		ServerQuit.add(cell, ~server);
 	};
 
-	~templateLoad = { ~server.bootSync };
-	~templatePostLoad = { ~server.sync };
+	~templateLoad = {
+		~server.bootSync;
+		ServerTree.add(currentEnvironment, ~server);
+	};
+
+	~templatePostLoad = {
+		~server.sync
+	};
+
+	~templateStop = {
+		ServerTree.remove(currentEnvironment, ~server);
+	};
 
 	//This is run inside cell environment, maybe it should be in proto w/ cell arg?
 	~templateFree = {
 		ServerBoot.remove(currentEnvironment, ~server);
 		ServerQuit.remove(currentEnvironment, ~server);
+	};
+
+	~doOnServerTree = {
+		if (currentEnvironment.checkState.(\stopped, \free).not) {
+			currentEnvironment.stop.then {
+				if (~settings[\permanent] == true) {
+					currentEnvironment.play;
+				}
+			}
+		}
 	};
 
 }, \base);
