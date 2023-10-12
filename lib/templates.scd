@@ -616,11 +616,13 @@ Cell.addTemplate(\buffer, {
 		if (mainTemplate.isEmpty) {
 			~bufferTemplate !? { |x|
 				~settings[\numChannels] = 0; //let buffers set numChannels
-				x.keysValuesDo { |key, obj|
-					obj = cell.getSoundFileData(key, obj);
-					obj[\instrument] = obj[\instrument] ?? ~settings[\buffer][\defaultSynthDef];
-					obj[\bufnum] = { ~buffers[key] }.inEnvir;
-					mainTemplate[key] = obj; //
+				cell.use {
+					x.keysValuesDo { |key, obj|
+						obj = ~getSoundFileData.(key, obj);
+						obj[\instrument] = obj[\instrument] ?? ~settings[\buffer][\defaultSynthDef];
+						obj[\bufnum] = { ~buffers[key] }.inEnvir;
+						mainTemplate[key] = obj; //
+					}
 				}
 			};
 		};
