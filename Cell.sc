@@ -144,6 +144,9 @@ Cell : EnvironmentRedirect {
 			envir[\afterInit].value(this);
 		};
 
+		//Init might create resources. We need to change state to be able to free them.
+		this.prChangeState(\stopped);
+
 	}
 
 	help {
