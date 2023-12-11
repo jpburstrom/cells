@@ -35,7 +35,7 @@ CellTemplate {
 
 		// Loop over makeFunc-defined keys, and see if any of them needs to turn into
 		// a FunctionList
-		template.keys.reject(_==\build).do { |key|
+		template.keys.reject(_==\templateBuild).do { |key|
 			var val = rawEnvir[key];
 			envir[key] = this.prPrepareValue(key, val);
 		};
