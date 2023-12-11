@@ -1,13 +1,65 @@
 CellFunctionList : FunctionList {
 	var <>indexMap;
+	var <evaluationMode;
+	var <evaluationFunc;
 
-	*new {
-		^super.new.init;
+	*new { |functions|
+		^super.new(functions).init;
 	}
 
 	init {
 		indexMap = IdentityDictionary();
 	}
+
+	evaluationMode_ { |mode|
+		switch (mode,
+			\reduce, {
+				evaluationFunc = array.reduce('<>');
+				evaluationMode = mode;
+			},
+			\compose, {
+				evaluationFunc = array.reverse.reduce('<>');
+				evaluationMode = mode;
+			},
+			\first, {
+				evaluationFunc = { |...args|
+					block { |break|
+						array.do { |func, i|
+							var res = func.value(*args);
+							if (res.notNil) {
+								break.value(res)
+							}
+						};
+						nil
+					}
+				};
+				evaluationMode = mode;
+			},
+			\last, {
+				evaluationFunc = { |...args|
+					block { |break|
+						array.reverseDo { |func|
+							var res = func.value(*args);
+							if (res.notNil) {
+								break.value(res)
+							}
+						};
+						nil
+					}
+				};
+				evaluationMode = mode;
+			}, {
+				if (mode.notNil and: { mode != \collect  }) {
+					"CellFunctionList: mode % doesn't exist. Falling back to default (collect)".warn;
+				} {
+				evaluationMode = nil;
+					
+				};
+				evaluationFunc = nil;
+			}
+		);
+	}
+
 
 	put { |key, func|
 		if (indexMap.[key].notNil) {
@@ -81,5 +133,32 @@ CellFunctionList : FunctionList {
 		^this.performList(selector, args);
 	}
 
+	value { arg ... args;
+		^if (evaluationFunc.notNil) {
+			evaluationFunc.valueArray(args);
+		} {
+			super.valueArray(args);
+		}
+	}
+	valueArray { arg args;
+		^if (evaluationFunc.notNil) {
+			evaluationFunc.valueArray(args);
+		} {
+			super.valueArray(args);
+		}
+	}
+	valueEnvir { arg ... args;
+		^if (evaluationFunc.notNil) {
+			evaluationFunc.valueArrayEnvir(args);
+		} {
+			super.valueArrayEnvir(args);
+		}
+	}
+	valueArrayEnvir { arg args;
+		^if (evaluationFunc.notNil) {
+			evaluationFunc.valueArrayEnvir(args);
+		} {
+			super.valueArrayEnvir(args);
+		}
+	}
 }
-
