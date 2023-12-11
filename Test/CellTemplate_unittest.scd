@@ -16,6 +16,9 @@ if (thisThread.isKindOf(Routine).not) {
 			~overriddenMethod = { "hello".postln };
 			~serverAndBus = {};
 		};
+		~templateAfterBuild = {
+			~setTemplateAfterBuild = true;
+		};
 		~load = {
 			"Load server".postln
 		}
@@ -66,6 +69,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 	test.assert(template.prMightHaveDeps({}), "Functions might have dependencies");
 	test.assert(template.prMightHaveDeps(\foo -> {}), "Associations might have dependencies");
+	test.assert(template.value.debug[\setTemplateAfterBuild].notNil, "TemplateAfterBuild is running ok");
 
 	test.assert(template.notNil, "Init object");
 	test.assert(template.findDepsFor(\load) == [\server, \bus, \group], "Dependency order");

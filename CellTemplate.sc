@@ -27,7 +27,6 @@ CellTemplate {
 		rawEnvir = rawEnvir.putAll(template);
 		rawEnvir.make {
 			~templateBuild = this.prPrepareValue(\templateBuild, ~templateBuild);
-			//~templateBuild.postcs;
 			~templateBuild.value;
 		};
 		envir = rawEnvir.copy;
@@ -35,11 +34,15 @@ CellTemplate {
 
 		// Loop over makeFunc-defined keys, and see if any of them needs to turn into
 		// a FunctionList
-		template.keys.reject(_==\templateBuild).do { |key|
+		template.keys.reject([\templateBuild, \templateAfterBuild].includes(_)).do { |key|
 			var val = rawEnvir[key];
 			envir[key] = this.prPrepareValue(key, val);
 		};
 
+		envir.make {
+			~templateAfterBuild = this.prPrepareValue(\templateAfterBuild, ~templateAfterBuild);
+			~templateAfterBuild.value;
+		};
 
 	}
 
