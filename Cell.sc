@@ -74,6 +74,7 @@ Cell : EnvironmentRedirect {
 	}
 
 	*doesNotUnderstand { |selector ... args|
+		// Syntax sugar for creating an instance with a specific template
 		if (templates[selector].notNil) {
 			^this.new(selector, *args)
 		} {
