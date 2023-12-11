@@ -77,5 +77,9 @@ CellFunctionList : FunctionList {
 		^super.copy.indexMap_(indexMap.copy);
 	}
 
+	functionPerformList { |selector, args|
+		^this.performList(selector, args);
+	}
+
 }
 
