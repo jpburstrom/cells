@@ -74,6 +74,7 @@ Cl {
 		cell = c;
 		cell.addDependant(this);
 		cell.name_(key);
+		cell.snapshotPath = [\Cl, key];
 		if (pos.notNil) {
 			cell.play(pos).then { rebuilding = false };
 		}
@@ -95,8 +96,8 @@ Cl {
 		this.changed(obj, what, *args)
 	}
 
-	snapshotKey {
-		^[\Cl, key]
+	snapshotPath {
+		^cell.snapshotPath;
 	}
 
 	name_ { |name| cell.name_(name) }

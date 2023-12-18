@@ -15,6 +15,7 @@ Cell : EnvironmentRedirect {
 	var <clock;
 	var <>syncClock, <>syncQuant;
 	var stateNum;
+	var snapshotPath;
 
 	*initClass {
 		states = IdentityDictionary[
