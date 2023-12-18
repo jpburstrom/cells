@@ -29,10 +29,12 @@ Cl {
 		res = all.at(key);
 		if(res.isNil) {
 			res = super.new.addToAll(key).cell_(Cell(templateKey, *pairs));
+			NotificationCenter.notify(\projekt, \register, [res]);
 		} {
 			if (templateKey.notNil || pairs.notEmpty ) {
 				//Will free old cell
 				res.cell = Cell.new(templateKey, *pairs);
+				NotificationCenter.notify(\projekt, \register, [res]);
 			};
 		};
 		^res
@@ -54,6 +56,7 @@ Cl {
 	free {
 		all[key] = nil;
 		cell.free;
+		NotificationCenter.notify(\projekt, \unregister, [this]);
 	}
 
 	storeOn { | stream |
