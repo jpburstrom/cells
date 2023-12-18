@@ -28,7 +28,7 @@ Cl {
 		};
 		res = all.at(key);
 		if(res.isNil) {
-			res = super.new.cell_(Cell(templateKey, *pairs)).addToAll(key);
+			res = super.new.addToAll(key).cell_(Cell(templateKey, *pairs));
 		} {
 			if (templateKey.notNil || pairs.notEmpty ) {
 				//Will free old cell
