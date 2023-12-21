@@ -1,5 +1,7 @@
-ConnectionTemplateParser {
+CellConnectionHelper {
 	classvar <globalDictionaryClasses;
+	var template;
+	var connections;
 
 	*initClass {
 		globalDictionaryClasses = [\Pdef, \Ndef, \Tdef,
@@ -7,12 +9,36 @@ ConnectionTemplateParser {
 		]
 	}
 
-	*resolve { |template, sourceEnvir, targetEnvir, throw=true|
-		template = this.collectConnections(template);
-		^this.resolveObjectKeys(template, sourceEnvir, targetEnvir, throw);
+	*new { |template|
+		^super.newCopyArgs(template).init;
 	}
 
-	*collectConnections { |object|
+	init {
+		connections = ConnectionList();
+	}
+
+	connect { |source, targetsOrSettings|
+		var settings = this.parseConnectionTargets(targetsOrSettings, source);
+		settings.do { |target|
+			connections.add(
+				ConnectionList.make {
+					this.prMakeConnection(source, target);
+				}
+			)
+		}
+	}
+
+	disconnect {
+		connections.free;
+	}
+	
+
+	resolve { |sourceEnvir, targetEnvir, throw=true|
+		var allConnections = this.collectConnections(template);
+		^this.resolveObjectKeys(allConnections, sourceEnvir, targetEnvir, throw);
+	}
+
+	collectConnections { |object|
 		var out;
 		object.pairsDo({ |source, target|
 			source = this.makeDictionaryListForKey(source, \source);
@@ -28,7 +54,7 @@ ConnectionTemplateParser {
 	/*
 
 	*/
-	*resolveObjectKeys { |object, sourceEnvir, targetEnvir, throw=true|
+	resolveObjectKeys { |object, sourceEnvir, targetEnvir, throw=true|
 		object.do { |dict, index|
 			dict[\source] = this.resolveKey(dict[\source], sourceEnvir, throw);
 			dict[\target] = this.resolveKey(dict[\target], targetEnvir, throw);
@@ -36,7 +62,7 @@ ConnectionTemplateParser {
 		^object
 	}
 
-	*makeDictionaryListForKey { |obj, objectKey|
+	makeDictionaryListForKey { |obj, objectKey|
 		case { obj.isKindOf(Dictionary) } {
 			//Support for (key: array_of_keys) with common settings
 			var keyValue = obj.removeAt(objectKey);
@@ -60,7 +86,7 @@ ConnectionTemplateParser {
 
 
 
-	*resolveKey { |key, envir, throw=true|
+	resolveKey { |key, envir, throw=true|
 		var out=key;
 		envir ?? { envir = currentEnvironment };
 		if (key.isString or: { key.isKindOf(Symbol) }) {
