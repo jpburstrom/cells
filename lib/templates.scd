@@ -365,7 +365,8 @@ Cell.addTemplate(\base, {
 		~settings[\duration] !? { |dur| currentEnvironment.clock !? { |clock| (clock.beats / clock.tempo) / dur } };
 	};
 
-}, [\settings, \markers]);
+
+}, [\settings, \markers, \makro]);
 
 Cell.addTemplate(\server, {
 	~templateDescription = "A base template for all cell types dealing with the server.";
