@@ -234,6 +234,75 @@ Cell.addTemplate(\settings, {
 
 }, \initData);
 
+
+Cell.addTemplate(\makro, {
+
+	~templateBuild = {
+		~templateInstanceData.put(\makroTemplate, IdentityDictionary());
+		~templateInstanceData.put(\connectionTemplate, ());
+	};
+
+	//This is run after building the template, and is only run once
+	//for each template. We're setting the evaluation mode for the getters and setters
+	//so they only return the first found item.
+	~templateAfterBuild = {
+		~get.tryPerform(\evaluationMode_, \first);
+		~set.tryPerform(\evaluationMode_, \first);
+	};
+
+	~templateInit = { |cell|
+		~makro = Makro(~makroTemplate.collect(_[\spec]));
+		~connections = CellConnectionHelper(~connectionTemplate);
+		~makroMapper = MakroMapper();
+
+		//Return the first
+	};
+
+	~afterInit = { |cell|
+		cell[\get].tryPerform(\evaluationMode_, \first);
+		cell[\set].tryPerform(\evaluationMode_, \first);
+	};
+
+	~templatePostLoad = { |cell|
+		~connections.resolveConnections(~makro, cell);
+		~connections.connect;
+	};
+
+	~templateStop = { |cell|
+		~connections.disconnect;
+	};
+
+	~templateFree = {
+		~makro.free;
+	};
+
+	~getSnapshot = {
+		~snapshot[\makro] = ~makro.getSnapshot;
+		~snapshot;
+	};
+
+	~setSnapshot = { |snapshot|
+		~makro.setSnapshot(snapshot[\makro]);
+	};
+
+	~set =  { |...pairs|
+		var set;
+		//Only set if we can get
+		pairs.pairsDo { |key, value|
+			~makro[key] !?  {
+				set = true;
+				~makro[key].value = value;
+			}
+		};
+		set !? { currentEnvironment } //chainable
+	};
+
+	~get =  { |key|
+		~makro[key].value
+	};
+
+}, \initData);
+
 Cell.addTemplate(\base, {
 	~templateDescription = "A base template for other cells, or a bare template for custom behaviour.";
 
