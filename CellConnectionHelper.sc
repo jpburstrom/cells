@@ -1,7 +1,6 @@
-CellConnectionHelper {
+CellConnectionHelper : CellTemplateHelper {
 	classvar <globalDictionaryClasses;
-	var <>template;
-	var <resolvedTemplate, <connections;
+	var <connections;
 
 	*initClass {
 		globalDictionaryClasses = [\Pdef, \Ndef, \Tdef,
@@ -9,11 +8,8 @@ CellConnectionHelper {
 		]
 	}
 
-	*new { |template|
-		^super.newCopyArgs(template).init;
-	}
-
 	init {
+		super.init;
 		connections = List();
 	}
 
@@ -40,23 +36,9 @@ CellConnectionHelper {
 	}
 	
 
-	resolveConnections { |sourceEnvir, targetEnvir, throw=true|
-		var allConnections = this.collectConnections(template);
-		resolvedTemplate = this.resolveObjectKeys(allConnections, sourceEnvir, targetEnvir, throw);
-	}
-
-	collectConnections { |object|
-		var out;
-		object.pairsDo({ |source, target|
-			source = this.buildConnectionTemplateForKey(source, \source);
-			target = this.buildConnectionTemplateForKey(target, \target);
-			source.do { |src|
-				target.do { |tgt|
-					out = out.add(IdentityDictionary().putAll(src, tgt));
-				}
-			};
-		});
-		^out
+	resolveTemplate { |sourceEnvir, targetEnvir, throw=true|
+		var allConnections = this.collectTemplate(template);
+		^resolvedTemplate = this.resolveObjectKeys(allConnections, sourceEnvir, targetEnvir, throw);
 	}
 	/*
 
@@ -68,31 +50,6 @@ CellConnectionHelper {
 		};
 		^object
 	}
-
-	buildConnectionTemplateForKey { |obj, objectKey, asArray=true|
-		case { obj.isKindOf(Dictionary) } {
-			//Support for (key: array_of_keys) with common settings
-			var keyValue = obj.removeAt(objectKey);
-			var out = this.buildConnectionTemplateForKey(keyValue, objectKey, true).collect { |o|
-				o.putAll(obj);
-			};
-			^if (asArray) { out  } { out.unbubble };
-		} { obj.isArray and: { obj.isString.not } } {
-			^obj.collect({ |item|
-				this.buildConnectionTemplateForKey(item, objectKey, false)
-			});
-
-		} {
-			obj = IdentityDictionary[
-				objectKey.asSymbol -> obj.copy,
-				\slot -> \value
-			];
-
-			^if (asArray) { [obj] } { obj };
-		};
-	}
-
-
 
 	resolveKey { |key, envir, throw=true|
 		var out=key;
@@ -142,8 +99,8 @@ CellConnectionHelper {
 		if (settings[\signal].notNil) {
 			signal = signal.signal(settings[\signal]);
 		};
-		if (#[value, input].includes(settings[\slot])) {
-			slot = target.valueSlot(settings[\slot]);
+		if (#[value, input, nil].includes(settings[\slot])) {
+			slot = target.valueSlot(settings[\slot] ? \value);
 		} {
 			slot = target.methodSlot(settings[\slot]);
 		};

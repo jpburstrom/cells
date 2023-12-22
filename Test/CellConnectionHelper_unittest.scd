@@ -43,7 +43,7 @@ if (thisThread.isKindOf(Routine).not) {
 		[(test: "one"), (test: "two")]: ["one", "two"],
 	].pairsDo { |input, output|
 		var msg = "Does work: Building connection template, input %".format(input.cs);
-		input = c.buildConnectionTemplateForKey(input, \test).collect(_[\test]);
+		input = c.unfoldTemplateForKey(input, \test).collect(_[\test]);
 		test.assertEquals(input, output, msg);
 	};
 	[
@@ -51,7 +51,7 @@ if (thisThread.isKindOf(Routine).not) {
 	].pairsDo { |input, output|
 		var msg = "Does not work: Nested connection template, input %".format(input.cs);
 		test.assertException({
-			c.buildConnectionTemplateForKey(input, \test).collect(_[\test])
+			c.unfoldTemplateForKey(input, \test).collect(_[\test])
 		}, Error, msg);
 	};
 
@@ -60,7 +60,7 @@ if (thisThread.isKindOf(Routine).not) {
 	test.assertEquals(c.resolveKey("Cl_cellConnectionHelperTest_test_something", sourceEnvir), Cl(\cellConnectionHelperTest)[\test][\something], "Resolving global key");
 	test.assert(c.resolveKey("Cl_cellConnectionHelperTest_test_something", sourceEnvir).notNil, "Global key is not nil");
 
-	c.resolveConnections(sourceEnvir, targetEnvir);
+	c.resolveTemplate(sourceEnvir, targetEnvir);
 	test.assertEquals(c.resolvedTemplate[0][\source], sourceEnvir[\freq], "Symbol source resolves");
 	test.assertEquals(c.resolvedTemplate[0][\target], targetEnvir[\main][\def][\freq], "String path with underscores resolves");
 	c.connect;
@@ -70,7 +70,7 @@ if (thisThread.isKindOf(Routine).not) {
 	test.assertEquals(c.connections.size, 0, "Disconnect removes connections");
 
 	c = CellConnectionHelper((unipolar: "main_def_freq"));
-	c.resolveConnections(sourceEnvir, targetEnvir);
+	c.resolveTemplate(sourceEnvir, targetEnvir);
 	test.assertEquals(c.resolvedTemplate[0][\source], sourceEnvir[\unipolar], "Symbol source resolves");
 	c.connect;
 	test.assert(c.resolvedTemplate[0][\remap], "Connection between different specs sets remap to true");
@@ -81,7 +81,7 @@ if (thisThread.isKindOf(Routine).not) {
 
 
 	c = CellConnectionHelper((unipolar: (target: "main_def_freq", remap: [220, 440], signal: \hoho)));
-	c.resolveConnections(sourceEnvir, targetEnvir);
+	c.resolveTemplate(sourceEnvir, targetEnvir);
 	test.assertEquals(c.resolvedTemplate[0][\target], targetEnvir[\main][\def][\freq], "Dictionary target resolves");
 	test.assertEquals(c.resolvedTemplate[0][\signal], \hoho, "signal settings propagates to resolved template");
 	c.connect;
@@ -90,7 +90,7 @@ if (thisThread.isKindOf(Routine).not) {
 	c.disconnect;
 
 	c = CellConnectionHelper((unipolar: ["main_def_freq", (target: "main_def_bipolar", remap: false)]));
-	c.resolveConnections(sourceEnvir, targetEnvir);
+	c.resolveTemplate(sourceEnvir, targetEnvir);
 	test.assertEquals(c.resolvedTemplate.size, 2, "Target Array creates multiple connections");
 	test.assertEquals(c.resolvedTemplate[0][\target], targetEnvir[\main][\def][\freq], "First target, string inside array, resolves");
 	test.assertEquals(c.resolvedTemplate[1][\target], targetEnvir[\main][\def][\bipolar], "Second target, dictionary inside array, resolves");
@@ -102,12 +102,12 @@ if (thisThread.isKindOf(Routine).not) {
 	c.disconnect;
 
 	c = CellConnectionHelper((unipolar: [(target: "main_def_freq", x:1), (target: "main_def_bipolar", x:2)]));
-	c.resolveConnections(sourceEnvir, targetEnvir);
+	c.resolveTemplate(sourceEnvir, targetEnvir);
 	test.assert(c.resolvedTemplate[0][\x] != c.resolvedTemplate[1][\x], "Array of dictionaries propagates different values to resolved template");
 	c.disconnect;
 
 	c = CellConnectionHelper((#[unipolar, freq]: ["main_def_freq", "main_def_amp"]));
-	c.resolveConnections(sourceEnvir, targetEnvir);
+	c.resolveTemplate(sourceEnvir, targetEnvir);
 	test.assertEquals(c.resolvedTemplate.size, 4, "Many-to-many connection works as expected");
 	c.disconnect;
 	test.assertEquals(c.resolvedTemplate.size, 4, "Many-to-many connection works as expected");
