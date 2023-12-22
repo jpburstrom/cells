@@ -1,7 +1,7 @@
 CellConnectionHelper {
 	classvar <globalDictionaryClasses;
-	var template;
-	var connections;
+	var <>template;
+	var <resolvedTemplate, <connections;
 
 	*initClass {
 		globalDictionaryClasses = [\Pdef, \Ndef, \Tdef,
@@ -14,35 +14,42 @@ CellConnectionHelper {
 	}
 
 	init {
-		connections = ConnectionList();
+		connections = List();
 	}
 
-	connect { |source, targetsOrSettings|
-		var settings = this.parseConnectionTargets(targetsOrSettings, source);
-		settings.do { |target|
+	connect {
+		if (resolvedTemplate.isNil) {
+			Error("CellConnectionHelper: template not resolved").throw;
+		};
+		if (connections.notEmpty) {
+			"CellConnectionHelper: Already connected".warn;
+			^this
+		};
+		resolvedTemplate.do { |settings|
 			connections.add(
 				ConnectionList.make {
-					this.prMakeConnection(source, target);
+					this.makeConnection(settings);
 				}
 			)
 		}
 	}
 
 	disconnect {
-		connections.free;
+		connections.do(_.free);
+		connections = nil;
 	}
 	
 
-	resolve { |sourceEnvir, targetEnvir, throw=true|
+	resolveConnections { |sourceEnvir, targetEnvir, throw=true|
 		var allConnections = this.collectConnections(template);
-		^this.resolveObjectKeys(allConnections, sourceEnvir, targetEnvir, throw);
+		resolvedTemplate = this.resolveObjectKeys(allConnections, sourceEnvir, targetEnvir, throw);
 	}
 
 	collectConnections { |object|
 		var out;
 		object.pairsDo({ |source, target|
-			source = this.makeDictionaryListForKey(source, \source);
-			target = this.makeDictionaryListForKey(target, \target);
+			source = this.buildConnectionTemplateForKey(source, \source);
+			target = this.buildConnectionTemplateForKey(target, \target);
 			source.do { |src|
 				target.do { |tgt|
 					out = out.add(IdentityDictionary().putAll(src, tgt));
@@ -62,25 +69,26 @@ CellConnectionHelper {
 		^object
 	}
 
-	makeDictionaryListForKey { |obj, objectKey|
+	buildConnectionTemplateForKey { |obj, objectKey, asArray=true|
 		case { obj.isKindOf(Dictionary) } {
 			//Support for (key: array_of_keys) with common settings
 			var keyValue = obj.removeAt(objectKey);
-			^this.makeDictionaryListForKey(keyValue, objectKey).collect { |o|
+			var out = this.buildConnectionTemplateForKey(keyValue, objectKey, true).collect { |o|
 				o.putAll(obj);
-			}
+			};
+			^if (asArray) { out  } { out.unbubble };
 		} { obj.isArray and: { obj.isString.not } } {
 			^obj.collect({ |item|
-				item.debug("item");
-				if (item.isKindOf(Dictionary).not) {
-					IdentityDictionary[objectKey.asSymbol -> item]
-				} {
-					item
-				}
+				this.buildConnectionTemplateForKey(item, objectKey, false)
 			});
 
 		} {
-			^obj = [IdentityDictionary[objectKey.asSymbol -> obj.copy]];
+			obj = IdentityDictionary[
+				objectKey.asSymbol -> obj.copy,
+				\slot -> \value
+			];
+
+			^if (asArray) { [obj] } { obj };
 		};
 	}
 
@@ -93,7 +101,7 @@ CellConnectionHelper {
 			var path;
 			key = key.asString;
 			path = key.split($_).collect(_.asSymbol);
-			if (this.globalDictionaryClasses.includes(path[0])) {
+			if (this.class.globalDictionaryClasses.includes(path[0])) {
 				var cl = path.removeAt(0);
 				var k = path.removeAt(0);
 				envir = cl.asClass.new(k);
@@ -112,5 +120,66 @@ CellConnectionHelper {
 			};
 		};
 		^out
+	}
+
+	makeConnection { |settings|
+		var signal = settings[\source];
+		var target = settings[\target];
+		var slot, connection;
+		//If target spec exists, remap by default
+		//But don't remap to the same spec
+		//We're using a local remap variable so we can re-evaluate settings[\remap] each connection
+		if (settings[\remap].isNil) {
+			var targetSpec = target.tryPerform(\spec);
+			settings[\remap] = targetSpec.notNil and: { targetSpec != signal.tryPerform(\spec) };
+		};
+		if (settings[\remap] != false) {
+			if (settings[\signal].notNil and: { settings[\signal] != \input  }) {
+				"MakroParam connection: Remap is set, forcing 'input' signal. Remove 'signal' from settings to avoid this warning.".warn
+			};
+			settings[\signal] = \input;
+		};
+		if (settings[\signal].notNil) {
+			signal = signal.signal(settings[\signal]);
+		};
+		if (#[value, input].includes(settings[\slot])) {
+			slot = target.valueSlot(settings[\slot]);
+		} {
+			slot = target.methodSlot(settings[\slot]);
+		};
+		connection = signal.connectTo(slot);
+		settings[\filter] !? { |filter|
+			if (filter.isArray) {
+				//Assuming array
+				connection.filter("|obj, what, val| val.inclusivelyBetween(%, %);".format(*filter).compile);
+			} {
+				connection.filter(filter);
+			}
+		};
+		settings[\clip] !? { |inRange|
+			connection.transform("|obj, what, val| [obj, what, val.clip(%, %)];".format(*inRange).compile);
+		};
+		if (settings[\remap] != false) {
+			var spec = settings[\remap];
+			if ( spec == true ) {
+				spec = target.spec;
+			} {
+				spec = spec.asSpec;
+			};
+			connection.transform({ |obj, what, val| [obj, what, spec.map(val)] });
+		};
+		settings[\transform] !? { |transform|
+			if (transform.isString) {
+				connection.transform("|obj, what, val|
+							[obj, what, %];
+						".format(transform).compile)
+			} {
+				connection.transform(transform);
+			}
+		};
+		settings[\collapse] !? { |seconds|
+			connection.collapse(seconds);
+		};
+		^connection;
 	}
 }
