@@ -9,7 +9,8 @@ CellConnectionHelper : CellTemplateHelper {
 	}
 
 	init {
-		super.init;
+		keyLabel = \source;
+		valueLabel = \target;
 		connections = List();
 	}
 
