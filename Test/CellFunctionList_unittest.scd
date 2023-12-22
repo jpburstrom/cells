@@ -1,6 +1,6 @@
 if (thisThread.isKindOf(Routine).not) {
 	UnitTestScript.reset;
-	UnitTestScript("CellTemplate", thisProcess.nowExecutingPath).runScript;
+	UnitTestScript("CellFunctionList", thisProcess.nowExecutingPath).runScript;
 	UnitTestScript.passVerbosity = UnitTestScript.brief;
 };
 
