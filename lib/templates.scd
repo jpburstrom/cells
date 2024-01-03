@@ -276,9 +276,12 @@ Cell.addTemplate(\makro, {
 		~makro.free;
 	};
 
-	~getSnapshot = {
-		~snapshot[\makro] = ~makro.getSnapshot;
-		~snapshot;
+	~getSnapshot = { |func|
+		var out = IdentityDictionary();
+		~makro.getSnapshot({ |snap|
+			out[\makro] = snap;
+			func.(out);
+		})
 	};
 
 	~setSnapshot = { |snapshot|
@@ -583,9 +586,16 @@ Cell.addTemplate(\track, {
 		~trackFader.fadeOut(dur, curve);
 	};
 
-	~getSnapshot = {
-		~snapshot[\track] = ~track.getSnapshot;
-		~snapshot;
+	~getSnapshot = { |func|
+		var out = IdentityDictionary();
+		if (~track.notNil) {
+			~track.getSnapshot({ |snap|
+				out[\track] = snap;
+				func.(out);
+			})
+		} {
+			func.(out)
+		}
 	};
 
 	~setSnapshot = { |snapshot|

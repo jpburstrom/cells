@@ -501,4 +501,30 @@ Cell : EnvironmentRedirect {
 			}
 		}.inEnvir)
 	}
+
+	getSnapshot { |func|
+		var out = IdentityDictionary();
+		var getSnap = this[\getSnapshot];
+		var count = getSnap.size;
+		//Function has count == 0, CellFunctionList should have count > 0
+		//If getSnapshot is anything else, return it directly
+		//this might be stupid
+		if (getSnap.isFunction.not and: { count == 0 }) {
+			^func.(this[\getSnapshot])
+		};
+		this.use {
+			~getSnapshot.value({ |snap|
+				out.putAll(snap);
+				count = count - 1;
+				count.postln;
+				if (count <= 0) {
+					func.value(out);
+				}
+			})
+		}
+	}
+
+	setSnapshot { |snapshot|
+		this.use { this[\setSnapshot].value(snapshot) }
+	}
 }
