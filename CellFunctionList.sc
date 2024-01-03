@@ -103,6 +103,8 @@ CellFunctionList : FunctionList {
 		}
 	}
 
+	size { ^array.size }
+
 	keys {
 		^indexMap.keys
 	}
