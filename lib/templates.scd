@@ -264,7 +264,7 @@ Cell.addTemplate(\makro, {
 	};
 
 	~templatePostLoad = { |cell|
-		~connections.resolveConnections(~makro, cell);
+		~connections.resolveTemplate(~makro, cell);
 		~connections.connect;
 	};
 
