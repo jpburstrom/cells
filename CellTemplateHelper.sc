@@ -1,6 +1,6 @@
 CellTemplateHelper {
 
-	var <>template, <resolvedTemplate;
+	var <>template, <resolvedTemplate=false;
 	var <>keyLabel, <>valueLabel;
 
 	*new { |template|

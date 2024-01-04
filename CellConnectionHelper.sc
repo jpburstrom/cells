@@ -15,7 +15,8 @@ CellConnectionHelper : CellTemplateHelper {
 	}
 
 	connect {
-		if (resolvedTemplate.isNil) {
+		//TODO this could be nil if no connections are made?
+		if (resolvedTemplate == false) {
 			Error("CellConnectionHelper: template not resolved").throw;
 		};
 		if (connections.notEmpty) {
