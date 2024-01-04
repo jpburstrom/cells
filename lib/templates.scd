@@ -718,7 +718,7 @@ Cell.addTemplate(\buffer, {
 
 		obj = obj.value;
 
-		if (obj.isKindOf(String)) {
+		if (obj.isString) {
 			obj = IdentityDictionary[\path->obj];
 		};
 
