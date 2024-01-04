@@ -474,12 +474,37 @@ Cell.addTemplate(\track, {
 
 
 	~templateInit = { |cell|
-		//For now, just copy ~settings[\numChannels] to track.
-		//TODO make it possible to pass in user settings that's not part of the
-		//track settings template
-		~trackTemplate[\settings] = ~settings[\track].collect({ |v|
-			v.value;
-		});
+		var createMakro = ~settings[\track][\autoParamMakros] == true;
+		~trackTemplate.keysValuesDo { |grpKey, grp|
+			grp.keysValuesDo { |slotKey, slot|
+				var tmpl;
+				if (slot.isKindOf(TrackSlot)) {
+					tmpl = slot.settings;
+				} {
+					//Association
+					//FIXME this doesn't work
+					tmpl = slot.value;
+				};
+				tmpl.keysValuesDo { |paramKey, param|
+					//create makro, camelcase identifier
+					//map to underscore separated identifier (track_*_*_*)
+					//which will resolve to a TrackSlotParam
+					//in templatePostLoad
+					if (createMakro and: { param.isKindOf(TrackSlotParam) }) {
+						var ucfirst = { |c, i| if (i == 0) { c.toUpper } { c } };
+						var key = "%%%".format(grpKey,
+							slotKey.asString.collect(ucfirst),
+							paramKey.asString.collect(ucfirst)
+						).asSymbol;
+						var trackKey = "track_%_%_%".format(grpKey, slotKey, paramKey).asSymbol;
+						//TODO better way to guess spec
+						var spec = (param.spec ? paramKey.asSpec).asSpec;
+						~makro[key] = spec.asMakroParam;
+						~connectionTemplate[key] = trackKey;
+					}
+				}
+			}
+		};
 	};
 
 	~templateLoad = { |cell|
