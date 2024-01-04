@@ -483,7 +483,12 @@ Cell.addTemplate(\track, {
 	};
 
 	~templateLoad = { |cell|
-		~track = Track.newFromDict(~trackTemplate.deepCopy);
+		var tmpl = ~trackTemplate.deepCopy;
+		var settings = ~settings[\track].collect({ |v|
+			v.value
+		});
+		var type = settings[\type];
+		~track = Track.newFromDict(tmpl, settings, type);
 		~track.addDependant(cell);
 		~trackFader = TrackAuto(~track, ~track[~settings[\track][\fadeGroup], ~settings[\track][\fadeSlot]], ~settings[\track][\fadeParam]);
 		if (~settings[\fadeIn] != 0) {
